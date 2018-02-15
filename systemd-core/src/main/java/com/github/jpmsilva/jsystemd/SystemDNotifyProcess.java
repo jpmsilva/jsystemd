@@ -41,8 +41,9 @@ public class SystemDNotifyProcess implements SystemDNotify {
   public boolean usable() {
     if (!"root".equals(System.getProperty("user.name"))) {
       logger.info(
-        "The SystemD notification mode using systemd-notify is only reliable when running under root, "
-          + "(see https://lists.freedesktop.org/archives/systemd-devel/2014-April/018797.html)");
+          "The SystemD notification mode using systemd-notify is only reliable when running under "
+              + "root, (see "
+              + "https://lists.freedesktop.org/archives/systemd-devel/2014-April/018797.html)");
       return false;
     }
 
@@ -50,9 +51,12 @@ public class SystemDNotifyProcess implements SystemDNotify {
       return new ProcessBuilder("systemd-notify", "--version").start().waitFor() == 0;
     } catch (Exception e) {
       if (logger.isDebugEnabled()) {
-        logger.info("Could not perform a test call of systemd-notify, make sure if can be found in the process $PATH", e);
+        logger.info(
+            "Could not perform a test call of systemd-notify, review your $PATH",
+            e);
       } else {
-        logger.info("Could not perform a test call of systemd-notify, make sure if can be found in the process $PATH");
+        logger.info(
+            "Could not perform a test call of systemd-notify, review your $PATH");
       }
     }
     return false;
@@ -73,9 +77,9 @@ public class SystemDNotifyProcess implements SystemDNotify {
     try {
       int exitCode;
       if (pid > 0) {
-        exitCode = new ProcessBuilder("systemd-notify", message, "--pid=" + pid).start().waitFor();
+        exitCode = runCommand("systemd-notify", message, "--pid=" + pid);
       } else {
-        exitCode = new ProcessBuilder("systemd-notify", message).start().waitFor();
+        exitCode = runCommand("systemd-notify", message);
       }
       if (exitCode != 0) {
         failed(exitCode);
@@ -83,6 +87,10 @@ public class SystemDNotifyProcess implements SystemDNotify {
     } catch (IOException | InterruptedException e) {
       failed(e);
     }
+  }
+
+  private int runCommand(String... commands) throws IOException, InterruptedException {
+    return new ProcessBuilder(commands).start().waitFor();
   }
 
   private void failed(Exception e) {

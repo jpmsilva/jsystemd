@@ -17,8 +17,8 @@
 package com.github.jpmsilva.jsystemd;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -48,7 +48,8 @@ public class SystemDAutoConfiguration {
   }
 
   @Bean
-  ApplicationListener<ApplicationReadyEvent> systemDApplicationListener(SystemDNotify systemDNotify) {
+  ApplicationListener<ApplicationReadyEvent> systemDApplicationListener(
+      SystemDNotify systemDNotify) {
     return new SystemDApplicationListener(systemDNotify);
   }
 
@@ -74,10 +75,13 @@ public class SystemDAutoConfiguration {
     private final List<SystemDNotifyStatus> statuses;
 
     @Autowired
-    SystemDAutoStatusConfiguration(SystemDNotify systemDNotify, ObjectProvider<List<SystemDNotifyStatus>> statuses) {
+    SystemDAutoStatusConfiguration(SystemDNotify systemDNotify,
+        ObjectProvider<List<SystemDNotifyStatus>> statuses) {
       this.systemDNotify = systemDNotify;
       this.statuses = Optional.ofNullable(statuses.getIfAvailable())
-          .map(t -> t.stream().sorted(new AnnotationAwareOrderComparator()).collect(Collectors.toList()))
+          .map(t -> t.stream()
+              .sorted(new AnnotationAwareOrderComparator())
+              .collect(Collectors.toList()))
           .orElse(new ArrayList<>());
     }
 
@@ -88,10 +92,10 @@ public class SystemDAutoConfiguration {
           .filter(IS_NOT_NULL)
           .filter(IS_NOT_EMPTY)
           .collect(Collectors.toList())
-          .listIterator()));
+          .iterator()));
     }
 
-    private String join(ListIterator<String> statusMessages) {
+    private String join(Iterator<String> statusMessages) {
       StringBuilder builder = new StringBuilder();
       if (statusMessages.hasNext()) {
         builder.append(statusMessages.next());
@@ -105,7 +109,8 @@ public class SystemDAutoConfiguration {
 
   }
 
-  private static class SystemDApplicationListener implements ApplicationListener<ApplicationReadyEvent>, Ordered {
+  private static class SystemDApplicationListener implements
+      ApplicationListener<ApplicationReadyEvent>, Ordered {
 
     private final SystemDNotify systemDNotify;
 

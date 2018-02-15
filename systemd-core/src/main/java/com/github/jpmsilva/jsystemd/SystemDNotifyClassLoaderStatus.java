@@ -27,9 +27,9 @@ public class SystemDNotifyClassLoaderStatus implements SystemDNotifyStatus {
   @Override
   public String status() {
     return Optional.ofNullable(ManagementFactory.getClassLoadingMXBean())
-      .map(ClassLoadingMXBean::getLoadedClassCount)
-      .map(t -> String.format("Classes: %d", t))
-      .orElse("");
+        .map(ClassLoadingMXBean::getLoadedClassCount)
+        .map(t -> String.format("Classes: %d", t))
+        .orElse("");
   }
 
 }

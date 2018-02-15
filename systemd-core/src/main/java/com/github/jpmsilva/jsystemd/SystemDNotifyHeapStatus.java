@@ -28,9 +28,9 @@ public class SystemDNotifyHeapStatus implements SystemDNotifyStatus {
   @Override
   public String status() {
     return Optional.ofNullable(ManagementFactory.getMemoryMXBean())
-      .map(MemoryMXBean::getHeapMemoryUsage)
-      .map(t -> String.format("Heap: %s/%s",
-        BinaryByteUnit.format(t.getUsed()), BinaryByteUnit.format(t.getCommitted())))
-      .orElse("");
+        .map(MemoryMXBean::getHeapMemoryUsage)
+        .map(t -> String.format("Heap: %s/%s",
+            BinaryByteUnit.format(t.getUsed()), BinaryByteUnit.format(t.getCommitted())))
+        .orElse("");
   }
 }

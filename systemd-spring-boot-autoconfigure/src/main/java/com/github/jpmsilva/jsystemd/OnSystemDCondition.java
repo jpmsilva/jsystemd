@@ -27,12 +27,15 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 
 class OnSystemDCondition extends SpringBootCondition {
 
-  private final ConditionMessage.Builder message = ConditionMessage.forCondition(ConditionalOnSystemD.class);
+  private final ConditionMessage.Builder message = ConditionMessage
+      .forCondition(ConditionalOnSystemD.class);
 
   @Override
-  public ConditionOutcome getMatchOutcome(ConditionContext context, AnnotatedTypeMetadata metadata) {
+  public ConditionOutcome getMatchOutcome(ConditionContext context,
+      AnnotatedTypeMetadata metadata) {
     if (hasNotifySocket()) {
-      return ConditionOutcome.match(message.foundExactly("Environment property NOTIFY_SOCKET points to " + notifySocket()));
+      return ConditionOutcome.match(
+          message.foundExactly("Environment property NOTIFY_SOCKET points to " + notifySocket()));
     }
     return ConditionOutcome.noMatch(message.notAvailable("Environment property NOTIFY_SOCKET"));
   }

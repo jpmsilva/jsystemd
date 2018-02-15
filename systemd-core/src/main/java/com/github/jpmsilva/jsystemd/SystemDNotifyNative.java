@@ -26,9 +26,11 @@ public class SystemDNotifyNative implements SystemDNotify {
 
   private static final Logger logger = getLogger(lookup().lookupClass());
 
+  private static boolean initialized = false;
+
   @Override
   public boolean usable() {
-    return Library.isInited();
+    return initialized;
   }
 
   @Override
@@ -47,28 +49,23 @@ public class SystemDNotifyNative implements SystemDNotify {
     Library.sd_notify(0, message);
   }
 
+  @SuppressWarnings("checkstyle:ParameterName")
   private static class Library {
-
-    private static boolean inited = false;
 
     static {
       try {
         Native.register("systemd");
-        inited = true;
+        initialized = true;
       } catch (UnsatisfiedLinkError e) {
         if (logger.isDebugEnabled()) {
           logger.info("Could not initialize native systemd library", e);
         } else {
-          logger.info("Could not initialize native systemd library", e);
+          logger.info("Could not initialize native systemd library");
         }
       }
     }
 
     public static native int sd_notify(int unset_environment, String state);
-
-    static boolean isInited() {
-      return inited;
-    }
 
   }
 

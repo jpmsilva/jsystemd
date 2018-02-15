@@ -28,7 +28,7 @@ limitations under the License.
     <version>0.0.1-SNAPSHOT</version>
   </parent>
 
-  <name>jSystemD autoconfiguration module for Spring Boot</name>
+  <name>jSystemD auto-configuration module for Spring Boot</name>
 
   <dependencies>
     <dependency>

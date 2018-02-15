@@ -10,7 +10,7 @@ may contain interesting and reusable components for other projects.
 When using Spring Boot, simply import the `com.github.jpmsilva.jsystemd:systemd-spring-boot-starter`
 dependency into your own project.
 
-Autoconfiguration takes place through the class `com.github.jpmsilva.jsystemd.SystemDAutoConfiguration`,
+Auto-configuration takes place through the class `com.github.jpmsilva.jsystemd.SystemDAutoConfiguration`,
 and will notify SystemD once your application starts up successfully, via a event listener for events
 of type `org.springframework.boot.context.event.ApplicationReadyEvent`.
 
@@ -18,7 +18,7 @@ When using this library, you service units can now use `Type=notify` under the `
 
 ### Additional status
 
-When using the autoconfiguration class, beans of type `com.github.jpmsilva.jsystemd.SystemDNotify`
+When using the auto-configuration class, beans of type `com.github.jpmsilva.jsystemd.SystemDNotify`
 will also be searched and used to compose an extended status message, that SystemD will display
 when using the `status` verb.
 
@@ -53,7 +53,7 @@ interface with `libsystemd` natively.
 
 You can however suppress this dependency, in which case the strategy will switch to calling the `systemd-notify` binary,
 by spawning a separate process. This method has it's drawbacks, though, as the service type must now allow
-all processes from the cgroup to send notification messages, by adding the configuration `NotifyAccess=all` to the `[Service]`
+all processes from the same process group to send notification messages, by adding the configuration `NotifyAccess=all` to the `[Service]`
 key.
 
 In the absence of `systemd-notify` you will see a message `Disabling SystemD notifications` in the log, and no integration will
@@ -61,7 +61,7 @@ be performed.
 
 ### Conditionals
 
-The autoconfiguration class is guarded with `com.github.jpmsilva.jsystemd.ConditionalOnSystemD`.
+The auto-configuration class is guarded with `com.github.jpmsilva.jsystemd.ConditionalOnSystemD`.
 This conditional searches for the presence of the environment property `NOTIFY_SOCKET` (see the
 [sd_notify documentation](https://www.freedesktop.org/software/systemd/man/sd_notify.html#%24NOTIFY_SOCKET) for
 more details).

@@ -45,10 +45,6 @@ limitations under the License.
     </license>
   </licenses>
 
-  <prerequisites>
-    <maven>3.5.2</maven>
-  </prerequisites>
-
   <scm>
     <url>https://github.com/jpmsilva/jsystemd</url>
     <connection>scm:git:https://github.com/jpmsilva/jsystemd.git</connection>
@@ -70,6 +66,7 @@ limitations under the License.
 
     <!-- Plugin version -->
     <plugin.compiler.version>3.7.0</plugin.compiler.version>
+    <plugin.checkstyle.version>3.0.0</plugin.checkstyle.version>
 
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -126,8 +123,39 @@ limitations under the License.
             <target>${java.version}</target>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-checkstyle-plugin</artifactId>
+          <version>${plugin.checkstyle.version}</version>
+          <dependencies>
+            <dependency>
+              <groupId>com.puppycrawl.tools</groupId>
+              <artifactId>checkstyle</artifactId>
+              <version>8.8</version>
+            </dependency>
+          </dependencies>
+        </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>validate</phase>
+            <goals>
+              <goal>checkstyle</goal>
+            </goals>
+            <configuration>
+              <failsOnError>true</failsOnError>
+              <configLocation>google_checkstyle.xml</configLocation>
+              <consoleOutput>true</consoleOutput>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
 
   <modules>
