@@ -1,0 +1,36 @@
+<root>
+  <item name='com.github.jpmsilva.jsystemd.ConditionalOnSystemd'>
+    <annotation name='java.lang.SuppressWarnings'>
+      <val val="&quot;WeakerAccess&quot;"/>
+    </annotation>
+  </item>
+  <item
+    name='com.github.jpmsilva.jsystemd.SystemdAutoConfiguration org.springframework.context.ApplicationListener&lt;org.springframework.boot.context.event.ApplicationReadyEvent&gt; systemdApplicationReadyListener(com.github.jpmsilva.jsystemd.Systemd) 0'>
+    <annotation name='java.lang.SuppressWarnings'>
+      <val val="&quot;SpringJavaInjectionPointsAutowiringInspection&quot;"/>
+    </annotation>
+  </item>
+  <item
+    name='com.github.jpmsilva.jsystemd.SystemdAutoConfiguration.SystemdStatusProviderConfiguration SystemdStatusProviderConfiguration(com.github.jpmsilva.jsystemd.Systemd, org.springframework.beans.factory.ObjectProvider&lt;java.util.List&lt;com.github.jpmsilva.jsystemd.SystemdNotifyStatusProvider&gt;&gt;) 0'>
+    <annotation name='java.lang.SuppressWarnings'>
+      <val val="&quot;SpringJavaInjectionPointsAutowiringInspection&quot;"/>
+    </annotation>
+  </item>
+  <item
+    name='com.github.jpmsilva.jsystemd.SystemdNotifyApplicationRunStatusProvider.ApplicationState'>
+    <annotation name='java.lang.SuppressWarnings'>
+      <val val="&quot;unused&quot;"/>
+    </annotation>
+  </item>
+  <item
+    name='com.github.jpmsilva.jsystemd.SystemdSpringApplicationRunListener SystemdSpringApplicationRunListener(org.springframework.boot.SpringApplication, java.lang.String[]) 1'>
+    <annotation name='java.lang.SuppressWarnings'>
+      <val val="&quot;unused&quot;"/>
+    </annotation>
+  </item>
+  <item name='com.github.jpmsilva.jsystemd.SystemdSpringApplicationRunListener void started()'>
+    <annotation name='java.lang.SuppressWarnings'>
+      <val val="&quot;unused&quot;"/>
+    </annotation>
+  </item>
+</root>

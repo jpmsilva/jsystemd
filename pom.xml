@@ -25,8 +25,8 @@ limitations under the License.
   <version>0.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <name>jSystemD Parent</name>
-  <description>Aggregator project for all jSystemD modules</description>
+  <name>jsystemd Parent</name>
+  <description>Aggregator project for all jsystemd modules</description>
 
   <inceptionYear>2017</inceptionYear>
 
@@ -159,8 +159,8 @@ limitations under the License.
   </build>
 
   <modules>
-    <module>systemd-core</module>
-    <module>systemd-spring-boot-autoconfigure</module>
-    <module>systemd-spring-boot-starter</module>
+    <module>jsystemd-core</module>
+    <module>jsystemd-spring-boot-autoconfigure</module>
+    <module>jsystemd-spring-boot-starter</module>
   </modules>
 </project>

@@ -1,0 +1,46 @@
+<root>
+  <item
+    name='com.github.jpmsilva.jsystemd.Systemd void addStatusProviders(int, java.util.List&lt;com.github.jpmsilva.jsystemd.SystemdNotifyStatusProvider&gt;)'>
+    <annotation name='java.lang.SuppressWarnings'>
+      <val val="&quot;WeakerAccess&quot;"/>
+    </annotation>
+  </item>
+  <item name='com.github.jpmsilva.jsystemd.Systemd void watchdog()'>
+    <annotation name='java.lang.SuppressWarnings'>
+      <val val="&quot;WeakerAccess&quot;"/>
+    </annotation>
+  </item>
+  <item
+    name='com.github.jpmsilva.jsystemd.Systemd.Builder com.github.jpmsilva.jsystemd.Systemd.Builder extendTimeout(long, java.util.concurrent.TimeUnit, long)'>
+    <annotation name='java.lang.SuppressWarnings'>
+      <val val="&quot;unused&quot;"/>
+    </annotation>
+  </item>
+  <item
+    name='com.github.jpmsilva.jsystemd.Systemd.Builder com.github.jpmsilva.jsystemd.Systemd.Builder watchdog(long, java.util.concurrent.TimeUnit)'>
+    <annotation name='java.lang.SuppressWarnings'>
+      <val val="&quot;unused&quot;"/>
+    </annotation>
+  </item>
+  <item name='com.github.jpmsilva.jsystemd.SystemdNotifyNative.Library initialized'>
+    <annotation name='java.lang.SuppressWarnings'>
+      <val val="&quot;CanBeFinal&quot;"/>
+    </annotation>
+  </item>
+  <item
+    name='com.github.jpmsilva.jsystemd.SystemdNotifyNative.Library int sd_notify(int, java.lang.String)'>
+    <annotation name='java.lang.SuppressWarnings'>
+      <val val="&quot;UnusedReturnValue&quot;"/>
+    </annotation>
+  </item>
+  <item name='com.github.jpmsilva.jsystemd.SystemdNotifyProcess'>
+    <annotation name='java.lang.SuppressWarnings'>
+      <val val="&quot;unused&quot;"/>
+    </annotation>
+  </item>
+  <item name='com.github.jpmsilva.jsystemd.SystemdNotifyStatusProvider'>
+    <annotation name='java.lang.SuppressWarnings'>
+      <val val="&quot;WeakerAccess&quot;"/>
+    </annotation>
+  </item>
+</root>
