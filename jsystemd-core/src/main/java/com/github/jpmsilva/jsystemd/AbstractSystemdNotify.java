@@ -50,5 +50,4 @@ abstract class AbstractSystemdNotify implements SystemdNotify {
   }
 
   protected abstract void invoke(String message);
-
 }

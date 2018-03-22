@@ -19,16 +19,18 @@ package com.github.jpmsilva.jsystemd;
 import static java.lang.invoke.MethodHandles.lookup;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import com.github.jpmsilva.groundlevel.utilities.StringUtilities;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
-import java.util.StringJoiner;
 import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import org.apache.tomcat.util.modeler.Registry;
 import org.slf4j.Logger;
+import org.springframework.core.annotation.Order;
 
+@Order(1000)
 public class SystemdNotifyTomcatStatusProvider implements SystemdNotifyStatusProvider {
 
   private static final Logger logger = getLogger(lookup().lookupClass());
@@ -83,13 +85,7 @@ public class SystemdNotifyTomcatStatusProvider implements SystemdNotifyStatusPro
         logger.warn("Could not read object {}", objectName, e);
       }
     }
-    return join(statuses);
-  }
-
-  private String join(List<ConnectorStatus> connectorStatuses) {
-    StringJoiner stringJoiner = new StringJoiner(", ");
-    connectorStatuses.forEach(t -> stringJoiner.add(t.toString()));
-    return stringJoiner.toString();
+    return StringUtilities.join(", ", statuses);
   }
 
   private static class ConnectorStatus {
@@ -102,7 +98,5 @@ public class SystemdNotifyTomcatStatusProvider implements SystemdNotifyStatusPro
     public String toString() {
       return String.format("%s: %d/%d", name, currentThreadsBusy, currentThreadCount);
     }
-
   }
-
 }

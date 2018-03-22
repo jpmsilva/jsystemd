@@ -20,14 +20,12 @@ import com.github.jpmsilva.jsystemd.SystemdNotifyApplicationRunStatusProvider.Ap
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringApplicationRunListener;
 import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.core.annotation.Order;
 import org.springframework.core.env.ConfigurableEnvironment;
 
 /**
- * A Spring Application Run Listener that sets up a {@link SystemdNotifyApplicationRunStatusProvider}
- * to provide status updates of the current phase of the application life cycle.
+ * A Spring Application Run Listener that sets up a {@link SystemdNotifyApplicationRunStatusProvider} to provide status updates of the current phase of the
+ * application life cycle.
  */
-@Order
 public class SystemdSpringApplicationRunListener implements SpringApplicationRunListener {
 
   private SystemdNotifyApplicationRunStatusProvider provider;
@@ -47,16 +45,6 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
           .map(SystemdApplicationContextInitializer::getSystemd)
           .orElseThrow(() -> new IllegalStateException("Expected systemd to be available"));
       provider = new SystemdNotifyApplicationRunStatusProvider(systemd);
-    }
-  }
-
-  /**
-   * Legacy Spring Boot 1.4 method, provided here to ensure that the library works under previous
-   * versions.
-   */
-  public void started() {
-    if (null != provider) {
-      provider.state(ApplicationState.STARTING);
     }
   }
 
@@ -101,10 +89,46 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
   }
 
   /**
+   * Legacy Spring Boot 1.4 method, provided here to ensure that the library works under previous versions.
+   *
+   * <p>Called immediately when the run method has first started. Can be used for very early initialization.
+   */
+  public void started() {
+    if (null != provider) {
+      provider.state(ApplicationState.STARTING);
+    }
+  }
+
+  /**
    * {@inheritDoc}
    */
   @Override
-  public void finished(ConfigurableApplicationContext context, Throwable exception) {
+  public void started(ConfigurableApplicationContext context) {
   }
 
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void running(ConfigurableApplicationContext context) {
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public void failed(ConfigurableApplicationContext context, Throwable exception) {
+  }
+
+
+  /**
+   * Legacy Spring Boot 1.5 method, provided here to ensure that the library works under previous versions.
+   *
+   * <p>Called immediately before the run method finishes.
+   *
+   * @param context the application context or null if a failure occurred before the context was created
+   * @param exception any run exception or null if run completed successfully.
+   */
+  public void finished(ConfigurableApplicationContext context, Throwable exception) {
+  }
 }

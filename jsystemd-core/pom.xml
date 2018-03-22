@@ -29,6 +29,9 @@ limitations under the License.
   </parent>
 
   <name>jsystemd</name>
+  <description>
+    The core library for systemd integration. This component does not depend on Spring, and can be used in any Java application.
+  </description>
 
   <dependencies>
     <dependency>
@@ -42,6 +45,11 @@ limitations under the License.
     <dependency>
       <groupId>com.jakewharton.byteunits</groupId>
       <artifactId>byteunits</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.github.jpmsilva.groundlevel-utilities</groupId>
+      <artifactId>groundlevel-utilities</artifactId>
+      <version>1.0.0</version>
     </dependency>
   </dependencies>
 </project>

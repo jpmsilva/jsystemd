@@ -27,8 +27,7 @@ public class SystemdNotifyHeapStatusProvider implements SystemdNotifyStatusProvi
   public String status() {
     return Optional.ofNullable(ManagementFactory.getMemoryMXBean())
         .map(MemoryMXBean::getHeapMemoryUsage)
-        .map(t -> String.format("Heap: %s/%s",
-            BinaryByteUnit.format(t.getUsed()), BinaryByteUnit.format(t.getCommitted())))
+        .map(t -> String.format("Heap: %s/%s", BinaryByteUnit.format(t.getUsed()), BinaryByteUnit.format(t.getCommitted())))
         .orElse("");
   }
 }

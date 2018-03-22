@@ -18,6 +18,7 @@ package com.github.jpmsilva.jsystemd;
 
 import static com.github.jpmsilva.jsystemd.SystemdUtilities.isUnderSystemd;
 import static com.github.jpmsilva.jsystemd.SystemdUtilities.notifySocket;
+import static com.github.jpmsilva.jsystemd.SystemdUtilities.osName;
 
 import org.springframework.boot.autoconfigure.condition.ConditionMessage;
 import org.springframework.boot.autoconfigure.condition.ConditionMessage.Builder;
@@ -31,17 +32,12 @@ class OnSystemdCondition extends SpringBootCondition {
   private final Builder message = ConditionMessage.forCondition(ConditionalOnSystemd.class);
 
   @Override
-  public ConditionOutcome getMatchOutcome(ConditionContext context,
-      AnnotatedTypeMetadata metadata) {
-    String osName = System.getProperty("os.name");
+  public ConditionOutcome getMatchOutcome(ConditionContext context, AnnotatedTypeMetadata metadata) {
     if (isUnderSystemd()) {
       return ConditionOutcome.match(message.foundExactly(
-          "Operating system is " + osName + " and NOTIFY_SOCKET points to \"" + notifySocket()
-              + "\""));
+          "Operating system is " + osName() + " and NOTIFY_SOCKET points to \"" + notifySocket() + "\""));
     }
     return ConditionOutcome.noMatch(message.notAvailable(
-        "Operating system is " + osName + " and NOTIFY_SOCKET points to \"" + notifySocket()
-            + "\""));
+        "Operating system is " + osName() + " and NOTIFY_SOCKET points to \"" + notifySocket() + "\""));
   }
-
 }

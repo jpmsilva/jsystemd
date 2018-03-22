@@ -36,6 +36,7 @@ final class SystemdNotifyProcess extends AbstractSystemdNotify {
           "The notification mode using systemd-notify may not be reliable without CAP_SYS_ADMIN."
               + " If the service fails to start correctly under Systemd, you may need to add \n"
               + "\tAmbientCapabilities=CAP_SYS_ADMIN\n"
+              + "to the service unit.\n"
               + "See https://www.freedesktop.org/software/systemd/man/systemd-notify.html");
     }
 
@@ -61,8 +62,7 @@ final class SystemdNotifyProcess extends AbstractSystemdNotify {
     try {
       int exitCode;
       if (pid > 0) {
-        exitCode = new ProcessBuilder("systemd-notify", message, "--pid", String.valueOf(pid))
-            .start().waitFor();
+        exitCode = new ProcessBuilder("systemd-notify", message, "--pid", String.valueOf(pid)).start().waitFor();
       } else {
         exitCode = new ProcessBuilder("systemd-notify", message).start().waitFor();
       }
@@ -89,5 +89,4 @@ final class SystemdNotifyProcess extends AbstractSystemdNotify {
   private void failed(int exitCode) {
     logger.warn("Systemd call failed with error code {}", exitCode);
   }
-
 }

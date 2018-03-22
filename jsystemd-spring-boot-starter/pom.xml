@@ -29,12 +29,24 @@ limitations under the License.
   </parent>
 
   <name>jsystemd starter module for Spring Boot</name>
+  <description>Spring boot starter that provides auto-configuration for jsystemd, effectively turning any spring boot application into a proper system service
+    under systemd.
+  </description>
 
   <dependencies>
     <dependency>
       <groupId>${project.groupId}</groupId>
-      <artifactId>jsystemd-spring-boot-autoconfigure</artifactId>
+      <artifactId>jsystemd-core</artifactId>
       <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-autoconfigure</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-tomcat</artifactId>
+      <optional>true</optional>
     </dependency>
   </dependencies>
 </project>

@@ -19,11 +19,11 @@ package com.github.jpmsilva.jsystemd;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import com.github.jpmsilva.groundlevel.utilities.StringUtilities;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.StringJoiner;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -54,7 +54,7 @@ public class Systemd implements AutoCloseable {
   /**
    * Adds the status providers to the the list of providers in the specified position.
    *
-   * @param index to position to add the provides
+   * @param index position to add the providers
    * @param providers the providers to add
    */
   public void addStatusProviders(int index, SystemdNotifyStatusProvider... providers) {
@@ -74,7 +74,7 @@ public class Systemd implements AutoCloseable {
   /**
    * Adds the status providers to the the list of providers in the specified position.
    *
-   * @param index to position to add the provides
+   * @param index position to add the providers
    * @param providers the providers to add
    */
   public void addStatusProviders(int index, List<SystemdNotifyStatusProvider> providers) {
@@ -119,7 +119,7 @@ public class Systemd implements AutoCloseable {
    * updates.
    */
   public void updateStatus() {
-    systemdNotify.status(join(providers.stream()
+    systemdNotify.status(StringUtilities.join(", ", providers.stream()
         .map(SystemdNotifyStatusProvider::status)
         .filter(Objects::nonNull)
         .filter(t -> t.length() > 0)
@@ -176,12 +176,6 @@ public class Systemd implements AutoCloseable {
     }
   }
 
-  private String join(List<String> statusMessages) {
-    StringJoiner stringJoiner = new StringJoiner(", ");
-    statusMessages.forEach(stringJoiner::add);
-    return stringJoiner.toString();
-  }
-
   /**
    * Specialized build class of {@link Systemd} objects.
    */
@@ -233,6 +227,7 @@ public class Systemd implements AutoCloseable {
       if (timeout < 0) {
         throw new IllegalArgumentException("Illegal value for timeout");
       }
+
       this.extendTimeoutPeriod = period;
       this.extendTimeoutUnit = unit;
       this.extendTimeoutTimeout = timeout;
@@ -253,6 +248,7 @@ public class Systemd implements AutoCloseable {
       if (null == unit) {
         throw new NullPointerException("Unit must not be null");
       }
+
       this.watchdogPeriod = period;
       this.watchdogUnit = unit;
       return this;
@@ -276,6 +272,5 @@ public class Systemd implements AutoCloseable {
       }
       return systemd;
     }
-
   }
 }

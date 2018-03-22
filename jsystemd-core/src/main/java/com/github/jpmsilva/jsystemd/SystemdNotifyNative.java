@@ -43,7 +43,5 @@ final class SystemdNotifyNative extends AbstractSystemdNotify {
     }
 
     public static native int sd_notify(int unset_environment, String state);
-
   }
-
 }

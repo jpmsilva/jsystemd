@@ -22,5 +22,4 @@ class SystemdNotifyNoop implements SystemdNotify {
   public boolean usable() {
     return false;
   }
-
 }

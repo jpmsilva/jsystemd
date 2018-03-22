@@ -41,7 +41,6 @@ public class SystemdNotifyApplicationRunStatusProvider implements SystemdNotifyS
   }
 
   public enum ApplicationState {
-    STARTING, ENVIRONMENT_PREPARED, CONTEXT_PREPARED, CONTEXT_LOADED, FINISHED
+    STARTING, ENVIRONMENT_PREPARED, CONTEXT_PREPARED, CONTEXT_LOADED
   }
-
 }

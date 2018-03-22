@@ -49,6 +49,7 @@ public class SystemdApplicationContextInitializer implements ApplicationContextI
    */
   @Override
   public void initialize(ConfigurableApplicationContext applicationContext) {
+    SystemdUtilities.logSystemdStatus();
     if (SystemdUtilities.isUnderSystemd()) {
       ConfigurableListableBeanFactory beanFactory = applicationContext.getBeanFactory();
       provider.setFactory(beanFactory);
@@ -65,5 +66,4 @@ public class SystemdApplicationContextInitializer implements ApplicationContextI
   public Systemd getSystemd() {
     return systemd;
   }
-
 }

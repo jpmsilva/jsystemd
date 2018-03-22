@@ -18,8 +18,8 @@ package com.github.jpmsilva.jsystemd;
 
 import static java.util.Collections.emptyList;
 
+import com.github.jpmsilva.groundlevel.utilities.QuackAnnotationAwareOrderComparator;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -27,13 +27,14 @@ import java.util.TreeSet;
 import org.apache.catalina.startup.Tomcat;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ApplicationListener;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.Ordered;
-import org.springframework.core.annotation.AnnotationAwareOrderComparator;
+import org.springframework.core.annotation.Order;
 
 @Configuration
 @ConditionalOnSystemd
@@ -46,16 +47,19 @@ public class SystemdAutoConfiguration {
   }
 
   @Bean
+  @Order(-3000)
   SystemdNotifyStatusProvider systemdNotifyHeapStatus() {
     return new SystemdNotifyHeapStatusProvider();
   }
 
   @Bean
+  @Order(-2000)
   SystemdNotifyStatusProvider systemdNotifyNonHeapStatus() {
     return new SystemdNotifyNonHeapStatusProvider();
   }
 
   @Bean
+  @Order(-1000)
   SystemdNotifyStatusProvider systemdNotifyClassLoaderStatus() {
     return new SystemdNotifyClassLoaderStatusProvider();
   }
@@ -64,29 +68,14 @@ public class SystemdAutoConfiguration {
   static class SystemdStatusProviderConfiguration {
 
     @Autowired
-    SystemdStatusProviderConfiguration(Systemd systemd,
+    SystemdStatusProviderConfiguration(Systemd systemd, ConfigurableApplicationContext applicationContext,
         ObjectProvider<List<SystemdNotifyStatusProvider>> statuses) {
-      Set<SystemdNotifyStatusProvider> newProviders = new TreeSet<>(getSourceProviderComparator());
+      ConfigurableListableBeanFactory beanFactory = applicationContext.getBeanFactory();
+      Set<SystemdNotifyStatusProvider> newProviders = new TreeSet<>(new QuackAnnotationAwareOrderComparator(beanFactory));
       newProviders.addAll(Optional.ofNullable(statuses.getIfAvailable()).orElse(emptyList()));
       newProviders.addAll(systemd.getStatusProviders());
       systemd.setStatusProviders(new ArrayList<>(newProviders));
     }
-
-    private Comparator<Object> getSourceProviderComparator() {
-      return (new AnnotationAwareOrderComparator()).withSourceProvider(obj -> {
-        if (obj instanceof SystemdNotifyHeapStatusProvider) {
-          return (Ordered) () -> -3000;
-        }
-        if (obj instanceof SystemdNotifyNonHeapStatusProvider) {
-          return (Ordered) () -> -2000;
-        }
-        if (obj instanceof SystemdNotifyClassLoaderStatusProvider) {
-          return (Ordered) () -> -1000;
-        }
-        return obj;
-      });
-    }
-
   }
 
   @Configuration
@@ -97,8 +86,6 @@ public class SystemdAutoConfiguration {
     SystemdNotifyTomcatStatusProvider systemdNotifyTomcatStatusProvider() {
       return new SystemdNotifyTomcatStatusProvider();
     }
-
   }
-
 }
 

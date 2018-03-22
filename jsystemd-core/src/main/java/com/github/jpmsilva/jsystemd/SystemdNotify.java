@@ -33,5 +33,4 @@ interface SystemdNotify {
 
   default void watchdog() {
   }
-
 }

@@ -29,8 +29,7 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.core.annotation.Order;
 
 @Order(-4000)
-public class SystemdNotifyApplicationContextStatusProvider implements SystemdNotifyStatusProvider,
-    BeanPostProcessor {
+public class SystemdNotifyApplicationContextStatusProvider implements SystemdNotifyStatusProvider, BeanPostProcessor {
 
   private final Systemd systemd;
   private ConfigurableListableBeanFactory factory;
@@ -76,15 +75,18 @@ public class SystemdNotifyApplicationContextStatusProvider implements SystemdNot
     return bean;
   }
 
-  private int getSingletonCount() {
+  private long getSingletonCount() {
     return definitions.entrySet().stream()
-        .filter(t -> factory.containsSingleton(t.getKey()))
+        .filter(containsSingleton(factory))
         .map(Entry::getKey)
-        .collect(Collectors.toList()).size();
+        .count();
   }
 
   private Predicate<? super String> isSingleton(ConfigurableListableBeanFactory factory) {
     return beanName -> factory.getBeanDefinition(beanName).isSingleton();
   }
 
+  private Predicate<? super Map.Entry<String, BeanDefinition>> containsSingleton(ConfigurableListableBeanFactory factory) {
+    return entry -> factory.containsSingleton(entry.getKey());
+  }
 }

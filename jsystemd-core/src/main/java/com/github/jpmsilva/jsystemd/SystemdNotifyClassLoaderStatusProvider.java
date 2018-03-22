@@ -29,5 +29,4 @@ public class SystemdNotifyClassLoaderStatusProvider implements SystemdNotifyStat
         .map(t -> String.format("Classes: %d", t))
         .orElse("");
   }
-
 }

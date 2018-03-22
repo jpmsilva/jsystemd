@@ -27,8 +27,7 @@ public class SystemdNotifyNonHeapStatusProvider implements SystemdNotifyStatusPr
   public String status() {
     return Optional.ofNullable(ManagementFactory.getMemoryMXBean())
         .map(MemoryMXBean::getNonHeapMemoryUsage)
-        .map(t -> String.format("Non-heap: %s/%s",
-            BinaryByteUnit.format(t.getUsed()), BinaryByteUnit.format(t.getCommitted())))
+        .map(t -> String.format("Non-heap: %s/%s", BinaryByteUnit.format(t.getUsed()), BinaryByteUnit.format(t.getCommitted())))
         .orElse("");
   }
 }

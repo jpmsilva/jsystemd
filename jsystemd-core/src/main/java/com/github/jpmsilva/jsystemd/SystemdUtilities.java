@@ -16,7 +16,14 @@
 
 package com.github.jpmsilva.jsystemd;
 
+import static java.lang.invoke.MethodHandles.lookup;
+import static org.slf4j.LoggerFactory.getLogger;
+
+import org.slf4j.Logger;
+
 class SystemdUtilities {
+
+  private static final Logger logger = getLogger(lookup().lookupClass());
 
   private static final String notifySocket = System.getenv("NOTIFY_SOCKET");
   private static final String[] implClasses = new String[]{
@@ -24,6 +31,30 @@ class SystemdUtilities {
       "com.github.jpmsilva.jsystemd.SystemdNotifyProcess"
   };
   private static final SystemdNotify SYSTEMD_NOTIFY = initSystemdNotify();
+
+  static void logSystemdStatus() {
+    if (isLinux()) {
+      logger.info("Chosen systemd notify library: \"" + SYSTEMD_NOTIFY
+          + "\", OS name: \"" + osName() + "\""
+          + ", notify socket: \"" + notifySocket() + "\"");
+    }
+  }
+
+  static boolean isUnderSystemd() {
+    return isLinux() && hasNotifySocket();
+  }
+
+  static String osName() {
+    return System.getProperty("os.name");
+  }
+
+  static String notifySocket() {
+    return notifySocket;
+  }
+
+  static SystemdNotify getSystemdNotify() {
+    return SYSTEMD_NOTIFY;
+  }
 
   private static SystemdNotify initSystemdNotify() {
     SystemdNotify systemdNotify = new SystemdNotifyNoop();
@@ -35,24 +66,8 @@ class SystemdUtilities {
           break;
         }
       }
-      System.out.println(
-          "Choosing systemd notify library " + systemdNotify.getClass().getName()
-              + ", OS name: " + System.getProperty("os.name")
-              + ", notify socket: " + notifySocket);
     }
     return systemdNotify;
-  }
-
-  static boolean isUnderSystemd() {
-    return System.getProperty("os.name").toLowerCase().startsWith("linux") && null != notifySocket;
-  }
-
-  static String notifySocket() {
-    return notifySocket;
-  }
-
-  static SystemdNotify getSystemdNotify() {
-    return SYSTEMD_NOTIFY;
   }
 
   @SuppressWarnings("checkstyle:EmptyCatchBlock")
@@ -67,4 +82,11 @@ class SystemdUtilities {
     return null;
   }
 
+  private static boolean isLinux() {
+    return osName().toLowerCase().startsWith("linux");
+  }
+
+  private static boolean hasNotifySocket() {
+    return null != notifySocket;
+  }
 }
