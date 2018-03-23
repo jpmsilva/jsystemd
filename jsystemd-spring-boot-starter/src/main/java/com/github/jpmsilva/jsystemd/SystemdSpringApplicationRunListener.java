@@ -131,7 +131,6 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
    * @param context the application context or null if a failure occurred before the context was created
    * @param exception any run exception or null if run completed successfully.
    */
-  @SuppressWarnings("unused")
   public void finished(ConfigurableApplicationContext context, Throwable exception) {
   }
 }

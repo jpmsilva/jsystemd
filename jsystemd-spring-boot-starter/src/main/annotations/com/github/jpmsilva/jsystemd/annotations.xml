@@ -28,6 +28,12 @@
       <val val="&quot;unused&quot;"/>
     </annotation>
   </item>
+  <item
+    name='com.github.jpmsilva.jsystemd.SystemdSpringApplicationRunListener void finished(org.springframework.context.ConfigurableApplicationContext, java.lang.Throwable)'>
+    <annotation name='java.lang.SuppressWarnings'>
+      <val val="&quot;unused&quot;"/>
+    </annotation>
+  </item>
   <item name='com.github.jpmsilva.jsystemd.SystemdSpringApplicationRunListener void started()'>
     <annotation name='java.lang.SuppressWarnings'>
       <val val="&quot;unused&quot;"/>
