@@ -36,6 +36,13 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 
+/**
+ * Auto-configuration class for systemd integration.
+ *
+ * <p>Sets up some basic {@link SystemdNotifyStatusProvider} as well.
+ *
+ * @author Joao Silva
+ */
 @Configuration
 @ConditionalOnSystemd
 public class SystemdAutoConfiguration {
@@ -78,6 +85,10 @@ public class SystemdAutoConfiguration {
     }
   }
 
+
+  /**
+   * Auto-configuration class for systemd integration when running under Tomcat.
+   */
   @Configuration
   @ConditionalOnClass(Tomcat.class)
   public static class SystemdAutoTomcatConfiguration {

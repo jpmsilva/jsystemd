@@ -21,7 +21,15 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import org.slf4j.Logger;
 
-class SystemdUtilities {
+/**
+ * Generic utilities for the systemd library. Not meant to be used directly or instantiated.
+ *
+ * @author Joao Silva
+ */
+abstract class SystemdUtilities {
+
+  private SystemdUtilities() {
+  }
 
   private static final Logger logger = getLogger(lookup().lookupClass());
 
@@ -32,6 +40,12 @@ class SystemdUtilities {
   };
   private static final SystemdNotify SYSTEMD_NOTIFY = initSystemdNotify();
 
+  /**
+   * Logs information regarding the status of the integration with systemd. Meant to be used once the application has done sufficient work to initialize
+   * logging.
+   *
+   * <p>Only logs information when running under Linux.
+   */
   static void logSystemdStatus() {
     if (isLinux()) {
       logger.info("Chosen systemd notify library: \"" + SYSTEMD_NOTIFY
@@ -40,18 +54,42 @@ class SystemdUtilities {
     }
   }
 
+  /**
+   * Allows determining if the process is running under systemd.
+   *
+   * <p>A process is said to be running under systemd if <ol> <li>the operating system name contains {@code linux}.</li> <li>an environment property {@code
+   * NOTIFY_SOCKET} exists</li> <li>an implementation of {@link SystemdNotify} was able to initialize itself</li> </ol>
+   *
+   * @return {@code true} if the process is running under systemd
+   * @see SystemdNotify#usable()
+   */
   static boolean isUnderSystemd() {
     return isLinux() && hasNotifySocket();
   }
 
+  /**
+   * Allows determining the current OS name.
+   *
+   * @return the contents of the system property {@code os.name}
+   */
   static String osName() {
     return System.getProperty("os.name");
   }
 
+  /**
+   * Allows determining the current systemd notify socket.
+   *
+   * @return the contents of the environment property {@code NOTIFY_SOCKET}
+   */
   static String notifySocket() {
     return notifySocket;
   }
 
+  /**
+   * Allows determining the current {@link SystemdNotify} implementation.
+   *
+   * @return the current {@link SystemdNotify} implementation
+   */
   static SystemdNotify getSystemdNotify() {
     return SYSTEMD_NOTIFY;
   }

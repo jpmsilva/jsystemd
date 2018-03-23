@@ -25,6 +25,9 @@ import org.springframework.core.env.ConfigurableEnvironment;
 /**
  * A Spring Application Run Listener that sets up a {@link SystemdNotifyApplicationRunStatusProvider} to provide status updates of the current phase of the
  * application life cycle.
+ *
+ * @author Joao Silva
+ * @see SpringApplicationRunListener
  */
 public class SystemdSpringApplicationRunListener implements SpringApplicationRunListener {
 
@@ -119,7 +122,6 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
   @Override
   public void failed(ConfigurableApplicationContext context, Throwable exception) {
   }
-
 
   /**
    * Legacy Spring Boot 1.5 method, provided here to ensure that the library works under previous versions.

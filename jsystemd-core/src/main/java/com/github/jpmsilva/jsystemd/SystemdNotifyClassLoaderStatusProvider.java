@@ -20,8 +20,16 @@ import java.lang.management.ClassLoadingMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.Optional;
 
+/**
+ * Implementation of {@link SystemdNotifyStatusProvider} that provides information regarding loaded classes.
+ *
+ * @author Joao Silva
+ */
 public class SystemdNotifyClassLoaderStatusProvider implements SystemdNotifyStatusProvider {
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String status() {
     return Optional.ofNullable(ManagementFactory.getClassLoadingMXBean())

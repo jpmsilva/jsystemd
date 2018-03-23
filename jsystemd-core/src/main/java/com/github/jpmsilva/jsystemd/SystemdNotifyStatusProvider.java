@@ -20,6 +20,9 @@ package com.github.jpmsilva.jsystemd;
  * Interface that represents any object that can contribute with status information regarding the running process to the service supervisor.
  *
  * <p>Status providers can be registered through {@link com.github.jpmsilva.jsystemd.Systemd#addStatusProviders(SystemdNotifyStatusProvider...)}
+ *
+ * @author Joao Silva
+ * @see Systemd#addStatusProviders(SystemdNotifyStatusProvider...)
  */
 public interface SystemdNotifyStatusProvider {
 

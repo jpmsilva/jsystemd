@@ -30,6 +30,12 @@ import org.apache.tomcat.util.modeler.Registry;
 import org.slf4j.Logger;
 import org.springframework.core.annotation.Order;
 
+/**
+ * Implementation of {@link SystemdNotifyStatusProvider} that provides information regarding Tomcat thread pools.
+ *
+ * @author Joao Silva
+ * @see Registry
+ */
 @Order(1000)
 public class SystemdNotifyTomcatStatusProvider implements SystemdNotifyStatusProvider {
 

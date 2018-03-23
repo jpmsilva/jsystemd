@@ -18,28 +18,53 @@ package com.github.jpmsilva.jsystemd;
 
 import org.springframework.core.annotation.Order;
 
+/**
+ * Implementation of {@link SystemdNotifyStatusProvider} that provides information regarding the Spring Boot application startup sequence state.
+ *
+ * @author Joao Silva
+ * @see SystemdSpringApplicationRunListener
+ * @see org.springframework.boot.SpringApplicationRunListener
+ */
 @Order(-5000)
 public class SystemdNotifyApplicationRunStatusProvider implements SystemdNotifyStatusProvider {
 
   private final Systemd systemd;
   private String status = "";
 
+  /**
+   * Creates a new instance using the provided {@link Systemd} as the integration point.
+   *
+   * <p>This constructor automatically registers the created instance as a status provider in the {@link Systemd} passed as a parameter.
+   *
+   * @param systemd the {@link Systemd} to send status information to
+   */
   SystemdNotifyApplicationRunStatusProvider(Systemd systemd) {
     this.systemd = systemd;
     this.systemd.addStatusProviders(0, this);
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String status() {
     return systemd.isReady() ? "" : status;
   }
 
+  /**
+   * Updates the current application startup sequence state of the application, sending the update to systemd as well.
+   *
+   * @param state the current application startup sequence state
+   */
   void state(ApplicationState state) {
     status = String.format("State: %s", state.toString().toLowerCase().replace("_", " "));
     systemd.extendTimeout();
     systemd.updateStatus();
   }
 
+  /**
+   * Enumeration of supported application startup sequence state
+   */
   public enum ApplicationState {
     STARTING, ENVIRONMENT_PREPARED, CONTEXT_PREPARED, CONTEXT_LOADED
   }

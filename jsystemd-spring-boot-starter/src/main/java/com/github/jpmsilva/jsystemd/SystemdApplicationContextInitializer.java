@@ -23,10 +23,11 @@ import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ConfigurableApplicationContext;
 
 /**
- * An application context initializer that is responsible for creating a {@link Systemd} instance
- * and registering it in the application context under the name <code>systemd</code>. Additionally
- * it also creates an instance of {@link SystemdNotifyApplicationContextStatusProvider} and
- * registers it in the application context under the name <code>systemdNotifyApplicationContextStatusProvider</code>.
+ * An application context initializer that is responsible for creating a {@link Systemd} instance and registering it in the application context under the name
+ * {@code systemd}. Additionally it also creates an instance of {@link SystemdNotifyApplicationContextStatusProvider} and registers it in the application
+ * context under the name {@code systemdNotifyApplicationContextStatusProvider}.
+ *
+ * @author Joao Silva
  */
 public class SystemdApplicationContextInitializer implements ApplicationContextInitializer {
 
@@ -44,8 +45,7 @@ public class SystemdApplicationContextInitializer implements ApplicationContextI
   }
 
   /**
-   * Registers a {@link Systemd} and a {@link SystemdNotifyApplicationContextStatusProvider} in the
-   * application context.
+   * Registers a {@link Systemd} and a {@link SystemdNotifyApplicationContextStatusProvider} in the application context.
    */
   @Override
   public void initialize(ConfigurableApplicationContext applicationContext) {

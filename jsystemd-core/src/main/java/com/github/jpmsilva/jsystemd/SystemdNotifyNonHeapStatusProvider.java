@@ -21,8 +21,16 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.Optional;
 
+/**
+ * Implementation of {@link SystemdNotifyStatusProvider} that provides information regarding the non-heap zone of the memory.
+ *
+ * @author Joao Silva
+ */
 public class SystemdNotifyNonHeapStatusProvider implements SystemdNotifyStatusProvider {
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String status() {
     return Optional.ofNullable(ManagementFactory.getMemoryMXBean())

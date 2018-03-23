@@ -16,21 +16,53 @@
 
 package com.github.jpmsilva.jsystemd;
 
+/**
+ * Interface of all systemd integration library implementations.
+ *
+ * @author Joao Silva
+ * @see <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html">sd_notify specification</a>
+ */
 interface SystemdNotify {
 
+  /**
+   * If this library is usable under current process conditions (operating system type, systemd available, etc...).
+   *
+   * @return {@code true} if and only if the library can be used
+   */
   default boolean usable() {
     return false;
   }
 
+  /**
+   * Notifies systemd that the service unit has completed startup.
+   *
+   * @see <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html#READY=1">ready</a>
+   */
   default void ready() {
   }
 
+  /**
+   * Notifies systemd about the current status of the program.
+   *
+   * @see <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html#STATUS=%E2%80%A6">status</a>
+   */
   default void status(String message) {
   }
 
+  /**
+   * Notifies systemd to extend the startup or shutdown timeout for the specified microseconds. Available in systemd versions 236 and above.
+   *
+   * @see <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html#EXTEND_TIMEOUT_USEC=%E2%80%A6">extend timeout</a>
+   * @see <a href="https://github.com/systemd/systemd/blob/master/NEWS">news</a>
+   */
   default void extendTimeout(long timeout) {
   }
 
+  /**
+   * Notifies systemd that the program is still alive and well.
+   *
+   * @see <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html#WATCHDOG=1">watchdog</a>
+   */
   default void watchdog() {
   }
 }

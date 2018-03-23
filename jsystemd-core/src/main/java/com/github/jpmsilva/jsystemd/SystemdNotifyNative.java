@@ -18,13 +18,26 @@ package com.github.jpmsilva.jsystemd;
 
 import com.sun.jna.Native;
 
+/**
+ * Implementation of {@link AbstractSystemdNotify} that interfaces with systemd through a native library.
+ *
+ * @author Joao Silva
+ * @see Native#register(String)
+ * @see <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html">sd_notify</a>
+ */
 final class SystemdNotifyNative extends AbstractSystemdNotify {
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean usable() {
     return Library.initialized;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   protected void invoke(String message) {
     Library.sd_notify(0, message);
   }

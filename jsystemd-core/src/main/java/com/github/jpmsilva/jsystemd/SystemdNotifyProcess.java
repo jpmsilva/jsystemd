@@ -23,12 +23,20 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import org.slf4j.Logger;
 
+/**
+ * Implementation of {@link AbstractSystemdNotify} that interfaces with systemd through the systemd-notify binary and using process spawning.
+ *
+ * @author Joao Silva
+ */
 final class SystemdNotifyProcess extends AbstractSystemdNotify {
 
   private static final Logger logger = getLogger(lookup().lookupClass());
 
   private int pid;
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public boolean usable() {
     if (!"root".equals(System.getProperty("user.name"))) {
@@ -58,6 +66,9 @@ final class SystemdNotifyProcess extends AbstractSystemdNotify {
     return false;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   protected void invoke(String message) {
     try {
       int exitCode;

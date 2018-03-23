@@ -23,6 +23,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import org.springframework.context.annotation.Conditional;
 
+/**
+ * {@link Conditional} that only matches when the process is running under systemd.
+ *
+ * @author Joao Silva
+ * @see SystemdUtilities#isUnderSystemd()
+ * @see OnSystemdCondition
+ */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented

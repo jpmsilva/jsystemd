@@ -24,9 +24,17 @@ import org.springframework.boot.autoconfigure.condition.ConditionMessage;
 import org.springframework.boot.autoconfigure.condition.ConditionMessage.Builder;
 import org.springframework.boot.autoconfigure.condition.ConditionOutcome;
 import org.springframework.boot.autoconfigure.condition.SpringBootCondition;
+import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 
+/**
+ * {@link Condition} that checks if the program is running under systemd.
+ *
+ * @author Joao Silva
+ * @see SystemdUtilities#isUnderSystemd()
+ * @see ConditionalOnSystemd
+ */
 class OnSystemdCondition extends SpringBootCondition {
 
   private final Builder message = ConditionMessage.forCondition(ConditionalOnSystemd.class);

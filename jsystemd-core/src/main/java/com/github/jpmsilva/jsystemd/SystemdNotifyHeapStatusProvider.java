@@ -21,6 +21,11 @@ import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.Optional;
 
+/**
+ * Implementation of {@link SystemdNotifyStatusProvider} that provides information regarding the heap zone of the memory.
+ *
+ * @author Joao Silva
+ */
 public class SystemdNotifyHeapStatusProvider implements SystemdNotifyStatusProvider {
 
   @Override

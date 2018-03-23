@@ -30,6 +30,16 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+/**
+ * The main systemd integration class.
+ *
+ * <p>Implements and exposes most of the {@code sd_notify} protocol, as well as some convenience methods.
+ *
+ * <p>Since this object sets up some timers for periodic communication with systemd, client code is expected to call {@link #close()} then they no longer need
+ * Systemd instances. The implementation also implements {@link AutoCloseable} to ease implementation in DI containers that support the semantic.
+ *
+ * @author Joao Silva
+ */
 public class Systemd implements AutoCloseable {
 
   private final SystemdNotify systemdNotify = SystemdUtilities.getSystemdNotify();
@@ -60,7 +70,6 @@ public class Systemd implements AutoCloseable {
   public void addStatusProviders(int index, SystemdNotifyStatusProvider... providers) {
     addStatusProviders(index, Arrays.asList(providers));
   }
-
 
   /**
    * Adds the status providers to the end of the list of providers.
@@ -114,9 +123,8 @@ public class Systemd implements AutoCloseable {
   }
 
   /**
-   * Forces the current status to be calculated and sent to systemd. The method {@link
-   * Systemd.Builder#enableStatusUpdate(long, TimeUnit)} can be used to enable periodic status
-   * updates.
+   * Forces the current status to be calculated and sent to systemd. The method {@link Systemd.Builder#enableStatusUpdate(long, TimeUnit)} can be used to enable
+   * periodic status updates.
    */
   public void updateStatus() {
     systemdNotify.status(StringUtilities.join(", ", providers.stream()
@@ -127,9 +135,8 @@ public class Systemd implements AutoCloseable {
   }
 
   /**
-   * Forces the timeout to be extended. The amount of time to extend is specified when the Systemd
-   * instance is build with {@link Systemd.Builder#enableExtendTimeout(long, TimeUnit, long)}, or 29
-   * seconds if otherwise. Timeout extensions can only be sent during startup.
+   * Forces the timeout to be extended. The amount of time to extend is specified when the Systemd instance is build with {@link
+   * Systemd.Builder#enableExtendTimeout(long, TimeUnit, long)}, or 29 seconds if otherwise. Timeout extensions can only be sent during startup.
    */
   public void extendTimeout() {
     if (!ready) {
@@ -138,8 +145,8 @@ public class Systemd implements AutoCloseable {
   }
 
   /**
-   * Forces the watchdog timestamp to be updated. The method {@link Systemd.Builder#enableWatchdog(long,
-   * TimeUnit)} can be used to enable periodic watchdog updates.
+   * Forces the watchdog timestamp to be updated. The method {@link Systemd.Builder#enableWatchdog(long, TimeUnit)} can be used to enable periodic watchdog
+   * updates.
    */
   public void watchdog() {
     systemdNotify.watchdog();
@@ -157,7 +164,7 @@ public class Systemd implements AutoCloseable {
   /**
    * Returns if the application as completed startup.
    *
-   * @return <code>true</code> if and only if {@link #ready} has been called.
+   * @return {@code true} if and only if {@link #ready} has been called.
    */
   public boolean isReady() {
     return ready;

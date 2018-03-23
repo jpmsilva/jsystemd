@@ -28,6 +28,12 @@ import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.core.annotation.Order;
 
+/**
+ * Implementation of {@link SystemdNotifyStatusProvider} that provides information regarding the bean creation progress of a bean factory.
+ *
+ * @author Joao Silva
+ * @see BeanPostProcessor
+ */
 @Order(-4000)
 public class SystemdNotifyApplicationContextStatusProvider implements SystemdNotifyStatusProvider, BeanPostProcessor {
 
@@ -36,20 +42,38 @@ public class SystemdNotifyApplicationContextStatusProvider implements SystemdNot
   private Map<String, BeanDefinition> definitions;
   private String status = "";
 
+  /**
+   * Creates a new instance using the provided {@link Systemd} as the integration point.
+   *
+   * <p>This constructor automatically registers the created instance as a status provider in the {@link Systemd} passed as a parameter.
+   *
+   * @param systemd the {@link Systemd} to send status information to
+   */
   SystemdNotifyApplicationContextStatusProvider(Systemd systemd) {
     this.systemd = systemd;
     this.systemd.addStatusProviders(this);
   }
 
+  /**
+   * Sets the bean factory once it's available.
+   *
+   * @param factory the bean factory to provide status information about
+   */
   void setFactory(ConfigurableListableBeanFactory factory) {
     this.factory = factory;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public String status() {
     return systemd.isReady() ? "" : status;
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Object postProcessBeforeInitialization(Object bean, String beanName)
       throws BeansException {
@@ -70,6 +94,9 @@ public class SystemdNotifyApplicationContextStatusProvider implements SystemdNot
     }
   }
 
+  /**
+   * {@inheritDoc}
+   */
   @Override
   public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
     return bean;

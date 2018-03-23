@@ -16,10 +16,20 @@
 
 package com.github.jpmsilva.jsystemd;
 
+/**
+ * Implementation of a {@link SystemdNotify} that does nothing. This implements a disabled state for systemd integration.
+ *
+ * @author Joao Silva
+ */
 class SystemdNotifyNoop implements SystemdNotify {
 
+  /**
+   * This implementation is always usable.
+   *
+   * @return {@code true} always
+   */
   @Override
   public boolean usable() {
-    return false;
+    return true;
   }
 }

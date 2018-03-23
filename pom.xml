@@ -97,6 +97,11 @@ limitations under the License.
       <url>file://tmp/staging</url>
     </site>
     -->
+    <site>
+      <id>github-pages-sites</id>
+      <name>Deployment through GitHub's site deployment plugin</name>
+      <url>_versions/${project.version}</url>
+    </site>
   </distributionManagement>
 
   <dependencyManagement>
@@ -154,6 +159,13 @@ limitations under the License.
           <configuration>
             <skipDeploy>true</skipDeploy>
           </configuration>
+          <dependencies>
+            <dependency>
+              <groupId>org.apache.maven.doxia</groupId>
+              <artifactId>doxia-module-markdown</artifactId>
+              <version>1.8</version>
+            </dependency>
+          </dependencies>
         </plugin>
 
         <plugin>
@@ -163,14 +175,14 @@ limitations under the License.
           <configuration>
             <server>github</server>
             <message>New site version: ${project.version}</message>
-            <merge>false</merge>
+            <merge>true</merge>
             <repositoryOwner>jpmsilva</repositoryOwner>
             <repositoryName>jsystemd-site</repositoryName>
             <branch>refs/heads/master</branch>
             <includes>
               <include>**/*</include>
             </includes>
-            <noJekyll>true</noJekyll>
+            <path>${project.distributionManagement.site.url}</path>
           </configuration>
         </plugin>
 
