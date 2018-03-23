@@ -1,0 +1,13 @@
+#!/bin/bash
+
+SCRIPT=$(readlink -f "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
+
+set -e
+
+git checkout master && \
+git pull && \
+git checkout development && \
+git pull && \
+"${SCRIPTPATH}"/mvnw jgitflow:release-start && \
+"${SCRIPTPATH}"/mvnw jgitflow:release-finish
