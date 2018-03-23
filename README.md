@@ -10,11 +10,8 @@ may contain interesting and reusable components for other projects.
 When using Spring Boot, simply import the `com.github.jpmsilva.jsystemd:systemd-spring-boot-starter`
 dependency into your own project.
 
-Auto-configuration takes place through the class `com.github.jpmsilva.jsystemd.SystemdAutoConfiguration`,
-and will notify systemd once your application starts up successfully, via a event listener for events
-of type `org.springframework.boot.context.event.ApplicationReadyEvent`.
-
-When using this library, you service units can now use `Type=notify` under the `[Service]` unit configuration.
+Refer to the [https://jpmsilva.github.io/jsystemd-site/](https://jpmsilva.github.io/jsystemd-site/)
+for more information.
 
 ### Additional status
 

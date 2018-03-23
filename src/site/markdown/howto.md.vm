@@ -1,0 +1,42 @@
+# How to use
+
+When using Spring Boot, simply import the `com.github.jpmsilva.jsystemd:systemd-spring-boot-starter`
+dependency into your own project:
+
+```xml
+  <dependencies>
+    <dependency>
+      <groupId>com.github.jpmsilva.jsystemd</groupId>
+      <artifactId>systemd-spring-boot-starter</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+```
+
+Auto-configuration takes place through the class `com.github.jpmsilva.jsystemd.SystemdAutoConfiguration`,
+and will notify systemd once your application starts up successfully, via a event listener for events
+of type `org.springframework.boot.context.event.ApplicationReadyEvent`.
+
+When using this library, you service units can now use `Type=notify` under the `[Service]` unit configuration:
+
+```
+[Unit]
+Description=MyService
+Requires=network.target
+After=network.target
+After=syslog.target
+
+[Service]
+Type=notify
+WorkingDirectory=/opt/myservice
+ExecStart=/opt/jdk1.8.0/bin/java -XX:+ExitOnOutOfMemoryError -Xms256M -Xmx512M -XX:+UseG1GC -jar /opt/myservice/myservice.jar
+SuccessExitStatus=143
+KillMode=mixed
+TimeoutStopSec=10
+TimeoutStartSec=30
+
+[Install]
+WantedBy=multi-user.target
+```
+
+In the above example, `/opt/myservice/myservice.jar` is the packed Spring Boot application.
