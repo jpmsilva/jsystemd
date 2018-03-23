@@ -25,7 +25,7 @@ limitations under the License.
   <version>0.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
-  <name>jsystemd Parent</name>
+  <name>jsystemd</name>
   <description>Aggregator project for all jsystemd modules</description>
 
   <inceptionYear>2017</inceptionYear>

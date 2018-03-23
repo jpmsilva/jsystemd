@@ -28,7 +28,7 @@ limitations under the License.
     <version>0.0.1-SNAPSHOT</version>
   </parent>
 
-  <name>jsystemd</name>
+  <name>jsystemd core</name>
   <description>
     The core library for systemd integration. This component does not depend on Spring, and can be used in any Java application.
   </description>
