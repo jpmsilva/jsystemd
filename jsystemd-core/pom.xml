@@ -24,7 +24,7 @@ limitations under the License.
   <parent>
     <groupId>com.github.jpmsilva.jsystemd</groupId>
     <artifactId>jsystemd</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
   </parent>
 
   <name>jsystemd core</name>
@@ -48,7 +48,7 @@ limitations under the License.
     <dependency>
       <groupId>com.github.jpmsilva.groundlevel-utilities</groupId>
       <artifactId>groundlevel-utilities</artifactId>
-      <version>1.0.0</version>
+      <version>1.0.1</version>
     </dependency>
   </dependencies>
 </project>

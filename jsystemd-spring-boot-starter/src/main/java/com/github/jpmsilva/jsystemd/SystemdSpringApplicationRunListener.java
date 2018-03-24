@@ -39,6 +39,7 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
    * @param springApplication the current Spring Application
    * @param args the arguments passed to the Spring Application
    */
+  @SuppressWarnings("PMD.UnusedFormalParameter")
   public SystemdSpringApplicationRunListener(SpringApplication springApplication, String[] args) {
     if (SystemdUtilities.isUnderSystemd()) {
       Systemd systemd = springApplication.getInitializers().stream()

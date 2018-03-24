@@ -1,0 +1,64 @@
+# How to use
+
+## Under Spring Boot
+
+When using Spring Boot, simply import the `systemd-spring-boot-starter` module as a dependency:
+
+```xml
+  <dependencies>
+    <dependency>
+      <groupId>com.github.jpmsilva.jsystemd</groupId>
+      <artifactId>systemd-spring-boot-starter</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+```
+
+Auto-configuration takes place through the class [SystemdAutoConfiguration](apidocs/com/github/jpmsilva/jsystemd/SystemdAutoConfiguration.html),
+and will notify systemd once your application starts up successfully, via a Spring Boot event listener
+of type [ApplicationReadyEvent](https://docs.spring.io/spring-boot/docs/current/api/org/springframework/boot/context/event/ApplicationReadyEvent.html).
+
+## Regular Java application
+
+As a regular Java application, you can also use jsystemd.
+
+First, import the `jsystemd-core` module as a dependency:
+
+```xml
+  <dependencies>
+    <dependency>
+      <groupId>com.github.jpmsilva.jsystemd</groupId>
+      <artifactId>jsystemd-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+```
+
+Then, create an instance of [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) using the provided builder methods,
+and once your application completes the startup sequence and is ready to do work, just call [ready](apidocs/com/github/jpmsilva/jsystemd/Systemd.html#ready--).
+
+## Systemd service unit
+
+When using this library, service units should now use `Type=notify` under the `[Service]` unit configuration:
+
+```
+[Unit]
+Description=MyService
+Requires=network.target
+After=network.target
+After=syslog.target
+
+[Service]
+Type=notify
+WorkingDirectory=/opt/myservice
+ExecStart=/opt/jdk1.8.0/bin/java -XX:+ExitOnOutOfMemoryError -Xms256M -Xmx512M -XX:+UseG1GC -jar /opt/myservice/myservice.jar
+SuccessExitStatus=143
+KillMode=mixed
+TimeoutStopSec=10
+TimeoutStartSec=30
+
+[Install]
+WantedBy=multi-user.target
+```
+
+In the above example, `/opt/myservice/myservice.jar` is a packed Java application.
