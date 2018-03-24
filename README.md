@@ -10,11 +10,5 @@ may contain interesting and reusable components for other projects.
 When using Spring Boot, simply import the `com.github.jpmsilva.jsystemd:systemd-spring-boot-starter`
 dependency into your own project.
 
-Refer to the [https://jpmsilva.github.io/jsystemd-site/](https://jpmsilva.github.io/jsystemd-site/)
+Refer to the [documentation site](https://jpmsilva.github.io/jsystemd-site/)
 for more information.
-
-
-
-
-
-

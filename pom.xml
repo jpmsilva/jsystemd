@@ -93,13 +93,6 @@ limitations under the License.
       <id>ossrh</id>
       <url>https://oss.sonatype.org/content/repositories/snapshots</url>
     </snapshotRepository>
-    <!--
-    Only really used to test the site
-    <site>
-      <id>website</id>
-      <url>file://tmp/staging</url>
-    </site>
-    -->
     <site>
       <id>github-pages-sites</id>
       <name>Deployment through GitHub's site deployment plugin</name>
