@@ -21,25 +21,6 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/DECORATION/1.0.0 http://maven.apache.org/xsd/decoration-1.0.0.xsd">
   <body>
-    <menu name="Overview" inherit="top">
-      <item name="Introduction" href="index.html"/>
-      <item name="License" href="https://www.apache.org/licenses/LICENSE-2.0.html"/>
-      <item name="Download" href="https://github.com/jpmsilva/jsystemd/releases"/>
-      <item name="How to" href="howto.html"/>
-      <item name="Status providers" href="status-providers.html"/>
-      <item name="Startup progress" href="startup-progress.html"/>
-      <item name="Startup timeout" href="startup-timeout.html"/>
-      <item name="Tomcat status" href="tomcat-status.html"/>
-      <item name="Native library" href="native-library.html"/>
-      <item name="Conditionals" href="conditionals.html"/>
-      <item name="API (Javadocs)" href="apidocs/index.html"/>
-    </menu>
-    <menu ref="modules"/>
     <menu ref="reports"/>
   </body>
-  <skin>
-    <groupId>org.apache.maven.skins</groupId>
-    <artifactId>maven-fluido-skin</artifactId>
-    <version>1.5</version>
-  </skin>
 </project>

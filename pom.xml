@@ -16,7 +16,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>com.github.jpmsilva.jsystemd</groupId>
@@ -76,6 +77,9 @@ limitations under the License.
     <plugin.source.version>3.0.1</plugin.source.version>
     <plugin.javadoc.version>3.0.0</plugin.javadoc.version>
     <plugin.checkstyle.version>3.0.0</plugin.checkstyle.version>
+    <plugin.github-release.version>1.2.0</plugin.github-release.version>
+    <plugin.jxr.version>2.5</plugin.jxr.version>
+    <plugin.pmd.version>3.9.0</plugin.pmd.version>
 
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -260,6 +264,24 @@ limitations under the License.
             </dependency>
           </dependencies>
         </plugin>
+
+        <plugin>
+          <groupId>de.jutzig</groupId>
+          <artifactId>github-release-plugin</artifactId>
+          <version>${plugin.github-release.version}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jxr-plugin</artifactId>
+          <version>${plugin.jxr.version}</version>
+        </plugin>
+
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-pmd-plugin</artifactId>
+          <version>${plugin.pmd.version}</version>
+        </plugin>
       </plugins>
     </pluginManagement>
     <plugins>
@@ -289,6 +311,19 @@ limitations under the License.
               <configLocation>google_checkstyle.xml</configLocation>
               <consoleOutput>true</consoleOutput>
             </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-pmd-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>validate</phase>
+            <goals>
+              <goal>check</goal>
+              <goal>cpd-check</goal>
+            </goals>
           </execution>
         </executions>
       </plugin>
@@ -351,6 +386,26 @@ limitations under the License.
               </execution>
             </executions>
           </plugin>
+
+          <plugin>
+            <groupId>de.jutzig</groupId>
+            <artifactId>github-release-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>github-release</id>
+                <phase>deploy</phase>
+                <goals>
+                  <goal>release</goal>
+                </goals>
+                <configuration>
+                  <description>Version ${project.version}</description>
+                  <releaseName>${project.version}</releaseName>
+                  <tag>version-${project.version}</tag>
+                  <repositoryId>jpmsilva/jsystemd</repositoryId>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
         </plugins>
       </build>
     </profile>
@@ -363,9 +418,18 @@ limitations under the License.
         <artifactId>maven-project-info-reports-plugin</artifactId>
         <reportSets>
           <reportSet>
+            <id>all</id>
             <reports>
               <report>index</report>
               <report>dependencies</report>
+              <report>license</report>
+            </reports>
+          </reportSet>
+          <reportSet>
+            <id>top</id>
+            <inherited>false</inherited>
+            <reports>
+              <report>index</report>
               <report>project-team</report>
               <report>issue-tracking</report>
               <report>license</report>
@@ -381,15 +445,57 @@ limitations under the License.
         <reportSets>
           <reportSet>
             <id>default</id>
+            <!-- overwrite the default javadoc set inherited to all child modules, so as to not generate multiple apidocs folders -->
             <reports>
-              <report>javadoc</report>
-              <report>test-javadoc</report>
             </reports>
           </reportSet>
           <reportSet>
             <id>aggregate</id>
+            <inherited>false</inherited>
             <reports>
               <report>aggregate</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <configuration>
+          <failsOnError>true</failsOnError>
+          <configLocation>google_checkstyle.xml</configLocation>
+          <consoleOutput>true</consoleOutput>
+        </configuration>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>checkstyle</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jxr-plugin</artifactId>
+        <inherited>false</inherited>
+        <reportSets>
+          <reportSet>
+            <id>aggregate</id>
+            <inherited>false</inherited>
+            <reports>
+              <report>aggregate</report>
+            </reports>
+          </reportSet>
+        </reportSets>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-pmd-plugin</artifactId>
+        <reportSets>
+          <reportSet>
+            <reports>
+              <report>pmd</report>
+              <report>cpd</report>
             </reports>
           </reportSet>
         </reportSets>

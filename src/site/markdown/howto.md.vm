@@ -1,7 +1,8 @@
 # How to use
 
-When using Spring Boot, simply import the `com.github.jpmsilva.jsystemd:systemd-spring-boot-starter`
-dependency into your own project:
+## Under Spring Boot
+
+When using Spring Boot, simply import the `systemd-spring-boot-starter` module as a dependency:
 
 ```xml
   <dependencies>
@@ -13,11 +14,32 @@ dependency into your own project:
   </dependencies>
 ```
 
-Auto-configuration takes place through the class `com.github.jpmsilva.jsystemd.SystemdAutoConfiguration`,
-and will notify systemd once your application starts up successfully, via a event listener for events
-of type `org.springframework.boot.context.event.ApplicationReadyEvent`.
+Auto-configuration takes place through the class [SystemdAutoConfiguration](apidocs/com/github/jpmsilva/jsystemd/SystemdAutoConfiguration.html),
+and will notify systemd once your application starts up successfully, via a Spring Boot event listener
+of type [ApplicationReadyEvent](https://docs.spring.io/spring-boot/docs/current/api/org/springframework/boot/context/event/ApplicationReadyEvent.html).
 
-When using this library, you service units can now use `Type=notify` under the `[Service]` unit configuration:
+## Regular Java application
+
+As a regular Java application, you can also use jsystemd.
+
+First, import the `jsystemd-core` module as a dependency:
+
+```xml
+  <dependencies>
+    <dependency>
+      <groupId>com.github.jpmsilva.jsystemd</groupId>
+      <artifactId>jsystemd-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+```
+
+Then, create an instance of [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) using the provided builder methods,
+and once your application completes the startup sequence and is ready to do work, just call [ready](apidocs/com/github/jpmsilva/jsystemd/Systemd.html#ready--).
+
+## Systemd service unit
+
+When using this library, service units should now use `Type=notify` under the `[Service]` unit configuration:
 
 ```
 [Unit]
@@ -39,4 +61,4 @@ TimeoutStartSec=30
 WantedBy=multi-user.target
 ```
 
-In the above example, `/opt/myservice/myservice.jar` is the packed Spring Boot application.
+In the above example, `/opt/myservice/myservice.jar` is a packed Java application.

@@ -63,7 +63,7 @@ public class SystemdNotifyApplicationRunStatusProvider implements SystemdNotifyS
   }
 
   /**
-   * Enumeration of supported application startup sequence state
+   * Enumeration of supported application startup sequence state.
    */
   public enum ApplicationState {
     STARTING, ENVIRONMENT_PREPARED, CONTEXT_PREPARED, CONTEXT_LOADED
