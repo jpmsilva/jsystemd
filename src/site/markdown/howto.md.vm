@@ -1,6 +1,11 @@
-# How to use
+#set($h1 = '#')
+#set($h2 = '##')
+#set($h3 = '###')
+#set($h4 = '####')
 
-## Under Spring Boot
+$h1 How to use
+
+$h2 Under Spring Boot
 
 When using Spring Boot, simply import the `systemd-spring-boot-starter` module as a dependency:
 
@@ -18,7 +23,7 @@ Auto-configuration takes place through the class [SystemdAutoConfiguration](apid
 and will notify systemd once your application starts up successfully, via a Spring Boot event listener
 of type [ApplicationReadyEvent](https://docs.spring.io/spring-boot/docs/current/api/org/springframework/boot/context/event/ApplicationReadyEvent.html).
 
-## Regular Java application
+$h2 Regular Java application
 
 As a regular Java application, you can also use jsystemd.
 
@@ -37,7 +42,7 @@ First, import the `jsystemd-core` module as a dependency:
 Then, create an instance of [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) using the provided builder methods,
 and once your application completes the startup sequence and is ready to do work, just call [ready](apidocs/com/github/jpmsilva/jsystemd/Systemd.html#ready--).
 
-## Systemd service unit
+$h2 Systemd service unit
 
 When using this library, service units should now use `Type=notify` under the `[Service]` unit configuration:
 
