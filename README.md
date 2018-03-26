@@ -11,4 +11,4 @@ When using Spring Boot, simply import the `com.github.jpmsilva.jsystemd:systemd-
 dependency into your own project.
 
 Refer to the [documentation site](https://jpmsilva.github.io/jsystemd-site/)
-for more information.
+for more information, and how to use outside of Spring Boot.
