@@ -1,6 +1,6 @@
 # jsystemd
 
-jsystemd aims to provide a better platform to integrate Java applications with systemd, to run as proper operating system services.
+jsystemd aims to provide a better platform to integrate Java applications with systemd, and run them as proper operating system services.
 
 The integration provides bindings for any Java process to notify systemd once it completes initialization, as well
 as provide detailed status information to the service supervisor.

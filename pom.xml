@@ -21,11 +21,12 @@ limitations under the License.
 
   <groupId>com.github.jpmsilva.jsystemd</groupId>
   <artifactId>jsystemd</artifactId>
-  <version>1.0.1</version>
+  <version>1.0.2</version>
   <packaging>pom</packaging>
 
   <name>jsystemd</name>
-  <description>Aggregator project for all jsystemd modules</description>
+  <description>jsystemd aims to provide a better platform to integrate Java applications with systemd, and run them as proper operating system services.
+  </description>
 
   <inceptionYear>2017</inceptionYear>
 
@@ -261,6 +262,12 @@ limitations under the License.
           <groupId>de.jutzig</groupId>
           <artifactId>github-release-plugin</artifactId>
           <version>${plugin.github-release.version}</version>
+          <configuration>
+            <description>Version ${project.version}</description>
+            <releaseName>${project.version}</releaseName>
+            <tag>version-${project.version}</tag>
+            <repositoryId>jpmsilva/jsystemd</repositoryId>
+          </configuration>
         </plugin>
 
         <plugin>
@@ -389,12 +396,6 @@ limitations under the License.
                 <goals>
                   <goal>release</goal>
                 </goals>
-                <configuration>
-                  <description>Version ${project.version}</description>
-                  <releaseName>${project.version}</releaseName>
-                  <tag>version-${project.version}</tag>
-                  <repositoryId>jpmsilva/jsystemd</repositoryId>
-                </configuration>
               </execution>
             </executions>
           </plugin>

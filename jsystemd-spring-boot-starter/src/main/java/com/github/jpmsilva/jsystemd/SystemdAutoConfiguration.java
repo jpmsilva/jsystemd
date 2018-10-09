@@ -30,10 +30,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
 
 /**
@@ -47,10 +47,16 @@ import org.springframework.core.annotation.Order;
 @ConditionalOnSystemd
 public class SystemdAutoConfiguration {
 
-  @Bean
+  private final Systemd systemd;
+
   @Autowired
-  ApplicationListener<ApplicationReadyEvent> systemdApplicationReadyListener(Systemd systemd) {
-    return event -> systemd.ready();
+  public SystemdAutoConfiguration(Systemd systemd) {
+    this.systemd = systemd;
+  }
+
+  @EventListener
+  public void started (ApplicationReadyEvent event) {
+    systemd.ready();
   }
 
   @Bean
