@@ -24,7 +24,7 @@ limitations under the License.
   <parent>
     <groupId>com.github.jpmsilva.jsystemd</groupId>
     <artifactId>jsystemd</artifactId>
-    <version>1.0.2-SNAPSHOT</version>
+    <version>1.0.2</version>
   </parent>
 
   <name>jsystemd core</name>
