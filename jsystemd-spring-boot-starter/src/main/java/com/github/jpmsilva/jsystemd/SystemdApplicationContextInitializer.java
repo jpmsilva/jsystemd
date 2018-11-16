@@ -17,6 +17,7 @@
 package com.github.jpmsilva.jsystemd;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.MICROSECONDS;
 
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.context.ApplicationContextInitializer;
@@ -39,7 +40,15 @@ public class SystemdApplicationContextInitializer implements ApplicationContextI
    */
   public SystemdApplicationContextInitializer() {
     if (SystemdUtilities.isUnderSystemd()) {
-      systemd = Systemd.builder().statusUpdate(5, SECONDS).build();
+      final Systemd.Builder builder = Systemd.builder();
+      try {
+        final long watchdogUsec = Long.parseLong(SystemdUtilities.watchdogUsec()) / 2;
+        if (watchdogUsec > 0) {
+          builder.watchdog(watchdogUsec, MICROSECONDS);
+        }
+      } catch (Exception ignored) {
+      }
+      systemd = builder.statusUpdate(5, SECONDS).build();
       provider = new SystemdNotifyApplicationContextStatusProvider(systemd);
     }
   }

@@ -34,6 +34,7 @@ abstract class SystemdUtilities {
   private static final Logger logger = getLogger(lookup().lookupClass());
 
   private static final String notifySocket = System.getenv("NOTIFY_SOCKET");
+  private static final String watchdogUsec = System.getenv("WATCHDOG_USEC");
   private static final String[] implClasses = new String[]{
       "com.github.jpmsilva.jsystemd.SystemdNotifyNative",
       "com.github.jpmsilva.jsystemd.SystemdNotifyProcess"
@@ -83,6 +84,15 @@ abstract class SystemdUtilities {
    */
   static String notifySocket() {
     return notifySocket;
+  }
+
+  /**
+   * Allows determining the current watchdog keep-alive.
+   *
+   * @return the contents of the environment property {@code WATCHDOC_USEC}
+   */
+  static String watchdogUsec() {
+    return watchdogUsec;
   }
 
   /**
