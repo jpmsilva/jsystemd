@@ -219,7 +219,7 @@ limitations under the License.
               <hotfixBranchPrefix>hotfix-</hotfixBranchPrefix>
               <versionTagPrefix>version-</versionTagPrefix>
             </flowInitContext>
-            <noDeploy>false</noDeploy>
+            <noDeploy>true</noDeploy>
             <squash>false</squash>
             <scmCommentPrefix>[RELEASE]</scmCommentPrefix>
             <autoVersionSubmodules>true</autoVersionSubmodules>
