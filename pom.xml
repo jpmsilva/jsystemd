@@ -346,6 +346,7 @@ limitations under the License.
             <extensions>true</extensions>
           </plugin>
 
+<!--
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
@@ -359,6 +360,7 @@ limitations under the License.
               </execution>
             </executions>
           </plugin>
+-->
 
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
