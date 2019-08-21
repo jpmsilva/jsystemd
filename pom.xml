@@ -19,7 +19,7 @@ limitations under the License.
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>com.github.jpmsilva.jsystemd</groupId>
+  <groupId>com.github.bluekiri.jsystemd</groupId>
   <artifactId>jsystemd</artifactId>
   <version>1.0.2</version>
   <packaging>pom</packaging>
@@ -30,10 +30,10 @@ limitations under the License.
 
   <inceptionYear>2017</inceptionYear>
 
-  <url>https://jpmsilva.github.io/jsystemd-site/</url>
+  <url>https://bluekiri.github.io/jsystemd/</url>
 
   <issueManagement>
-    <url>https://github.com/jpmsilva/jsystemd/issues</url>
+    <url>https://github.com/bluekiri/jsystemd/issues</url>
     <system>GitHub Issues</system>
   </issueManagement>
 
@@ -46,9 +46,9 @@ limitations under the License.
   </licenses>
 
   <scm>
-    <url>https://github.com/jpmsilva/jsystemd</url>
-    <connection>scm:git:https://github.com/jpmsilva/jsystemd.git</connection>
-    <developerConnection>scm:git:https://github.com/jpmsilva/jsystemd.git</developerConnection>
+    <url>https://github.com/bluekiri/jsystemd</url>
+    <connection>scm:git:https://github.com/bluekiri/jsystemd.git</connection>
+    <developerConnection>scm:git:https://github.com/bluekiri/jsystemd.git</developerConnection>
   </scm>
 
   <developers>
@@ -58,6 +58,12 @@ limitations under the License.
       <email>joao.p.m.silva@gmail.com</email>
       <url>https://github.com/jpmsilva</url>
       <timezone>Europe/Lisbon</timezone>
+    </developer>
+    <developer>
+      <id>ellull</id>
+      <name>Eduard Llull</name>
+      <url>https://github.com/ellull</url>
+      <timezone>Europe/Madrid</timezone>
     </developer>
   </developers>
 
@@ -172,9 +178,6 @@ limitations under the License.
             <server>github</server>
             <message>New site version: ${project.version}</message>
             <merge>true</merge>
-            <repositoryOwner>jpmsilva</repositoryOwner>
-            <repositoryName>jsystemd-site</repositoryName>
-            <branch>refs/heads/master</branch>
             <includes>
               <include>**/*</include>
             </includes>
@@ -266,7 +269,7 @@ limitations under the License.
             <description>Version ${project.version}</description>
             <releaseName>${project.version}</releaseName>
             <tag>version-${project.version}</tag>
-            <repositoryId>jpmsilva/jsystemd</repositoryId>
+            <repositoryId>bluekiri/jsystemd</repositoryId>
           </configuration>
         </plugin>
 
