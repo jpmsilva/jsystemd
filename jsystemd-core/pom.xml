@@ -22,7 +22,7 @@ limitations under the License.
   <artifactId>jsystemd-core</artifactId>
 
   <parent>
-    <groupId>com.github.jpmsilva.jsystemd</groupId>
+    <groupId>com.github.bluekiri.jsystemd</groupId>
     <artifactId>jsystemd</artifactId>
     <version>1.0.4-SNAPSHOT</version>
   </parent>
