@@ -24,7 +24,7 @@ limitations under the License.
   <parent>
     <groupId>com.github.bluekiri.jsystemd</groupId>
     <artifactId>jsystemd</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
   </parent>
 
   <name>jsystemd core</name>

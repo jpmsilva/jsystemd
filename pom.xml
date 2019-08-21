@@ -21,7 +21,7 @@ limitations under the License.
 
   <groupId>com.github.bluekiri.jsystemd</groupId>
   <artifactId>jsystemd</artifactId>
-  <version>1.0.2</version>
+  <version>1.0.3</version>
   <packaging>pom</packaging>
 
   <name>jsystemd</name>
@@ -222,7 +222,7 @@ limitations under the License.
               <hotfixBranchPrefix>hotfix-</hotfixBranchPrefix>
               <versionTagPrefix>version-</versionTagPrefix>
             </flowInitContext>
-            <noDeploy>false</noDeploy>
+            <noDeploy>true</noDeploy>
             <squash>false</squash>
             <scmCommentPrefix>[RELEASE]</scmCommentPrefix>
             <autoVersionSubmodules>true</autoVersionSubmodules>
@@ -349,6 +349,7 @@ limitations under the License.
             <extensions>true</extensions>
           </plugin>
 
+<!--
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-gpg-plugin</artifactId>
@@ -362,6 +363,7 @@ limitations under the License.
               </execution>
             </executions>
           </plugin>
+-->
 
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
