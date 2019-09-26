@@ -34,8 +34,8 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  */
 public class SystemdSpringApplicationRunListener implements SpringApplicationRunListener {
   private static final String SYSTEMD_BEAN_NAME = "systemd";
-  private static final boolean isUnderSystemd = SystemdUtilities.isUnderSystemd();
-  private static Systemd systemd;
+  private static final boolean IS_UNDER_SYSTEMD = SystemdUtilities.isUnderSystemd();
+  private static final Systemd SYSTEMD = ensureSystemd();
 
   private final int applicationId;
   private SystemdNotifyApplicationRunStatusProvider provider;
@@ -49,9 +49,8 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
   @SuppressWarnings("PMD.UnusedFormalParameter")
   public SystemdSpringApplicationRunListener(SpringApplication springApplication, String[] args) {
     applicationId = springApplication.hashCode();
-    if (isUnderSystemd) {
-      ensureSystemd();
-      provider = new SystemdNotifyApplicationRunStatusProvider(systemd, applicationId);
+    if (IS_UNDER_SYSTEMD) {
+      provider = new SystemdNotifyApplicationRunStatusProvider(SYSTEMD, applicationId);
     }
   }
 
@@ -61,7 +60,7 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
    * <p>Called immediately when the run method has first started. Can be used for very early initialization.
    */
   public void started() {
-    if (isUnderSystemd) {
+    if (IS_UNDER_SYSTEMD) {
       provider.state(ApplicationState.STARTING);
     }
   }
@@ -71,7 +70,7 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
    */
   @Override
   public void starting() {
-    if (isUnderSystemd) {
+    if (IS_UNDER_SYSTEMD) {
       provider.state(ApplicationState.STARTING);
     }
   }
@@ -81,7 +80,7 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
    */
   @Override
   public void environmentPrepared(ConfigurableEnvironment environment) {
-    if (isUnderSystemd) {
+    if (IS_UNDER_SYSTEMD) {
       provider.state(ApplicationState.ENVIRONMENT_PREPARED);
     }
   }
@@ -91,15 +90,15 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
    */
   @Override
   public void contextPrepared(ConfigurableApplicationContext context) {
-    if (isUnderSystemd) {
+    if (IS_UNDER_SYSTEMD) {
       provider.state(ApplicationState.CONTEXT_PREPARED);
 
       ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
       if (!beanFactory.containsSingleton(SYSTEMD_BEAN_NAME)) {
-        beanFactory.registerSingleton(SYSTEMD_BEAN_NAME, systemd);
+        beanFactory.registerSingleton(SYSTEMD_BEAN_NAME, SYSTEMD);
       }
       beanFactory.registerSingleton("systemdNotifyApplicationContextStatusProvider",
-                                    new SystemdNotifyApplicationContextStatusProvider(systemd, applicationId, context.getId(), beanFactory));
+                                    new SystemdNotifyApplicationContextStatusProvider(SYSTEMD, applicationId, context.getId(), beanFactory));
     }
   }
 
@@ -108,7 +107,7 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
    */
   @Override
   public void contextLoaded(ConfigurableApplicationContext context) {
-    if (isUnderSystemd) {
+    if (IS_UNDER_SYSTEMD) {
       provider.state(ApplicationState.CONTEXT_LOADED);
     }
   }
@@ -145,10 +144,12 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
   public void finished(ConfigurableApplicationContext context, Throwable exception) {
   }
 
-  private synchronized void ensureSystemd() {
-    if (null == systemd) {
+  private static Systemd ensureSystemd() {
+    if (IS_UNDER_SYSTEMD) {
       SystemdUtilities.logSystemdStatus();
-      systemd = Systemd.builder().statusUpdate(5, SECONDS).build();
+      return Systemd.builder().statusUpdate(5, SECONDS).build();
+    } else {
+      return null;
     }
   }
 }
