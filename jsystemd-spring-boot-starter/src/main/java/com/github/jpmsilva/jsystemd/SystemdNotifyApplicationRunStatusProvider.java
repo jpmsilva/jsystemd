@@ -29,6 +29,7 @@ import org.springframework.core.annotation.Order;
 public class SystemdNotifyApplicationRunStatusProvider implements SystemdNotifyStatusProvider {
 
   private final Systemd systemd;
+  private final int applicationId;
   private String status = "";
 
   /**
@@ -38,8 +39,9 @@ public class SystemdNotifyApplicationRunStatusProvider implements SystemdNotifyS
    *
    * @param systemd the {@link Systemd} to send status information to
    */
-  SystemdNotifyApplicationRunStatusProvider(Systemd systemd) {
+  SystemdNotifyApplicationRunStatusProvider(Systemd systemd, int applicationId) {
     this.systemd = systemd;
+    this.applicationId = applicationId;
     this.systemd.addStatusProviders(0, this);
   }
 
@@ -57,7 +59,7 @@ public class SystemdNotifyApplicationRunStatusProvider implements SystemdNotifyS
    * @param state the current application startup sequence state
    */
   void state(ApplicationState state) {
-    status = String.format("State: %s", state.toString().toLowerCase().replace("_", " "));
+    status = String.format("Application %d state: %s", applicationId, state.toString().toLowerCase().replace("_", " "));
     systemd.extendTimeout();
     systemd.updateStatus();
   }
