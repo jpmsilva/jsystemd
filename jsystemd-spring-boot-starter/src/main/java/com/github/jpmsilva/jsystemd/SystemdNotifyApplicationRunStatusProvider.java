@@ -39,7 +39,7 @@ public class SystemdNotifyApplicationRunStatusProvider implements SystemdNotifyS
    *
    * @param systemd the {@link Systemd} to send status information to
    */
-  SystemdNotifyApplicationRunStatusProvider(Systemd systemd, int applicationId) {
+  SystemdNotifyApplicationRunStatusProvider(@SuppressWarnings("SameParameterValue") Systemd systemd, int applicationId) {
     this.systemd = systemd;
     this.applicationId = applicationId;
     this.systemd.addStatusProviders(0, this);

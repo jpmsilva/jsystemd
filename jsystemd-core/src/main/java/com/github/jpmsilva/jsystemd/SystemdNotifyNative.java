@@ -25,6 +25,7 @@ import com.sun.jna.Native;
  * @see Native#register(String)
  * @see <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html">sd_notify</a>
  */
+@SuppressWarnings("unused")
 final class SystemdNotifyNative extends AbstractSystemdNotify {
 
   /**
@@ -55,6 +56,7 @@ final class SystemdNotifyNative extends AbstractSystemdNotify {
       }
     }
 
+    @SuppressWarnings("UnusedReturnValue")
     public static native int sd_notify(int unset_environment, String state);
   }
 }

@@ -16,15 +16,14 @@
 
 package com.github.jpmsilva.jsystemd;
 
-import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.config.BeanPostProcessor;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.core.annotation.Order;
-
 import java.util.Arrays;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.config.BeanPostProcessor;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.core.annotation.Order;
 
 /**
  * Implementation of {@link SystemdNotifyStatusProvider} that provides information regarding the bean creation progress of a bean factory.
@@ -49,7 +48,8 @@ public class SystemdNotifyApplicationContextStatusProvider implements SystemdNot
    *
    * @param systemd the {@link Systemd} to send status information to
    */
-  SystemdNotifyApplicationContextStatusProvider(Systemd systemd, int applicationId, String contextId, ConfigurableListableBeanFactory factory) {
+  SystemdNotifyApplicationContextStatusProvider(@SuppressWarnings("SameParameterValue") Systemd systemd, int applicationId, String contextId,
+      ConfigurableListableBeanFactory factory) {
     this.systemd = systemd;
     this.applicationId = applicationId;
     this.contextId = contextId;

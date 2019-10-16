@@ -117,6 +117,11 @@ limitations under the License.
         <artifactId>byteunits</artifactId>
         <version>0.9.1</version>
       </dependency>
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-lang3</artifactId>
+        <version>3.9</version>
+      </dependency>
 
       <dependency>
         <!-- Import dependency management from Spring Boot -->
@@ -356,6 +361,12 @@ limitations under the License.
                 <goals>
                   <goal>sign</goal>
                 </goals>
+                <configuration>
+                  <gpgArguments>
+                    <arg>--pinentry-mode</arg>
+                    <arg>loopback</arg>
+                  </gpgArguments>
+                </configuration>
               </execution>
             </executions>
           </plugin>

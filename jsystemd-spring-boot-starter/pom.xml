@@ -47,5 +47,10 @@ limitations under the License.
       <artifactId>spring-boot-starter-tomcat</artifactId>
       <optional>true</optional>
     </dependency>
+    <dependency>
+      <groupId>com.github.jpmsilva.groundlevel-utilities</groupId>
+      <artifactId>groundlevel-utilities</artifactId>
+      <version>1.0.3</version>
+    </dependency>
   </dependencies>
 </project>

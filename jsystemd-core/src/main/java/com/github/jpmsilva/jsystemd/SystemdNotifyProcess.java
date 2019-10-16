@@ -28,6 +28,7 @@ import org.slf4j.Logger;
  *
  * @author Joao Silva
  */
+@SuppressWarnings("unused")
 final class SystemdNotifyProcess extends AbstractSystemdNotify {
 
   private static final Logger logger = getLogger(lookup().lookupClass());

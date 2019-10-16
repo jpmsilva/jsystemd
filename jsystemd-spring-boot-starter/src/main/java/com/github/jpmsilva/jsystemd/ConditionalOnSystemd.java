@@ -30,6 +30,7 @@ import org.springframework.context.annotation.Conditional;
  * @see SystemdUtilities#isUnderSystemd()
  * @see OnSystemdCondition
  */
+@SuppressWarnings("WeakerAccess")
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 @Documented

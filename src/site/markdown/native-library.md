@@ -15,7 +15,7 @@ There are also some known issues with using `systemd-notify` for units running a
 This would typically be seen systemd appears to refuse and acknowledge the ready event sent by the Java application. In such cases, you may
 need to add the configuration `AmbientCapabilities=CAP_SYS_ADMIN` to the `[Service]` key of your unit.
 
-**The JNA integration is always prefered, as it avoids these issues.**
+**The JNA integration is always preferred, as it avoids these issues.**
 
 In the absence or otherwise impossibility to execute [systemd-notify](https://www.freedesktop.org/software/systemd/man/systemd-notify.html) the integration is
 disabled altogether.

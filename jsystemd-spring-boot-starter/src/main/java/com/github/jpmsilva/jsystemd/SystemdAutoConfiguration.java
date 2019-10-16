@@ -16,7 +16,14 @@
 
 package com.github.jpmsilva.jsystemd;
 
+import static java.util.Collections.emptyList;
+
 import com.github.jpmsilva.groundlevel.utilities.QuackAnnotationAwareOrderComparator;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import org.apache.catalina.startup.Tomcat;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,14 +34,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
-
-import static java.util.Collections.emptyList;
 
 /**
  * Auto-configuration class for systemd integration.
@@ -50,12 +49,12 @@ public class SystemdAutoConfiguration {
   private final Systemd systemd;
 
   @Autowired
-  public SystemdAutoConfiguration(Systemd systemd) {
+  public SystemdAutoConfiguration(@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") Systemd systemd) {
     this.systemd = systemd;
   }
 
   @EventListener
-  public void started(ApplicationReadyEvent event) {
+  public void started(@SuppressWarnings("unused") ApplicationReadyEvent event) {
     systemd.ready();
   }
 
@@ -81,8 +80,8 @@ public class SystemdAutoConfiguration {
   static class SystemdStatusProviderConfiguration {
 
     @Autowired
-    SystemdStatusProviderConfiguration(Systemd systemd, ConfigurableApplicationContext applicationContext,
-        ObjectProvider<List<SystemdNotifyStatusProvider>> statuses) {
+    SystemdStatusProviderConfiguration(@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") Systemd systemd,
+        ConfigurableApplicationContext applicationContext, ObjectProvider<List<SystemdNotifyStatusProvider>> statuses) {
       Set<SystemdNotifyStatusProvider> uniqueProviders = new HashSet<>();
       uniqueProviders.addAll(Optional.ofNullable(statuses.getIfAvailable()).orElse(emptyList()));
       uniqueProviders.addAll(systemd.getStatusProviders());
@@ -92,7 +91,6 @@ public class SystemdAutoConfiguration {
       systemd.setStatusProviders(newProviders);
     }
   }
-
 
   /**
    * Auto-configuration class for systemd integration when running under Tomcat.
@@ -107,4 +105,3 @@ public class SystemdAutoConfiguration {
     }
   }
 }
-

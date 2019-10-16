@@ -46,9 +46,8 @@ limitations under the License.
       <artifactId>byteunits</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.github.jpmsilva.groundlevel-utilities</groupId>
-      <artifactId>groundlevel-utilities</artifactId>
-      <version>1.0.1</version>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
     </dependency>
   </dependencies>
 </project>
