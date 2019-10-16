@@ -19,9 +19,6 @@ package com.github.jpmsilva.jsystemd;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import com.github.jpmsilva.groundlevel.utilities.StringUtilities;
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -31,6 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 
 /**
  * The main systemd integration class.
@@ -46,8 +44,8 @@ public class Systemd implements AutoCloseable {
 
   private final SystemdNotify systemdNotify = SystemdUtilities.getSystemdNotify();
   private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1, new BasicThreadFactory.Builder()
-          .namingPattern("Systemd-%d")
-          .build());
+      .namingPattern("Systemd-%d")
+      .build());
 
   private final List<SystemdNotifyStatusProvider> providers = new CopyOnWriteArrayList<>();
   private long timeout = MICROSECONDS.convert(29, SECONDS);
