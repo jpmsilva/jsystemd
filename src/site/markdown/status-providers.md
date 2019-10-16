@@ -68,7 +68,7 @@ In the example above, the configuration class does not need to be annotated with
 these beans are harmless even when not running under systemd. However, this was these extra resources do not have to be built at all.
 Check the [Conditionals](conditionals.html) page for more information.
 
-Under Spring Boot you can also autowire the current instance of [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) and programatically manage it:
+Under Spring Boot you can also autowire the current instance of [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) and programmatically manage it:
 
 ```java
 @Configuration

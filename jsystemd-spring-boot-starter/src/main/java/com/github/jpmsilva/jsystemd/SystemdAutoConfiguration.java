@@ -20,14 +20,13 @@ import static java.util.Collections.emptyList;
 
 import com.github.jpmsilva.groundlevel.utilities.QuackAnnotationAwareOrderComparator;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-import java.util.TreeSet;
 import org.apache.catalina.startup.Tomcat;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.ConfigurableApplicationContext;
@@ -50,12 +49,12 @@ public class SystemdAutoConfiguration {
   private final Systemd systemd;
 
   @Autowired
-  public SystemdAutoConfiguration(Systemd systemd) {
+  public SystemdAutoConfiguration(@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") Systemd systemd) {
     this.systemd = systemd;
   }
 
   @EventListener
-  public void started (ApplicationReadyEvent event) {
+  public void started(@SuppressWarnings("unused") ApplicationReadyEvent event) {
     systemd.ready();
   }
 
@@ -81,16 +80,17 @@ public class SystemdAutoConfiguration {
   static class SystemdStatusProviderConfiguration {
 
     @Autowired
-    SystemdStatusProviderConfiguration(Systemd systemd, ConfigurableApplicationContext applicationContext,
-        ObjectProvider<List<SystemdNotifyStatusProvider>> statuses) {
-      ConfigurableListableBeanFactory beanFactory = applicationContext.getBeanFactory();
-      Set<SystemdNotifyStatusProvider> newProviders = new TreeSet<>(new QuackAnnotationAwareOrderComparator(beanFactory));
-      newProviders.addAll(Optional.ofNullable(statuses.getIfAvailable()).orElse(emptyList()));
-      newProviders.addAll(systemd.getStatusProviders());
-      systemd.setStatusProviders(new ArrayList<>(newProviders));
+    SystemdStatusProviderConfiguration(@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") Systemd systemd,
+        ConfigurableApplicationContext applicationContext, ObjectProvider<List<SystemdNotifyStatusProvider>> statuses) {
+      Set<SystemdNotifyStatusProvider> uniqueProviders = new HashSet<>();
+      uniqueProviders.addAll(Optional.ofNullable(statuses.getIfAvailable()).orElse(emptyList()));
+      uniqueProviders.addAll(systemd.getStatusProviders());
+
+      List<SystemdNotifyStatusProvider> newProviders = new ArrayList<>(uniqueProviders);
+      newProviders.sort(new QuackAnnotationAwareOrderComparator(applicationContext.getBeanFactory()));
+      systemd.setStatusProviders(newProviders);
     }
   }
-
 
   /**
    * Auto-configuration class for systemd integration when running under Tomcat.
@@ -105,4 +105,3 @@ public class SystemdAutoConfiguration {
     }
   }
 }
-

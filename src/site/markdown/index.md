@@ -8,7 +8,7 @@ as provide detailed status information to the service supervisor.
 The distribution of this software is composed of two parts:
 
 * the [jsystemd-core](jsystemd-core/index.html) module that includes all the basic bindings to integrate with systemd
-* the [jsystemd-spring-boot-starter](jsystemd-spring-boot-starter/index.html) module that provides automtic configuration of jsystemd when running under
+* the [jsystemd-spring-boot-starter](jsystemd-spring-boot-starter/index.html) module that provides automatic configuration of jsystemd when running under
 inside Spring Boot applications.
 
 The jsystemd-core module packages some components that expose the status of the JVM to systemd (the Spring Boot starter package automatically configures those).

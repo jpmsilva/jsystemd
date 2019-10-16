@@ -13,7 +13,5 @@
 # limitations under the License.
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
   com.github.jpmsilva.jsystemd.SystemdAutoConfiguration
-org.springframework.context.ApplicationContextInitializer=\
-  com.github.jpmsilva.jsystemd.SystemdApplicationContextInitializer
 org.springframework.boot.SpringApplicationRunListener=\
   com.github.jpmsilva.jsystemd.SystemdSpringApplicationRunListener

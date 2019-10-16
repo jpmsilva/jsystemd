@@ -28,6 +28,7 @@ import org.slf4j.Logger;
  * @author Joao Silva
  * @see <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html">sd_notify specification</a>
  */
+@SuppressWarnings("unused")
 abstract class AbstractSystemdNotify implements SystemdNotify {
 
   private static final Logger logger = getLogger(lookup().lookupClass());

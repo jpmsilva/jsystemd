@@ -24,6 +24,7 @@ package com.github.jpmsilva.jsystemd;
  * @author Joao Silva
  * @see Systemd#addStatusProviders(SystemdNotifyStatusProvider...)
  */
+@SuppressWarnings("WeakerAccess")
 public interface SystemdNotifyStatusProvider {
 
   /**

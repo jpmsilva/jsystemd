@@ -19,6 +19,7 @@ package com.github.jpmsilva.jsystemd;
 import static java.lang.invoke.MethodHandles.lookup;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 /**
@@ -28,17 +29,29 @@ import org.slf4j.Logger;
  */
 abstract class SystemdUtilities {
 
-  private SystemdUtilities() {
-  }
-
   private static final Logger logger = getLogger(lookup().lookupClass());
-
   private static final String notifySocket = System.getenv("NOTIFY_SOCKET");
+  private static final long watchdogUsec = readWatchdogUsec();
   private static final String[] implClasses = new String[]{
       "com.github.jpmsilva.jsystemd.SystemdNotifyNative",
       "com.github.jpmsilva.jsystemd.SystemdNotifyProcess"
   };
   private static final SystemdNotify SYSTEMD_NOTIFY = initSystemdNotify();
+
+  private SystemdUtilities() {
+  }
+
+  private static long readWatchdogUsec() {
+    String watchdogUsec = System.getenv("WATCHDOG_USEC");
+    if (StringUtils.isNotEmpty(watchdogUsec)) {
+      try {
+        return Long.parseLong(watchdogUsec);
+      } catch (NumberFormatException e) {
+        logger.warn("Value of environment property WATCHDOG_USEC cannot be read as a number - watchdog disabled: " + watchdogUsec);
+      }
+    }
+    return 0;
+  }
 
   /**
    * Logs information regarding the status of the integration with systemd. Meant to be used once the application has done sufficient work to initialize
@@ -83,6 +96,15 @@ abstract class SystemdUtilities {
    */
   static String notifySocket() {
     return notifySocket;
+  }
+
+  /**
+   * Allows determining the current watchdog keep-alive.
+   *
+   * @return the contents of the environment property {@code WATCHDOG_USEC} as a long, or 0 if undefined, empty or unparseable
+   */
+  static long watchdogUsec() {
+    return watchdogUsec;
   }
 
   /**

@@ -19,7 +19,6 @@ package com.github.jpmsilva.jsystemd;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import com.github.jpmsilva.groundlevel.utilities.StringUtilities;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -29,6 +28,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 
 /**
  * The main systemd integration class.
@@ -43,7 +43,9 @@ import java.util.stream.Collectors;
 public class Systemd implements AutoCloseable {
 
   private final SystemdNotify systemdNotify = SystemdUtilities.getSystemdNotify();
-  private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+  private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1, new BasicThreadFactory.Builder()
+      .namingPattern("Systemd-%d")
+      .build());
 
   private final List<SystemdNotifyStatusProvider> providers = new CopyOnWriteArrayList<>();
   private long timeout = MICROSECONDS.convert(29, SECONDS);
@@ -86,6 +88,7 @@ public class Systemd implements AutoCloseable {
    * @param index position to add the providers
    * @param providers the providers to add
    */
+  @SuppressWarnings("WeakerAccess")
   public void addStatusProviders(int index, List<SystemdNotifyStatusProvider> providers) {
     this.providers.addAll(index, providers);
   }
@@ -127,11 +130,11 @@ public class Systemd implements AutoCloseable {
    * periodic status updates.
    */
   public void updateStatus() {
-    systemdNotify.status(StringUtilities.join(", ", providers.stream()
+    systemdNotify.status(providers.stream()
         .map(SystemdNotifyStatusProvider::status)
         .filter(Objects::nonNull)
         .filter(t -> t.length() > 0)
-        .collect(Collectors.toList())));
+        .collect(Collectors.joining(", ")));
   }
 
   /**
@@ -148,6 +151,7 @@ public class Systemd implements AutoCloseable {
    * Forces the watchdog timestamp to be updated. The method {@link Systemd.Builder#enableWatchdog(long, TimeUnit)} can be used to enable periodic watchdog
    * updates.
    */
+  @SuppressWarnings("WeakerAccess")
   public void watchdog() {
     systemdNotify.watchdog();
   }
@@ -224,6 +228,7 @@ public class Systemd implements AutoCloseable {
      * @param timeout the amount of time to extend the timeout in microseconds
      * @return the same builder instance
      */
+    @SuppressWarnings("unused")
     public Builder extendTimeout(long period, TimeUnit unit, long timeout) {
       if (period < 0) {
         throw new IllegalArgumentException("Illegal value for period");
@@ -244,7 +249,7 @@ public class Systemd implements AutoCloseable {
     /**
      * Enables periodic watchdog timestamp updates.
      *
-     * @param period the period to use
+     * @param period the period to use - must be greater than 0; if 0 this method does nothing
      * @param unit the time unit of the period
      * @return the same builder instance
      */
@@ -256,8 +261,10 @@ public class Systemd implements AutoCloseable {
         throw new NullPointerException("Unit must not be null");
       }
 
-      this.watchdogPeriod = period;
-      this.watchdogUnit = unit;
+      if (period > 0) {
+        this.watchdogPeriod = period;
+        this.watchdogUnit = unit;
+      }
       return this;
     }
 

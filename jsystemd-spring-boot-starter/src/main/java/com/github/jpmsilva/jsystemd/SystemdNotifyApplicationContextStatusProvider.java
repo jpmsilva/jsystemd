@@ -17,13 +17,10 @@
 package com.github.jpmsilva.jsystemd;
 
 import java.util.Arrays;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.function.Function;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.config.BeanDefinition;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.core.annotation.Order;
@@ -38,8 +35,10 @@ import org.springframework.core.annotation.Order;
 public class SystemdNotifyApplicationContextStatusProvider implements SystemdNotifyStatusProvider, BeanPostProcessor {
 
   private final Systemd systemd;
-  private ConfigurableListableBeanFactory factory;
-  private Map<String, BeanDefinition> definitions;
+  private final int applicationId;
+  private final String contextId;
+  private final ConfigurableListableBeanFactory factory;
+  private Set<String> definitions;
   private String status = "";
 
   /**
@@ -49,18 +48,13 @@ public class SystemdNotifyApplicationContextStatusProvider implements SystemdNot
    *
    * @param systemd the {@link Systemd} to send status information to
    */
-  SystemdNotifyApplicationContextStatusProvider(Systemd systemd) {
+  SystemdNotifyApplicationContextStatusProvider(@SuppressWarnings("SameParameterValue") Systemd systemd, int applicationId, String contextId,
+      ConfigurableListableBeanFactory factory) {
     this.systemd = systemd;
-    this.systemd.addStatusProviders(this);
-  }
-
-  /**
-   * Sets the bean factory once it's available.
-   *
-   * @param factory the bean factory to provide status information about
-   */
-  void setFactory(ConfigurableListableBeanFactory factory) {
+    this.applicationId = applicationId;
+    this.contextId = contextId;
     this.factory = factory;
+    this.systemd.addStatusProviders(this);
   }
 
   /**
@@ -79,7 +73,7 @@ public class SystemdNotifyApplicationContextStatusProvider implements SystemdNot
       throws BeansException {
     if (factory != null) {
       ensureDefinitionsLoaded();
-      status = String.format("Creating bean %d of %d", getSingletonCount(), definitions.size());
+      status = String.format("Application %d (%s): creating bean %d of %d", applicationId, contextId, getSingletonCount(), definitions.size());
       systemd.extendTimeout();
       systemd.updateStatus();
     }
@@ -90,7 +84,7 @@ public class SystemdNotifyApplicationContextStatusProvider implements SystemdNot
     if (definitions == null) {
       definitions = Arrays.stream(factory.getBeanDefinitionNames())
           .filter(isSingleton(factory))
-          .collect(Collectors.toMap(Function.identity(), factory::getBeanDefinition));
+          .collect(Collectors.toSet());
     }
   }
 
@@ -103,17 +97,12 @@ public class SystemdNotifyApplicationContextStatusProvider implements SystemdNot
   }
 
   private long getSingletonCount() {
-    return definitions.entrySet().stream()
-        .filter(containsSingleton(factory))
-        .map(Entry::getKey)
+    return definitions.stream()
+        .filter(factory::containsSingleton)
         .count();
   }
 
   private Predicate<? super String> isSingleton(ConfigurableListableBeanFactory factory) {
     return beanName -> factory.getBeanDefinition(beanName).isSingleton();
-  }
-
-  private Predicate<? super Map.Entry<String, BeanDefinition>> containsSingleton(ConfigurableListableBeanFactory factory) {
-    return entry -> factory.containsSingleton(entry.getKey());
   }
 }

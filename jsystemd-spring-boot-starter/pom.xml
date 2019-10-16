@@ -24,7 +24,7 @@ limitations under the License.
   <parent>
     <groupId>com.github.jpmsilva.jsystemd</groupId>
     <artifactId>jsystemd</artifactId>
-    <version>1.0.2</version>
+    <version>1.0.3</version>
   </parent>
 
   <name>jsystemd starter module for Spring Boot</name>
@@ -46,6 +46,11 @@ limitations under the License.
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-tomcat</artifactId>
       <optional>true</optional>
+    </dependency>
+    <dependency>
+      <groupId>com.github.jpmsilva.groundlevel-utilities</groupId>
+      <artifactId>groundlevel-utilities</artifactId>
+      <version>1.0.3</version>
     </dependency>
   </dependencies>
 </project>
