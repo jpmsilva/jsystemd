@@ -20,6 +20,8 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.github.jpmsilva.groundlevel.utilities.StringUtilities;
+import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -43,7 +45,9 @@ import java.util.stream.Collectors;
 public class Systemd implements AutoCloseable {
 
   private final SystemdNotify systemdNotify = SystemdUtilities.getSystemdNotify();
-  private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+  private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1, new BasicThreadFactory.Builder()
+          .namingPattern("Systemd-%d")
+          .build());
 
   private final List<SystemdNotifyStatusProvider> providers = new CopyOnWriteArrayList<>();
   private long timeout = MICROSECONDS.convert(29, SECONDS);
