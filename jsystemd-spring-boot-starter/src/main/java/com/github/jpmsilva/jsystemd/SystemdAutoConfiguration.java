@@ -24,11 +24,15 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.catalina.startup.Tomcat;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.actuate.health.Status;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,6 +45,7 @@ import org.springframework.core.annotation.Order;
  * <p>Sets up some basic {@link SystemdNotifyStatusProvider} as well.
  *
  * @author Joao Silva
+ * @author Christian Lorenz
  */
 @Configuration
 @ConditionalOnSystemd
@@ -102,6 +107,75 @@ public class SystemdAutoConfiguration {
     @Bean
     SystemdNotifyTomcatStatusProvider systemdNotifyTomcatStatusProvider() {
       return new SystemdNotifyTomcatStatusProvider();
+    }
+  }
+
+  /**
+   * Auto-configuration class for systemd integration when using Spring Boot Actuator.
+   */
+  @Configuration
+  @ConditionalOnClass(HealthIndicator.class)
+  public static class SystemdAutoActuatorHealthConfiguration {
+
+    @Bean
+    SystemdNotifyActuatorHealthProvider systemdNotifyActuatorHealthProvider(List<HealthIndicator> healthIndicators,
+        SystemdHealthProviderProperties properties, Systemd systemd) {
+
+      SystemdNotifyActuatorHealthProvider healthProvider = new SystemdNotifyActuatorHealthProvider(healthIndicators,
+          properties.unhealthyStatusCodes.stream().map(Status::new).collect(Collectors.toSet()));
+      if (properties.enabled) {
+        if (properties.unhealthyPendingPeriodMs != null) {
+          systemd.setHealthProvider(new PendingHealthProvider(healthProvider, properties.unhealthyPendingPeriodMs));
+        } else {
+          systemd.setHealthProvider(healthProvider);
+        }
+      }
+      return healthProvider;
+    }
+  }
+
+  @Configuration
+  @ConditionalOnClass(HealthIndicator.class)
+  @ConfigurationProperties(prefix = "systemd.health-provider")
+  public static class SystemdHealthProviderProperties {
+    /** enables Actuator health status affects systemd heartbeat */
+    private boolean enabled;
+    private List<String> unhealthyStatusCodes = initStatusCodes();
+
+    /** [ms]; can be null */
+    private Long unhealthyPendingPeriodMs;
+
+    /** add {@link Status#DOWN} by default */
+    private static List<String> initStatusCodes() {
+      List<String> list = new ArrayList<>(1);
+      list.add(Status.DOWN.getCode());
+      return list;
+    }
+
+    public boolean getEnabled() {
+      return enabled;
+    }
+
+    public void setEnabled(boolean enabled) {
+      this.enabled = enabled;
+    }
+
+    public List<String> getUnhealthyStatusCodes() {
+      return unhealthyStatusCodes;
+    }
+
+    public void setUnhealthyStatusCodes(List<String> unhealthyStatusCodes) {
+      this.unhealthyStatusCodes = unhealthyStatusCodes;
+    }
+
+    /** [ms]; can be null */
+    public Long getUnhealthyPendingPeriodMs() {
+      return unhealthyPendingPeriodMs;
+    }
+
+    /** [ms]; can be null */
+    public void setUnhealthyPendingPeriodMs(Long unhealthyPendingPeriodMs) {
+      this.unhealthyPendingPeriodMs = unhealthyPendingPeriodMs;
     }
   }
 }
