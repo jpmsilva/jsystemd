@@ -19,6 +19,7 @@ package com.github.jpmsilva.jsystemd;
 import static java.util.Collections.emptyList;
 
 import com.github.jpmsilva.groundlevel.utilities.QuackAnnotationAwareOrderComparator;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -31,8 +32,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.Status;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -115,67 +117,22 @@ public class SystemdAutoConfiguration {
    */
   @Configuration
   @ConditionalOnClass(HealthIndicator.class)
+  @ConditionalOnProperty(prefix = "systemd.health-provider.enabled")
+  @EnableConfigurationProperties(SystemdHealthProviderProperties.class)
   public static class SystemdAutoActuatorHealthConfiguration {
 
     @Bean
-    SystemdNotifyActuatorHealthProvider systemdNotifyActuatorHealthProvider(List<HealthIndicator> healthIndicators,
-        SystemdHealthProviderProperties properties, Systemd systemd) {
-
-      SystemdNotifyActuatorHealthProvider healthProvider = new SystemdNotifyActuatorHealthProvider(healthIndicators,
-          properties.unhealthyStatusCodes.stream().map(Status::new).collect(Collectors.toSet()));
-      if (properties.enabled) {
-        if (properties.unhealthyPendingPeriodMs != null) {
-          systemd.setHealthProvider(new PendingHealthProvider(healthProvider, properties.unhealthyPendingPeriodMs));
-        } else {
-          systemd.setHealthProvider(healthProvider);
-        }
+    SystemdNotifyActuatorHealthProvider systemdNotifyActuatorHealthProvider(@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") Systemd systemd,
+        ObjectProvider<List<HealthIndicator>> healthIndicatorsProvider, SystemdHealthProviderProperties properties) {
+      List<HealthIndicator> healthIndicators = Optional.ofNullable(healthIndicatorsProvider.getIfAvailable()).orElse(emptyList());
+      Set<Status> unhealthyStatusCodes = properties.getUnhealthyStatusCodes().stream().map(Status::new).collect(Collectors.toSet());
+      SystemdNotifyActuatorHealthProvider healthProvider = new SystemdNotifyActuatorHealthProvider(healthIndicators, unhealthyStatusCodes);
+      if (properties.getUnhealthyPendingPeriodMs() != null) {
+        systemd.setHealthProvider(new PendingHealthProvider(healthProvider, properties.getUnhealthyPendingPeriodMs(), ChronoUnit.MILLIS));
+      } else {
+        systemd.setHealthProvider(healthProvider);
       }
       return healthProvider;
-    }
-  }
-
-  @Configuration
-  @ConditionalOnClass(HealthIndicator.class)
-  @ConfigurationProperties(prefix = "systemd.health-provider")
-  public static class SystemdHealthProviderProperties {
-    /** enables Actuator health status affects systemd heartbeat */
-    private boolean enabled;
-    private List<String> unhealthyStatusCodes = initStatusCodes();
-
-    /** [ms]; can be null */
-    private Long unhealthyPendingPeriodMs;
-
-    /** add {@link Status#DOWN} by default */
-    private static List<String> initStatusCodes() {
-      List<String> list = new ArrayList<>(1);
-      list.add(Status.DOWN.getCode());
-      return list;
-    }
-
-    public boolean getEnabled() {
-      return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-      this.enabled = enabled;
-    }
-
-    public List<String> getUnhealthyStatusCodes() {
-      return unhealthyStatusCodes;
-    }
-
-    public void setUnhealthyStatusCodes(List<String> unhealthyStatusCodes) {
-      this.unhealthyStatusCodes = unhealthyStatusCodes;
-    }
-
-    /** [ms]; can be null */
-    public Long getUnhealthyPendingPeriodMs() {
-      return unhealthyPendingPeriodMs;
-    }
-
-    /** [ms]; can be null */
-    public void setUnhealthyPendingPeriodMs(Long unhealthyPendingPeriodMs) {
-      this.unhealthyPendingPeriodMs = unhealthyPendingPeriodMs;
     }
   }
 }

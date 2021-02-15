@@ -13,12 +13,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.github.jpmsilva.jsystemd;
+
+import static java.lang.invoke.MethodHandles.lookup;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalUnit;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of {@link HealthProvider} that suppresses/delays the unhealthy state of a delegate for a configurable period.
@@ -27,40 +31,42 @@ import org.slf4j.LoggerFactory;
  */
 public class PendingHealthProvider implements HealthProvider {
 
-  private static final Logger LOG = LoggerFactory.getLogger(PendingHealthProvider.class);
+  private static final Logger logger = getLogger(lookup().lookupClass());
 
   private final HealthProvider delegate;
-  /**
-   * [ms]
-   */
-  private final long pendingMs;
+  private final long delay;
+  private final TemporalUnit delayUnit;
   private Instant unhealthySince;
 
   /**
-   * @param pendingMs [ms] time that has to be elapsed before the real unhealthy status is provided
+   *
+   * @param delegate health provider from which to obtain the true health status of the application
+   * @param delay time that has to be elapsed before the real unhealthy status is provided
+   * @param delayUnit {@link TemporalUnit} for <code>delay</code>
    */
-  public PendingHealthProvider(HealthProvider delegate, long pendingMs) {
+  public PendingHealthProvider(HealthProvider delegate, long delay, TemporalUnit delayUnit) {
     this.delegate = delegate;
-    this.pendingMs = pendingMs;
+    this.delay = delay;
+    this.delayUnit = delayUnit;
   }
 
   @Override
   public boolean healthy() {
     boolean healthy = delegate.healthy();
+    Instant now = Instant.now();
     if (!healthy) {
       if (unhealthySince == null) {
-        unhealthySince = Instant.now();
+        unhealthySince = now;
       }
-      LOG.debug("application unhealthy since {}; health status suppressed until {}", unhealthySince,
-          unhealthySince.plusMillis(pendingMs));
-      if (unhealthySince.plusMillis(pendingMs).isAfter(Instant.now())) {
+      Instant deadline = unhealthySince.plus(delay, delayUnit);
+      logger.debug("Application unhealthy since {} (unhealthy status suppressed until {})", unhealthySince, deadline);
+      if (deadline.isAfter(now)) {
         // healthy until delay has expired
         return true;
       }
     } else {
       if (unhealthySince != null) {
-        LOG.debug("application healthy again (unhealthy for {}s",
-            ChronoUnit.SECONDS.between(unhealthySince, Instant.now()));
+        logger.debug("Application healthy again (unhealthy for {}s", ChronoUnit.SECONDS.between(unhealthySince, now));
         unhealthySince = null;
       }
     }

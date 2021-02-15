@@ -13,12 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 package com.github.jpmsilva.jsystemd;
+
+import static java.lang.invoke.MethodHandles.lookup;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.List;
 import java.util.Set;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.Status;
 
@@ -29,7 +32,7 @@ import org.springframework.boot.actuate.health.Status;
  */
 public class SystemdNotifyActuatorHealthProvider implements SystemdNotifyStatusProvider, HealthProvider {
 
-  private static final Logger LOG = LoggerFactory.getLogger(SystemdNotifyActuatorHealthProvider.class);
+  private static final Logger logger = getLogger(lookup().lookupClass());
 
   private final List<HealthIndicator> healthIndicators;
   private final Set<Status> unhealthyStatusCodes;
@@ -42,16 +45,16 @@ public class SystemdNotifyActuatorHealthProvider implements SystemdNotifyStatusP
     this.healthIndicators = healthIndicators;
     this.unhealthyStatusCodes = unhealthyStatusCodes;
     if (this.unhealthyStatusCodes.isEmpty()) {
-      LOG.warn("no status codes considered as unhealthy");
+      logger.warn("No status codes considered as unhealthy");
     } else {
-      LOG.debug("status codes considered as unhealthy={}", unhealthyStatusCodes);
+      logger.debug("Status codes considered as unhealthy={}", unhealthyStatusCodes);
     }
   }
 
   @Override
   public boolean healthy() {
     boolean health = healthIndicators.stream().noneMatch(it -> unhealthyStatusCodes.contains(it.health().getStatus()));
-    LOG.debug("application health state={}", health);
+    logger.debug("Application health state={}", health);
     return health;
   }
 

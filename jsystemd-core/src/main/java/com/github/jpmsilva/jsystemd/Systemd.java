@@ -16,8 +16,10 @@
 
 package com.github.jpmsilva.jsystemd;
 
+import static java.lang.invoke.MethodHandles.lookup;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -30,9 +32,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
-
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * The main systemd integration class.
@@ -46,7 +47,7 @@ import org.slf4j.LoggerFactory;
  */
 public class Systemd implements AutoCloseable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(Systemd.class);
+  private static final Logger logger = getLogger(lookup().lookupClass());
 
   private final SystemdNotify systemdNotify = SystemdUtilities.getSystemdNotify();
   private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1, new BasicThreadFactory.Builder()
@@ -54,7 +55,7 @@ public class Systemd implements AutoCloseable {
       .build());
 
   private final List<SystemdNotifyStatusProvider> providers = new CopyOnWriteArrayList<>();
-  /** can be null */
+  @Nullable
   private HealthProvider healthProvider;
   private long timeout = MICROSECONDS.convert(29, SECONDS);
   private volatile boolean ready = false;
@@ -132,9 +133,9 @@ public class Systemd implements AutoCloseable {
   /**
    * Sets the current health provider, overrides any other previously set.
    *
-   * @param provider the provider to set; can be null
+   * @param provider the provider to set, or <code>null</code> to disable the watchdog health integration
    */
-  public void setHealthProvider(HealthProvider provider) {
+  public void setHealthProvider(@Nullable HealthProvider provider) {
     this.healthProvider = provider;
   }
 
@@ -183,10 +184,10 @@ public class Systemd implements AutoCloseable {
   public void watchdog() {
     Optional<HealthProvider> healthProvider = getHealthProvider();
     if (healthProvider.isPresent() && !healthProvider.get().healthy()) {
-      LOG.warn("suppress heartbeat to watchdog because application is unhealthy");
+      logger.warn("Suppressing heartbeat to watchdog because application is unhealthy");
       return;
     }
-    LOG.debug("trigger heartbeat to watchdog");
+    logger.debug("Triggering heartbeat to watchdog");
     systemdNotify.watchdog();
   }
 
@@ -318,8 +319,8 @@ public class Systemd implements AutoCloseable {
       if (watchdogPeriod > -1) {
         systemd.enableWatchdog(watchdogPeriod, watchdogUnit);
       }
-      LOG.info(
-              "Enable Systemd integration with options=(statusUpdatePeriod={} {}, extendTimeoutPeriod={} {}, extendTimeoutTimeout={}, watchdogPeriod={} {})",
+      logger.info(
+              "Enabling Systemd integration with options=(statusUpdatePeriod={} {}, extendTimeoutPeriod={} {}, extendTimeoutTimeout={}, watchdogPeriod={} {})",
               statusUpdatePeriod, statusUpdateUnit, extendTimeoutPeriod, extendTimeoutUnit, extendTimeoutTimeout,
               watchdogPeriod, watchdogUnit);
       return systemd;

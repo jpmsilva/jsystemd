@@ -122,6 +122,11 @@ limitations under the License.
         <artifactId>commons-lang3</artifactId>
         <version>3.9</version>
       </dependency>
+      <dependency>
+        <groupId>org.jetbrains</groupId>
+        <artifactId>annotations</artifactId>
+        <version>20.1.0</version>
+      </dependency>
 
       <dependency>
         <!-- Import dependency management from Spring Boot -->
@@ -133,6 +138,14 @@ limitations under the License.
       </dependency>
     </dependencies>
   </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
+      <optional>true</optional>
+    </dependency>
+  </dependencies>
 
   <build>
     <pluginManagement>
