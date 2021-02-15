@@ -43,7 +43,6 @@ final class SystemdNotifyNative extends AbstractSystemdNotify {
     Library.sd_notify(0, message);
   }
 
-  @SuppressWarnings({"checkstyle:EmptyCatchBlock", "checkstyle:ParameterName"})
   private static class Library {
 
     private static boolean initialized = false;
@@ -56,7 +55,7 @@ final class SystemdNotifyNative extends AbstractSystemdNotify {
       }
     }
 
-    @SuppressWarnings("UnusedReturnValue")
+    @SuppressWarnings({"UnusedReturnValue", "checkstyle:ParameterName"})
     public static native int sd_notify(int unset_environment, String state);
   }
 }

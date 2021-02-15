@@ -178,7 +178,7 @@ public class Systemd implements AutoCloseable {
    * Forces the watchdog timestamp to be updated. The method {@link Systemd.Builder#enableWatchdog(long, TimeUnit)} can be used to enable periodic watchdog
    * updates.
    *
-   * If health provider is set and returns unhealthy the watchdog timestamp is not updated.
+   * <p>If health provider is set and returns unhealthy the watchdog timestamp is not updated.
    */
   @SuppressWarnings("WeakerAccess")
   public void watchdog() {

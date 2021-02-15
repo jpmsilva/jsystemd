@@ -24,6 +24,8 @@ package com.github.jpmsilva.jsystemd;
 public interface HealthProvider {
 
   /**
+   * Determines if an application is healthy.
+   *
    * @return true if application is healthy, otherwise false
    */
   boolean healthy();

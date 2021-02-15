@@ -30,7 +30,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class SystemdHealthProviderProperties {
 
   /**
-   * Enable integration between Spring Boot's Actuator health status and systemd's watchdog
+   * Enable integration between Spring Boot's Actuator health status and systemd's watchdog.
    */
   private boolean enabled;
 

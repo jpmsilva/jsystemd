@@ -69,18 +69,6 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
   }
 
   /**
-   * Legacy Spring Boot 1.4 method, provided here to ensure that the library works under previous versions.
-   *
-   * <p>Called immediately when the run method has first started. Can be used for very early initialization.
-   */
-  @SuppressWarnings("unused")
-  public void started() {
-    if (IS_UNDER_SYSTEMD) {
-      provider.state(ApplicationState.STARTING);
-    }
-  }
-
-  /**
    * {@inheritDoc}
    */
   @Override
@@ -146,17 +134,5 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
    */
   @Override
   public void failed(ConfigurableApplicationContext context, Throwable exception) {
-  }
-
-  /**
-   * Legacy Spring Boot 1.5 method, provided here to ensure that the library works under previous versions.
-   *
-   * <p>Called immediately before the run method finishes.
-   *
-   * @param context the application context or null if a failure occurred before the context was created
-   * @param exception any run exception or null if run completed successfully.
-   */
-  @SuppressWarnings({"unused", "EmptyMethod"})
-  public void finished(ConfigurableApplicationContext context, Throwable exception) {
   }
 }

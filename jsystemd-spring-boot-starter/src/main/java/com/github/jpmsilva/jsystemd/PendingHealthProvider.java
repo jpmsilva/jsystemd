@@ -39,6 +39,8 @@ public class PendingHealthProvider implements HealthProvider {
   private Instant unhealthySince;
 
   /**
+   * Creates a new health provider that delegates the actual work to the <code>delegate</code>, and delays
+   * reporting unhealthy status.
    *
    * @param delegate health provider from which to obtain the true health status of the application
    * @param delay time that has to be elapsed before the real unhealthy status is provided

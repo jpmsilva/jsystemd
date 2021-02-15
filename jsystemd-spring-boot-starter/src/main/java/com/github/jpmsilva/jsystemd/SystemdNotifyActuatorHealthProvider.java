@@ -38,7 +38,12 @@ public class SystemdNotifyActuatorHealthProvider implements SystemdNotifyStatusP
   private final Set<Status> unhealthyStatusCodes;
 
   /**
-   * @param healthIndicators     Spring Boot Actuator Health Indicators
+   * Creates a new instance using the provided {@link HealthIndicator} and {@link Status}.
+   *
+   * <p>{@link HealthIndicator} are used to determine the health of the application, whereas {@link Status}
+   * indicate which status should be considered as unhealthy.
+   *
+   * @param healthIndicators Spring Boot Actuator Health Indicators
    * @param unhealthyStatusCodes list of status codes considered as unhealthy
    */
   public SystemdNotifyActuatorHealthProvider(List<HealthIndicator> healthIndicators, Set<Status> unhealthyStatusCodes) {
