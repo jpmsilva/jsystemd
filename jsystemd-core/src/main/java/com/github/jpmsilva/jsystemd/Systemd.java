@@ -23,12 +23,16 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The main systemd integration class.
@@ -42,12 +46,16 @@ import org.apache.commons.lang3.concurrent.BasicThreadFactory;
  */
 public class Systemd implements AutoCloseable {
 
+  private static final Logger LOG = LoggerFactory.getLogger(Systemd.class);
+
   private final SystemdNotify systemdNotify = SystemdUtilities.getSystemdNotify();
   private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1, new BasicThreadFactory.Builder()
       .namingPattern("Systemd-%d")
       .build());
 
   private final List<SystemdNotifyStatusProvider> providers = new CopyOnWriteArrayList<>();
+  /** can be null */
+  private HealthProvider healthProvider;
   private long timeout = MICROSECONDS.convert(29, SECONDS);
   private volatile boolean ready = false;
 
@@ -112,6 +120,24 @@ public class Systemd implements AutoCloseable {
     this.providers.addAll(providers);
   }
 
+  /**
+   * Returns the current health provider.
+   *
+   * @return the current provider
+   */
+  public Optional<HealthProvider> getHealthProvider() {
+    return Optional.ofNullable(healthProvider);
+  }
+
+  /**
+   * Sets the current health provider, overrides any other previously set.
+   *
+   * @param provider the provider to set; can be null
+   */
+  public void setHealthProvider(HealthProvider provider) {
+    this.healthProvider = provider;
+  }
+
   private void enableStatusUpdate(long period, TimeUnit unit) {
     executor.scheduleAtFixedRate(this::updateStatus, period, period, unit);
   }
@@ -150,9 +176,17 @@ public class Systemd implements AutoCloseable {
   /**
    * Forces the watchdog timestamp to be updated. The method {@link Systemd.Builder#enableWatchdog(long, TimeUnit)} can be used to enable periodic watchdog
    * updates.
+   *
+   * If health provider is set and returns unhealthy the watchdog timestamp is not updated.
    */
   @SuppressWarnings("WeakerAccess")
   public void watchdog() {
+    Optional<HealthProvider> healthProvider = getHealthProvider();
+    if (healthProvider.isPresent() && !healthProvider.get().healthy()) {
+      LOG.warn("suppress heartbeat to watchdog because application is unhealthy");
+      return;
+    }
+    LOG.debug("trigger heartbeat to watchdog");
     systemdNotify.watchdog();
   }
 
@@ -284,6 +318,10 @@ public class Systemd implements AutoCloseable {
       if (watchdogPeriod > -1) {
         systemd.enableWatchdog(watchdogPeriod, watchdogUnit);
       }
+      LOG.info(
+              "Enable Systemd integration with options=(statusUpdatePeriod={} {}, extendTimeoutPeriod={} {}, extendTimeoutTimeout={}, watchdogPeriod={} {})",
+              statusUpdatePeriod, statusUpdateUnit, extendTimeoutPeriod, extendTimeoutUnit, extendTimeoutTimeout,
+              watchdogPeriod, watchdogUnit);
       return systemd;
     }
   }
