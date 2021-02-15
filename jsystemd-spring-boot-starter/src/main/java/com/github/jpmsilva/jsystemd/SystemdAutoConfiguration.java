@@ -128,7 +128,7 @@ public class SystemdAutoConfiguration {
    */
   @Configuration
   @ConditionalOnClass(HealthIndicator.class)
-  @ConditionalOnProperty(prefix = "systemd.health-provider.enabled")
+  @ConditionalOnProperty(name = "enabled", prefix = "systemd.health-provider")
   @EnableConfigurationProperties(SystemdHealthProviderProperties.class)
   public static class SystemdAutoActuatorHealthConfiguration {
 
