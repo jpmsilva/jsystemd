@@ -17,9 +17,13 @@
 package com.github.jpmsilva.jsystemd;
 
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -34,11 +38,15 @@ import org.springframework.core.annotation.Order;
 @Order(-4000)
 public class SystemdNotifyApplicationContextStatusProvider implements SystemdNotifyStatusProvider, BeanPostProcessor {
 
+  @NotNull
   private final Systemd systemd;
   private final int applicationId;
   private final String contextId;
   private final ConfigurableListableBeanFactory factory;
-  private Set<String> definitions;
+  private boolean definitionsLoaded = false;
+  @NotNull
+  private Set<String> definitions = new HashSet<>();
+  @NotNull
   private String status = "";
 
   /**
@@ -48,52 +56,22 @@ public class SystemdNotifyApplicationContextStatusProvider implements SystemdNot
    *
    * @param systemd the {@link Systemd} to send status information to
    */
-  SystemdNotifyApplicationContextStatusProvider(@SuppressWarnings("SameParameterValue") Systemd systemd, int applicationId, String contextId,
+  SystemdNotifyApplicationContextStatusProvider(@SuppressWarnings("SameParameterValue") @NotNull Systemd systemd, int applicationId, String contextId,
       ConfigurableListableBeanFactory factory) {
-    this.systemd = systemd;
+    this.systemd = Objects.requireNonNull(systemd, "Systemd must not be null");
     this.applicationId = applicationId;
     this.contextId = contextId;
     this.factory = factory;
     this.systemd.addStatusProviders(this);
   }
 
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public String status() {
-    return systemd.isReady() ? "" : status;
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public Object postProcessBeforeInitialization(Object bean, String beanName)
-      throws BeansException {
-    if (factory != null) {
-      ensureDefinitionsLoaded();
-      status = String.format("Application %d (%s): creating bean %d of %d", applicationId, contextId, getSingletonCount(), definitions.size());
-      systemd.extendTimeout();
-      systemd.updateStatus();
-    }
-    return bean;
-  }
-
   private void ensureDefinitionsLoaded() {
-    if (definitions == null) {
+    if (!definitionsLoaded) {
       definitions = Arrays.stream(factory.getBeanDefinitionNames())
           .filter(isSingleton(factory))
           .collect(Collectors.toSet());
+      definitionsLoaded = true;
     }
-  }
-
-  /**
-   * {@inheritDoc}
-   */
-  @Override
-  public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-    return bean;
   }
 
   private long getSingletonCount() {
@@ -104,5 +82,35 @@ public class SystemdNotifyApplicationContextStatusProvider implements SystemdNot
 
   private Predicate<? super String> isSingleton(ConfigurableListableBeanFactory factory) {
     return beanName -> factory.getBeanDefinition(beanName).isSingleton();
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public @NotNull String status() {
+    return systemd.isReady() ? "" : status;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public @Nullable Object postProcessBeforeInitialization(@NotNull Object bean, @NotNull String beanName) throws BeansException {
+    if (factory != null) {
+      ensureDefinitionsLoaded();
+      status = String.format("Application %d (%s): creating bean %d of %d", applicationId, contextId, getSingletonCount(), definitions.size());
+      systemd.extendTimeout();
+      systemd.updateStatus();
+    }
+    return bean;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public @Nullable Object postProcessAfterInitialization(@NotNull Object bean, @NotNull String beanName) throws BeansException {
+    return bean;
   }
 }

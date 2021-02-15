@@ -19,6 +19,8 @@ package com.github.jpmsilva.jsystemd;
 import static java.lang.invoke.MethodHandles.lookup;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 /**
@@ -46,8 +48,8 @@ abstract class AbstractSystemdNotify implements SystemdNotify {
    * {@inheritDoc}
    */
   @Override
-  public void status(String message) {
-    logger.debug("Notifying systemd that service status is {}", message);
+  public void status(@NotNull String message) {
+    logger.debug("Notifying systemd that service status is {}", Objects.requireNonNull(message, "Message must not be null"));
     invoke("STATUS=" + message);
   }
 

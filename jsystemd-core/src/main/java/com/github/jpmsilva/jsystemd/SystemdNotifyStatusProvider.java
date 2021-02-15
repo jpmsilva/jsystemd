@@ -16,6 +16,8 @@
 
 package com.github.jpmsilva.jsystemd;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Interface that represents any object that can contribute with status information regarding the running process to the service supervisor.
  *
@@ -32,7 +34,7 @@ public interface SystemdNotifyStatusProvider {
    *
    * @return the string message to add to the service status
    */
-  default String status() {
+  default @NotNull String status() {
     return "";
   }
 }

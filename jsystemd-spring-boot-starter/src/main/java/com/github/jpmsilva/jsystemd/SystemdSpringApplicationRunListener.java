@@ -20,6 +20,9 @@ import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.github.jpmsilva.jsystemd.SystemdNotifyApplicationRunStatusProvider.ApplicationState;
+import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringApplicationRunListener;
@@ -40,6 +43,7 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
   private static final Systemd SYSTEMD = ensureSystemd();
 
   private final int applicationId;
+  @Nullable
   private SystemdNotifyApplicationRunStatusProvider provider;
 
   /**
@@ -49,10 +53,10 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
    * @param args the arguments passed to the Spring Application
    */
   @SuppressWarnings({"PMD.UnusedFormalParameter", "unused"})
-  public SystemdSpringApplicationRunListener(SpringApplication springApplication, String[] args) {
-    applicationId = springApplication.hashCode();
+  public SystemdSpringApplicationRunListener(@NotNull SpringApplication springApplication, String[] args) {
+    applicationId = Objects.requireNonNull(springApplication, "Spring application must not be null").hashCode();
     if (IS_UNDER_SYSTEMD) {
-      provider = new SystemdNotifyApplicationRunStatusProvider(SYSTEMD, applicationId);
+      provider = new SystemdNotifyApplicationRunStatusProvider(Objects.requireNonNull(SYSTEMD, "Systemd must not be null"), applicationId);
     }
   }
 
@@ -69,23 +73,11 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
   }
 
   /**
-   * Legacy Spring Boot 1.4 method, provided here to ensure that the library works under previous versions.
-   *
-   * <p>Called immediately when the run method has first started. Can be used for very early initialization.
-   */
-  @SuppressWarnings("unused")
-  public void started() {
-    if (IS_UNDER_SYSTEMD) {
-      provider.state(ApplicationState.STARTING);
-    }
-  }
-
-  /**
    * {@inheritDoc}
    */
   @Override
   public void starting() {
-    if (IS_UNDER_SYSTEMD) {
+    if (provider != null) {
       provider.state(ApplicationState.STARTING);
     }
   }
@@ -95,7 +87,7 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
    */
   @Override
   public void environmentPrepared(ConfigurableEnvironment environment) {
-    if (IS_UNDER_SYSTEMD) {
+    if (provider != null) {
       provider.state(ApplicationState.ENVIRONMENT_PREPARED);
     }
   }
@@ -105,15 +97,16 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
    */
   @Override
   public void contextPrepared(ConfigurableApplicationContext context) {
-    if (IS_UNDER_SYSTEMD) {
+    if (provider != null) {
       provider.state(ApplicationState.CONTEXT_PREPARED);
 
       ConfigurableListableBeanFactory beanFactory = context.getBeanFactory();
+      Systemd systemd = Objects.requireNonNull(SYSTEMD, "Systemd must not be null");
       if (!beanFactory.containsSingleton(SYSTEMD_BEAN_NAME)) {
-        beanFactory.registerSingleton(SYSTEMD_BEAN_NAME, SYSTEMD);
+        beanFactory.registerSingleton(SYSTEMD_BEAN_NAME, systemd);
       }
       beanFactory.registerSingleton("systemdNotifyApplicationContextStatusProvider",
-          new SystemdNotifyApplicationContextStatusProvider(SYSTEMD, applicationId, context.getId(), beanFactory));
+          new SystemdNotifyApplicationContextStatusProvider(systemd, applicationId, context.getId(), beanFactory));
     }
   }
 
@@ -122,7 +115,7 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
    */
   @Override
   public void contextLoaded(ConfigurableApplicationContext context) {
-    if (IS_UNDER_SYSTEMD) {
+    if (provider != null) {
       provider.state(ApplicationState.CONTEXT_LOADED);
     }
   }
@@ -146,17 +139,5 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
    */
   @Override
   public void failed(ConfigurableApplicationContext context, Throwable exception) {
-  }
-
-  /**
-   * Legacy Spring Boot 1.5 method, provided here to ensure that the library works under previous versions.
-   *
-   * <p>Called immediately before the run method finishes.
-   *
-   * @param context the application context or null if a failure occurred before the context was created
-   * @param exception any run exception or null if run completed successfully.
-   */
-  @SuppressWarnings({"unused", "EmptyMethod"})
-  public void finished(ConfigurableApplicationContext context, Throwable exception) {
   }
 }

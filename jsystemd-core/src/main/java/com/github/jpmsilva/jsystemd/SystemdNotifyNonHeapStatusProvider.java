@@ -20,6 +20,7 @@ import com.jakewharton.byteunits.BinaryByteUnit;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.Optional;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Implementation of {@link SystemdNotifyStatusProvider} that provides information regarding the non-heap zone of the memory.
@@ -32,7 +33,7 @@ public class SystemdNotifyNonHeapStatusProvider implements SystemdNotifyStatusPr
    * {@inheritDoc}
    */
   @Override
-  public String status() {
+  public @NotNull String status() {
     return Optional.ofNullable(ManagementFactory.getMemoryMXBean())
         .map(MemoryMXBean::getNonHeapMemoryUsage)
         .map(t -> String.format("Non-heap: %s/%s", BinaryByteUnit.format(t.getUsed()), BinaryByteUnit.format(t.getCommitted())))

@@ -16,19 +16,25 @@
 
 package com.github.jpmsilva.jsystemd;
 
+import static java.lang.invoke.MethodHandles.lookup;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.slf4j.LoggerFactory.getLogger;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 /**
  * The main systemd integration class.
@@ -42,12 +48,18 @@ import org.apache.commons.lang3.concurrent.BasicThreadFactory;
  */
 public class Systemd implements AutoCloseable {
 
+  private static final Logger logger = getLogger(lookup().lookupClass());
+
+  @NotNull
   private final SystemdNotify systemdNotify = SystemdUtilities.getSystemdNotify();
+  @NotNull
   private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1, new BasicThreadFactory.Builder()
       .namingPattern("Systemd-%d")
       .build());
-
+  @NotNull
   private final List<SystemdNotifyStatusProvider> providers = new CopyOnWriteArrayList<>();
+  @Nullable
+  private HealthProvider healthProvider;
   private long timeout = MICROSECONDS.convert(29, SECONDS);
   private volatile boolean ready = false;
 
@@ -59,7 +71,7 @@ public class Systemd implements AutoCloseable {
    *
    * @return a builder instance
    */
-  public static Builder builder() {
+  public static @NotNull Builder builder() {
     return new Builder();
   }
 
@@ -98,7 +110,7 @@ public class Systemd implements AutoCloseable {
    *
    * @return the current list of providers
    */
-  public List<SystemdNotifyStatusProvider> getStatusProviders() {
+  public @NotNull List<SystemdNotifyStatusProvider> getStatusProviders() {
     return Collections.unmodifiableList(providers);
   }
 
@@ -107,21 +119,39 @@ public class Systemd implements AutoCloseable {
    *
    * @param providers the providers to set
    */
-  public void setStatusProviders(List<SystemdNotifyStatusProvider> providers) {
+  public void setStatusProviders(@NotNull List<SystemdNotifyStatusProvider> providers) {
     this.providers.clear();
-    this.providers.addAll(providers);
+    this.providers.addAll(Objects.requireNonNull(providers, "Providers must not be null"));
   }
 
-  private void enableStatusUpdate(long period, TimeUnit unit) {
+  /**
+   * Returns the current health provider.
+   *
+   * @return the current provider
+   */
+  public Optional<HealthProvider> getHealthProvider() {
+    return Optional.ofNullable(healthProvider);
+  }
+
+  /**
+   * Sets the current health provider, overrides any other previously set.
+   *
+   * @param provider the provider to set, or <code>null</code> to disable the watchdog health integration
+   */
+  public void setHealthProvider(@Nullable HealthProvider provider) {
+    this.healthProvider = provider;
+  }
+
+  private void enableStatusUpdate(long period, @NotNull TimeUnit unit) {
     executor.scheduleAtFixedRate(this::updateStatus, period, period, unit);
   }
 
-  private void enableExtendTimeout(long period, TimeUnit unit, long timeout) {
+  private void enableExtendTimeout(long period, @NotNull TimeUnit unit, long timeout) {
     this.timeout = timeout;
     executor.scheduleAtFixedRate(this::extendTimeout, period, period, unit);
   }
 
-  private void enableWatchdog(long period, TimeUnit unit) {
+  private void enableWatchdog(long period, @NotNull TimeUnit unit) {
     executor.scheduleAtFixedRate(this::watchdog, period, period, unit);
   }
 
@@ -132,7 +162,6 @@ public class Systemd implements AutoCloseable {
   public void updateStatus() {
     systemdNotify.status(providers.stream()
         .map(SystemdNotifyStatusProvider::status)
-        .filter(Objects::nonNull)
         .filter(t -> t.length() > 0)
         .collect(Collectors.joining(", ")));
   }
@@ -150,9 +179,17 @@ public class Systemd implements AutoCloseable {
   /**
    * Forces the watchdog timestamp to be updated. The method {@link Systemd.Builder#enableWatchdog(long, TimeUnit)} can be used to enable periodic watchdog
    * updates.
+   *
+   * <p>If health provider is set and returns unhealthy the watchdog timestamp is not updated.
    */
   @SuppressWarnings("WeakerAccess")
   public void watchdog() {
+    Optional<HealthProvider> healthProvider = getHealthProvider();
+    if (healthProvider.isPresent() && !(healthProvider.get().health()).healthy) {
+      logger.warn("Suppressing heartbeat to watchdog because application is unhealthy (details={})", healthProvider.get().health().details);
+      return;
+    }
+    logger.debug("Triggering heartbeat to watchdog");
     systemdNotify.watchdog();
   }
 
@@ -182,7 +219,10 @@ public class Systemd implements AutoCloseable {
     synchronized (executor) {
       if (!executor.isShutdown()) {
         executor.shutdown();
-        executor.awaitTermination(10, SECONDS);
+        boolean terminated = executor.awaitTermination(10, SECONDS);
+        if (!terminated) {
+          executor.shutdownNow();
+        }
       }
     }
   }
@@ -207,13 +247,11 @@ public class Systemd implements AutoCloseable {
      * @param unit the time unit of the period
      * @return the same builder instance
      */
-    public Builder statusUpdate(long period, TimeUnit unit) {
+    public Builder statusUpdate(long period, @NotNull TimeUnit unit) {
       if (period < 0) {
         throw new IllegalArgumentException("Illegal value for period");
       }
-      if (null == unit) {
-        throw new NullPointerException("Unit must not be null");
-      }
+      Objects.requireNonNull(unit, "Unit must not be null");
 
       this.statusUpdatePeriod = period;
       this.statusUpdateUnit = unit;
@@ -229,13 +267,11 @@ public class Systemd implements AutoCloseable {
      * @return the same builder instance
      */
     @SuppressWarnings("unused")
-    public Builder extendTimeout(long period, TimeUnit unit, long timeout) {
+    public Builder extendTimeout(long period, @NotNull TimeUnit unit, long timeout) {
       if (period < 0) {
         throw new IllegalArgumentException("Illegal value for period");
       }
-      if (null == unit) {
-        throw new NullPointerException("Unit must not be null");
-      }
+      Objects.requireNonNull(unit, "Unit must not be null");
       if (timeout < 0) {
         throw new IllegalArgumentException("Illegal value for timeout");
       }
@@ -253,13 +289,11 @@ public class Systemd implements AutoCloseable {
      * @param unit the time unit of the period
      * @return the same builder instance
      */
-    public Builder watchdog(long period, TimeUnit unit) {
+    public Builder watchdog(long period, @NotNull TimeUnit unit) {
       if (period < 0) {
         throw new IllegalArgumentException("Illegal value for period");
       }
-      if (null == unit) {
-        throw new NullPointerException("Unit must not be null");
-      }
+      Objects.requireNonNull(unit, "Unit must not be null");
 
       if (period > 0) {
         this.watchdogPeriod = period;
@@ -276,14 +310,18 @@ public class Systemd implements AutoCloseable {
     public Systemd build() {
       Systemd systemd = new Systemd();
       if (statusUpdatePeriod > -1) {
-        systemd.enableStatusUpdate(statusUpdatePeriod, statusUpdateUnit);
+        systemd.enableStatusUpdate(statusUpdatePeriod, Objects.requireNonNull(statusUpdateUnit));
       }
       if (extendTimeoutPeriod > -1) {
-        systemd.enableExtendTimeout(extendTimeoutPeriod, extendTimeoutUnit, extendTimeoutTimeout);
+        systemd.enableExtendTimeout(extendTimeoutPeriod, Objects.requireNonNull(extendTimeoutUnit), extendTimeoutTimeout);
       }
       if (watchdogPeriod > -1) {
-        systemd.enableWatchdog(watchdogPeriod, watchdogUnit);
+        systemd.enableWatchdog(watchdogPeriod, Objects.requireNonNull(watchdogUnit));
       }
+      logger.info(
+          "Enabling Systemd integration with options=(statusUpdatePeriod={} {}, extendTimeoutPeriod={} {}, extendTimeoutTimeout={}, watchdogPeriod={} {})",
+          statusUpdatePeriod, statusUpdateUnit, extendTimeoutPeriod, extendTimeoutUnit, extendTimeoutTimeout,
+          watchdogPeriod, watchdogUnit);
       return systemd;
     }
   }

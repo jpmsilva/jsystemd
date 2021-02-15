@@ -22,11 +22,13 @@ import static org.slf4j.LoggerFactory.getLogger;
 import com.github.jpmsilva.groundlevel.utilities.StringUtilities;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import org.apache.tomcat.util.modeler.Registry;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.springframework.core.annotation.Order;
 
@@ -41,14 +43,15 @@ public class SystemdNotifyTomcatStatusProvider implements SystemdNotifyStatusPro
 
   private static final Logger logger = getLogger(lookup().lookupClass());
 
+  @NotNull
   private final MBeanServer mbeanServer;
 
   public SystemdNotifyTomcatStatusProvider() {
-    mbeanServer = Registry.getRegistry(null, null).getMBeanServer();
+    mbeanServer = Objects.requireNonNull(Registry.getRegistry(null, null).getMBeanServer(), "No usable MBeanServer instance");
   }
 
   @Override
-  public String status() {
+  public @NotNull String status() {
     List<ConnectorStatus> statuses = new LinkedList<>();
     Set<ObjectName> objectNames;
     try {

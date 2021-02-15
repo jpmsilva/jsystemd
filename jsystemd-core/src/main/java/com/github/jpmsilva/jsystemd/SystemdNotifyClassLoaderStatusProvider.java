@@ -19,6 +19,7 @@ package com.github.jpmsilva.jsystemd;
 import java.lang.management.ClassLoadingMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.Optional;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Implementation of {@link SystemdNotifyStatusProvider} that provides information regarding loaded classes.
@@ -31,7 +32,7 @@ public class SystemdNotifyClassLoaderStatusProvider implements SystemdNotifyStat
    * {@inheritDoc}
    */
   @Override
-  public String status() {
+  public @NotNull String status() {
     return Optional.ofNullable(ManagementFactory.getClassLoadingMXBean())
         .map(ClassLoadingMXBean::getLoadedClassCount)
         .map(t -> String.format("Classes: %d", t))
