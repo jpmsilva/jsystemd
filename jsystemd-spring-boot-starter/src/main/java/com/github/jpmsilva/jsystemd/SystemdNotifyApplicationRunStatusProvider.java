@@ -16,6 +16,7 @@
 
 package com.github.jpmsilva.jsystemd;
 
+import org.jetbrains.annotations.NotNull;
 import org.springframework.core.annotation.Order;
 
 /**
@@ -28,8 +29,10 @@ import org.springframework.core.annotation.Order;
 @Order(-5000)
 public class SystemdNotifyApplicationRunStatusProvider implements SystemdNotifyStatusProvider {
 
+  @NotNull
   private final Systemd systemd;
   private final int applicationId;
+  @NotNull
   private String status = "";
 
   /**
@@ -39,7 +42,7 @@ public class SystemdNotifyApplicationRunStatusProvider implements SystemdNotifyS
    *
    * @param systemd the {@link Systemd} to send status information to
    */
-  SystemdNotifyApplicationRunStatusProvider(@SuppressWarnings("SameParameterValue") Systemd systemd, int applicationId) {
+  SystemdNotifyApplicationRunStatusProvider(@SuppressWarnings("SameParameterValue") @NotNull Systemd systemd, int applicationId) {
     this.systemd = systemd;
     this.applicationId = applicationId;
     this.systemd.addStatusProviders(0, this);
@@ -49,7 +52,7 @@ public class SystemdNotifyApplicationRunStatusProvider implements SystemdNotifyS
    * {@inheritDoc}
    */
   @Override
-  public String status() {
+  public @NotNull String status() {
     return systemd.isReady() ? "" : status;
   }
 
@@ -58,7 +61,7 @@ public class SystemdNotifyApplicationRunStatusProvider implements SystemdNotifyS
    *
    * @param state the current application startup sequence state
    */
-  void state(ApplicationState state) {
+  void state(@NotNull ApplicationState state) {
     status = String.format("Application %d state: %s", applicationId, state.toString().toLowerCase().replace("_", " "));
     systemd.extendTimeout();
     systemd.updateStatus();

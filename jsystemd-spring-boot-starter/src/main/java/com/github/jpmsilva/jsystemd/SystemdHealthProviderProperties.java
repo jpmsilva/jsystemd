@@ -18,6 +18,9 @@ package com.github.jpmsilva.jsystemd;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.springframework.boot.actuate.health.Status;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -30,7 +33,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class SystemdHealthProviderProperties {
 
   /**
-   * Enable integration between Spring Boot's Actuator health status and systemd's watchdog.
+   * Enable integration between Spring Boot Actuator health status and systemd watchdog.
    */
   private boolean enabled;
 
@@ -38,13 +41,15 @@ public class SystemdHealthProviderProperties {
    * Status codes from {@link Status} to consider as unhealthy.
    * If omitted {@link Status#DOWN} is used.
    */
+  @NotNull
   private List<String> unhealthyStatusCodes = initStatusCodes();
 
   /**
-   * Delay reporting unhealthy status to systemd's watchdog.
+   * Delay reporting unhealthy status to systemd watchdog.
    * This parameter is provided in milliseconds, and may be <code>null</code>
    * to disable the delay.
    */
+  @Nullable
   private Long unhealthyPendingPeriodMs;
 
   private static List<String> initStatusCodes() {
@@ -61,19 +66,20 @@ public class SystemdHealthProviderProperties {
     this.enabled = enabled;
   }
 
-  public List<String> getUnhealthyStatusCodes() {
+  public @NotNull List<String> getUnhealthyStatusCodes() {
     return unhealthyStatusCodes;
   }
 
-  public void setUnhealthyStatusCodes(List<String> unhealthyStatusCodes) {
+  public void setUnhealthyStatusCodes(@NotNull List<String> unhealthyStatusCodes) {
+    Objects.requireNonNull(unhealthyStatusCodes, "Unhealthy status codes must not be null");
     this.unhealthyStatusCodes = unhealthyStatusCodes;
   }
 
-  public Long getUnhealthyPendingPeriodMs() {
+  public @Nullable Long getUnhealthyPendingPeriodMs() {
     return unhealthyPendingPeriodMs;
   }
 
-  public void setUnhealthyPendingPeriodMs(Long unhealthyPendingPeriodMs) {
+  public void setUnhealthyPendingPeriodMs(@Nullable Long unhealthyPendingPeriodMs) {
     this.unhealthyPendingPeriodMs = unhealthyPendingPeriodMs;
   }
 }

@@ -20,6 +20,7 @@ import com.jakewharton.byteunits.BinaryByteUnit;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.Optional;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Implementation of {@link SystemdNotifyStatusProvider} that provides information regarding the heap zone of the memory.
@@ -29,7 +30,7 @@ import java.util.Optional;
 public class SystemdNotifyHeapStatusProvider implements SystemdNotifyStatusProvider {
 
   @Override
-  public String status() {
+  public @NotNull String status() {
     return Optional.ofNullable(ManagementFactory.getMemoryMXBean())
         .map(MemoryMXBean::getHeapMemoryUsage)
         .map(t -> String.format("Heap: %s/%s", BinaryByteUnit.format(t.getUsed()), BinaryByteUnit.format(t.getCommitted())))

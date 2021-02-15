@@ -17,6 +17,8 @@
 package com.github.jpmsilva.jsystemd;
 
 import com.sun.jna.Native;
+import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Implementation of {@link AbstractSystemdNotify} that interfaces with systemd through a native library.
@@ -39,8 +41,8 @@ final class SystemdNotifyNative extends AbstractSystemdNotify {
   /**
    * {@inheritDoc}
    */
-  protected void invoke(String message) {
-    Library.sd_notify(0, message);
+  protected void invoke(@NotNull String message) {
+    Library.sd_notify(0, Objects.requireNonNull(message, "Message must not be null"));
   }
 
   private static class Library {

@@ -21,6 +21,8 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
 /**
@@ -70,7 +72,8 @@ final class SystemdNotifyProcess extends AbstractSystemdNotify {
   /**
    * {@inheritDoc}
    */
-  protected void invoke(String message) {
+  protected void invoke(@NotNull String message) {
+    Objects.requireNonNull(message, "Message must not be null");
     try {
       int exitCode;
       if (pid > 0) {

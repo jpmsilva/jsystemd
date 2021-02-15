@@ -22,6 +22,9 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalUnit;
+import java.util.Objects;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 
 /**
@@ -33,30 +36,33 @@ public class PendingHealthProvider implements HealthProvider {
 
   private static final Logger logger = getLogger(lookup().lookupClass());
 
+  @NotNull
   private final HealthProvider delegate;
   private final long delay;
+  @NotNull
   private final TemporalUnit delayUnit;
+  @Nullable
   private Instant unhealthySince;
 
   /**
    * Creates a new health provider that delegates the actual work to the <code>delegate</code>, and delays
    * reporting unhealthy status.
    *
-   * @param delegate health provider from which to obtain the true health status of the application
+   * @param delegate health provider from which to obtain the true health status of the application, never <code>null</code>
    * @param delay time that has to be elapsed before the real unhealthy status is provided
-   * @param delayUnit {@link TemporalUnit} for <code>delay</code>
+   * @param delayUnit {@link TemporalUnit} for <code>delay</code>, never <code>null</code>
    */
-  public PendingHealthProvider(HealthProvider delegate, long delay, TemporalUnit delayUnit) {
-    this.delegate = delegate;
+  public PendingHealthProvider(@NotNull HealthProvider delegate, long delay, @NotNull TemporalUnit delayUnit) {
+    this.delegate = Objects.requireNonNull(delegate, "Delegate must not be null");
     this.delay = delay;
-    this.delayUnit = delayUnit;
+    this.delayUnit = Objects.requireNonNull(delayUnit, "Delay unit must not be null");
   }
 
   @Override
-  public boolean healthy() {
-    boolean healthy = delegate.healthy();
+  public Health health() {
+    Health health = delegate.health();
     Instant now = Instant.now();
-    if (!healthy) {
+    if (!health.healthy) {
       if (unhealthySince == null) {
         unhealthySince = now;
       }
@@ -64,7 +70,7 @@ public class PendingHealthProvider implements HealthProvider {
       logger.debug("Application unhealthy since {} (unhealthy status suppressed until {})", unhealthySince, deadline);
       if (deadline.isAfter(now)) {
         // healthy until delay has expired
-        return true;
+        return HealthProvider.Health.healthy();
       }
     } else {
       if (unhealthySince != null) {
@@ -72,6 +78,6 @@ public class PendingHealthProvider implements HealthProvider {
         unhealthySince = null;
       }
     }
-    return healthy;
+    return health;
   }
 }

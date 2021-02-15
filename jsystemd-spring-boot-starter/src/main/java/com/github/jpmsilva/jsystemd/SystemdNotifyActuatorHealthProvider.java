@@ -19,8 +19,13 @@ package com.github.jpmsilva.jsystemd;
 import static java.lang.invoke.MethodHandles.lookup;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
+import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.Status;
@@ -34,7 +39,9 @@ public class SystemdNotifyActuatorHealthProvider implements SystemdNotifyStatusP
 
   private static final Logger logger = getLogger(lookup().lookupClass());
 
+  @NotNull
   private final List<HealthIndicator> healthIndicators;
+  @NotNull
   private final Set<Status> unhealthyStatusCodes;
 
   /**
@@ -46,9 +53,9 @@ public class SystemdNotifyActuatorHealthProvider implements SystemdNotifyStatusP
    * @param healthIndicators Spring Boot Actuator Health Indicators
    * @param unhealthyStatusCodes list of status codes considered as unhealthy
    */
-  public SystemdNotifyActuatorHealthProvider(List<HealthIndicator> healthIndicators, Set<Status> unhealthyStatusCodes) {
-    this.healthIndicators = healthIndicators;
-    this.unhealthyStatusCodes = unhealthyStatusCodes;
+  public SystemdNotifyActuatorHealthProvider(@NotNull List<HealthIndicator> healthIndicators, @NotNull Set<Status> unhealthyStatusCodes) {
+    this.healthIndicators = Objects.requireNonNull(healthIndicators, "Health indicators must not be null");
+    this.unhealthyStatusCodes = Objects.requireNonNull(unhealthyStatusCodes, "Unhealthy status codes must not be null");
     if (this.unhealthyStatusCodes.isEmpty()) {
       logger.warn("No status codes considered as unhealthy");
     } else {
@@ -57,14 +64,21 @@ public class SystemdNotifyActuatorHealthProvider implements SystemdNotifyStatusP
   }
 
   @Override
-  public boolean healthy() {
-    boolean health = healthIndicators.stream().noneMatch(it -> unhealthyStatusCodes.contains(it.health().getStatus()));
-    logger.debug("Application health state={}", health);
-    return health;
+  public Health health() {
+    Collection<HealthIndicator> unhealthyIndicators = healthIndicators.stream()
+        .filter(it -> unhealthyStatusCodes.contains(it.health().getStatus()))
+        .collect(Collectors.toList());
+    logger.debug("Application health state={}", unhealthyIndicators.stream().map(HealthIndicator::health).collect(Collectors.toList()));
+    boolean healthy = unhealthyIndicators.isEmpty();
+    return new Health(healthy, unhealthyIndicators.stream()
+        .map(it -> it.health().getDetails().entrySet())
+        .flatMap(Collection::stream)
+        .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue)));
   }
 
   @Override
-  public String status() {
-    return "health status: " + (healthy() ? "healthy" : "unhealthy");
+  public @NotNull String status() {
+    Health health = health();
+    return "health status: " + (health.healthy ? "healthy" : "unhealthy=" + health);
   }
 }

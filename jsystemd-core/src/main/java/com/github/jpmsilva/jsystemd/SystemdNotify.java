@@ -16,6 +16,8 @@
 
 package com.github.jpmsilva.jsystemd;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
  * Interface of all systemd integration library implementations.
  *
@@ -46,7 +48,7 @@ interface SystemdNotify {
    *
    * @see <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html#STATUS=%E2%80%A6">status</a>
    */
-  default void status(String message) {
+  default void status(@NotNull String message) {
   }
 
   /**

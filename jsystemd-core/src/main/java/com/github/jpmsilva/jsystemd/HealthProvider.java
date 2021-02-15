@@ -16,6 +16,11 @@
 
 package com.github.jpmsilva.jsystemd;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+
 /**
  * A health provider can be used to control the watchdog heartbeat. An unhealthy state does not trigger the heartbeat.
  *
@@ -28,5 +33,41 @@ public interface HealthProvider {
    *
    * @return true if application is healthy, otherwise false
    */
-  boolean healthy();
+  Health health();
+
+  /**
+   * Wrapper of health state.
+   */
+  class Health {
+
+    public final boolean healthy;
+
+    public final Map<String, Object> details;
+
+    /**
+     * Provides for a health representation (healthy/unhealthy), with health details for each component.
+     *
+     * @param healthy <code>true</code> if this object represents an healthy state, <code>false</code> otherwise
+     * @param details additional health details for each application component
+     * @throws NullPointerException if details is null
+     */
+    public Health(boolean healthy, Map<String, Object> details) {
+      this.healthy = healthy;
+      this.details = new HashMap<>(Objects.requireNonNull(details, "Details must not be null"));
+    }
+
+    /**
+     * Synthesize an health object that represents an healthy application state.
+     *
+     * @return a synthetic healthy state.
+     */
+    public static Health healthy() {
+      return new Health(true, Collections.emptyMap());
+    }
+
+    @Override
+    public String toString() {
+      return "Health{healthy=" + this.healthy + ", details=" + this.details + '}';
+    }
+  }
 }
