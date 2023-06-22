@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Joao Silva
+ * Copyright 2018-2023 Joao Silva
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ package com.github.jpmsilva.jsystemd;
 import static java.lang.invoke.MethodHandles.lookup;
 import static org.slf4j.LoggerFactory.getLogger;
 
-import org.apache.commons.lang3.StringUtils;
+import java.nio.file.Path;
 import org.slf4j.Logger;
 
 /**
@@ -31,19 +31,25 @@ abstract class SystemdUtilities {
 
   private static final Logger logger = getLogger(lookup().lookupClass());
   private static final String notifySocket = System.getenv("NOTIFY_SOCKET");
+
+  private static final Path notifySocketPath;
+
+  static {
+    if (notifySocket != null) {
+      notifySocketPath = Path.of(notifySocket);
+    } else {
+      notifySocketPath = null;
+    }
+  }
+
   private static final long watchdogUsec = readWatchdogUsec();
-  private static final String[] implClasses = new String[]{
-      "com.github.jpmsilva.jsystemd.SystemdNotifyNative",
-      "com.github.jpmsilva.jsystemd.SystemdNotifyProcess"
-  };
-  private static final SystemdNotify SYSTEMD_NOTIFY = initSystemdNotify();
 
   private SystemdUtilities() {
   }
 
   private static long readWatchdogUsec() {
     String watchdogUsec = System.getenv("WATCHDOG_USEC");
-    if (StringUtils.isNotEmpty(watchdogUsec)) {
+    if (isNotEmpty(watchdogUsec)) {
       try {
         return Long.parseLong(watchdogUsec);
       } catch (NumberFormatException e) {
@@ -53,31 +59,20 @@ abstract class SystemdUtilities {
     return 0;
   }
 
-  /**
-   * Logs information regarding the status of the integration with systemd. Meant to be used once the application has done sufficient work to initialize
-   * logging.
-   *
-   * <p>Only logs information when running under Linux.
-   */
-  static void logSystemdStatus() {
-    if (isLinux()) {
-      logger.info("Chosen systemd notify library: \"" + SYSTEMD_NOTIFY
-          + "\", OS name: \"" + osName() + "\""
-          + ", notify socket: \"" + notifySocket() + "\"");
-    }
+  private static boolean isNotEmpty(String input) {
+    return input != null && !input.isEmpty();
   }
 
   /**
    * Allows determining if the process is running under systemd.
    *
    * <p>A process is said to be running under systemd if <ol> <li>the operating system name contains {@code linux}.</li> <li>an environment property {@code
-   * NOTIFY_SOCKET} exists</li> <li>an implementation of {@link SystemdNotify} was able to initialize itself</li> </ol>
+   * NOTIFY_SOCKET} exists</li> <li>{@link SystemdNotify} was able connect to the socket</li> </ol>
    *
    * @return {@code true} if the process is running under systemd
-   * @see SystemdNotify#usable()
    */
   static boolean isUnderSystemd() {
-    return isLinux() && hasNotifySocket();
+    return SystemdNotify.usable();
   }
 
   /**
@@ -92,10 +87,11 @@ abstract class SystemdUtilities {
   /**
    * Allows determining the current systemd notify socket.
    *
-   * @return the contents of the environment property {@code NOTIFY_SOCKET}
+   * @return the {@link Path} corresponding the contents of the environment variable {@code NOTIFY_SOCKET}, or <code>null</code> if the environment variable is
+   *     not set
    */
-  static String notifySocket() {
-    return notifySocket;
+  static Path notifySocketPath() {
+    return notifySocketPath;
   }
 
   /**
@@ -107,46 +103,31 @@ abstract class SystemdUtilities {
     return watchdogUsec;
   }
 
-  /**
-   * Allows determining the current {@link SystemdNotify} implementation.
-   *
-   * @return the current {@link SystemdNotify} implementation
-   */
-  static SystemdNotify getSystemdNotify() {
-    return SYSTEMD_NOTIFY;
-  }
-
-  private static SystemdNotify initSystemdNotify() {
-    SystemdNotify systemdNotify = new SystemdNotifyNoop();
-    if (isUnderSystemd()) {
-      for (String implClass : implClasses) {
-        SystemdNotify impl = getImpl(implClass);
-        if (impl != null) {
-          systemdNotify = impl;
-          break;
-        }
-      }
-    }
-    return systemdNotify;
-  }
-
-  @SuppressWarnings("checkstyle:EmptyCatchBlock")
-  private static SystemdNotify getImpl(String implClass) {
-    try {
-      SystemdNotify systemdNotify = (SystemdNotify) Class.forName(implClass).newInstance();
-      if (systemdNotify.usable()) {
-        return systemdNotify;
-      }
-    } catch (Exception ignored) {
-    }
-    return null;
-  }
-
-  private static boolean isLinux() {
+  static boolean isLinux() {
     return osName().toLowerCase().startsWith("linux");
   }
 
-  private static boolean hasNotifySocket() {
-    return null != notifySocket;
+  static boolean hasNotifySocket() {
+    return notifySocketPath != null;
+  }
+
+  private static final String[] unitPrefixes = new String[]{"", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei"};
+
+  static String formatByteCount(long bytes) {
+    long abs = Math.abs(bytes);
+    if (bytes == Long.MIN_VALUE) {
+      abs = Long.MAX_VALUE;
+    }
+
+    int divider = 0;
+    int index = 0;
+    long remainder = abs;
+    while (remainder >> divider >= 1024) {
+      divider += 10;
+      index += 1;
+    }
+
+    double division = abs / Long.valueOf(1L << divider).doubleValue() * Math.signum(bytes);
+    return String.format("%,.1f %sB", division, unitPrefixes[index]);
   }
 }

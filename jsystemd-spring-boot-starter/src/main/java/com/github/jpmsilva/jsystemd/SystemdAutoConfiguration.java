@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Joao Silva
+ * Copyright 2018-2023 Joao Silva
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,13 +17,12 @@
 package com.github.jpmsilva.jsystemd;
 
 import static java.util.Collections.emptyList;
+import static java.util.Objects.requireNonNull;
 
-import com.github.jpmsilva.groundlevel.utilities.QuackAnnotationAwareOrderComparator;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -33,6 +32,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.Status;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
@@ -41,17 +41,17 @@ import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
-import org.springframework.core.annotation.Order;
+import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 
 /**
- * Auto-configuration class for systemd integration.
+ * Autoconfiguration class for systemd integration.
  *
- * <p>Sets up some basic {@link SystemdNotifyStatusProvider} as well.
+ * <p>Sets up some basic {@link SystemdStatusProvider} as well.
  *
  * @author Joao Silva
  * @author Christian Lorenz
  */
-@Configuration
+@AutoConfiguration
 @ConditionalOnSystemd
 public class SystemdAutoConfiguration {
 
@@ -59,10 +59,15 @@ public class SystemdAutoConfiguration {
   private final Systemd systemd;
 
   @Autowired
-  public SystemdAutoConfiguration(@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") @NotNull Systemd systemd) {
-    this.systemd = Objects.requireNonNull(systemd, "Systemd must not be null");
+  SystemdAutoConfiguration(@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") @NotNull Systemd systemd) {
+    this.systemd = requireNonNull(systemd, "Systemd must not be null");
   }
 
+  /**
+   * Event listener for the {@link ApplicationReadyEvent} event to report to systemd that the service is ready.
+   *
+   * @param event the {@link ApplicationReadyEvent} received
+   */
   @EventListener
   public void started(@SuppressWarnings("unused") ApplicationReadyEvent event) {
     systemd.ready();
@@ -70,80 +75,98 @@ public class SystemdAutoConfiguration {
 
   @Bean
   @NotNull
-  @Order(-3000)
-  SystemdNotifyStatusProvider systemdNotifyHeapStatus() {
-    return new SystemdNotifyHeapStatusProvider();
+  SystemdLifecycle systemdLifecycle() {
+    return new SystemdLifecycle(systemd);
   }
 
   @Bean
   @NotNull
-  @Order(-2000)
-  SystemdNotifyStatusProvider systemdNotifyNonHeapStatus() {
-    return new SystemdNotifyNonHeapStatusProvider();
+  SystemdServletContextListener systemdServletContextListener() {
+    return new SystemdServletContextListener();
   }
 
   @Bean
   @NotNull
-  @Order(-1000)
-  SystemdNotifyStatusProvider systemdNotifyClassLoaderStatus() {
-    return new SystemdNotifyClassLoaderStatusProvider();
+  SystemdStatusProvider systemdNotifyHeapStatus() {
+    return new SystemdHeapStatusProvider();
+  }
+
+  @Bean
+  @NotNull
+  SystemdStatusProvider systemdNotifyNonHeapStatus() {
+    return new SystemdNonHeapStatusProvider();
+  }
+
+  @Bean
+  @NotNull
+  SystemdStatusProvider systemdNotifyClassLoaderStatus() {
+    return new SystemdClassLoaderStatusProvider();
   }
 
   @Configuration
+  @ConditionalOnSystemd
   static class SystemdStatusProviderConfiguration {
 
     @Autowired
     SystemdStatusProviderConfiguration(@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") @NotNull Systemd systemd,
-        @NotNull ConfigurableApplicationContext applicationContext, @NotNull ObjectProvider<List<SystemdNotifyStatusProvider>> statuses) {
-      Objects.requireNonNull(systemd, "Systemd must not be null");
-      Objects.requireNonNull(applicationContext, "Application context must not be null");
-      Objects.requireNonNull(statuses, "Statuses must not be null");
+        @NotNull ConfigurableApplicationContext applicationContext, @NotNull ObjectProvider<List<SystemdStatusProvider>> statuses) {
+      requireNonNull(systemd, "Systemd must not be null");
+      requireNonNull(applicationContext, "Application context must not be null");
+      requireNonNull(statuses, "Statuses must not be null");
 
-      Set<SystemdNotifyStatusProvider> uniqueProviders = new HashSet<>();
+      Set<SystemdStatusProvider> uniqueProviders = new HashSet<>();
       uniqueProviders.addAll(Optional.ofNullable(statuses.getIfAvailable()).orElse(emptyList()));
       uniqueProviders.addAll(systemd.getStatusProviders());
 
-      List<SystemdNotifyStatusProvider> newProviders = new ArrayList<>(uniqueProviders);
-      newProviders.sort(new QuackAnnotationAwareOrderComparator(applicationContext.getBeanFactory()));
+      List<SystemdStatusProvider> newProviders = new ArrayList<>(uniqueProviders);
+      newProviders.sort(AnnotationAwareOrderComparator.INSTANCE);
       systemd.setStatusProviders(newProviders);
     }
   }
 
   /**
-   * Auto-configuration class for systemd integration when running under Tomcat.
+   * Autoconfiguration class for systemd integration when running under Tomcat.
    */
   @Configuration
+  @ConditionalOnSystemd
   @ConditionalOnClass(Tomcat.class)
   public static class SystemdAutoTomcatConfiguration {
 
+    SystemdAutoTomcatConfiguration() {
+    }
+
     @Bean
     @NotNull
-    SystemdNotifyTomcatStatusProvider systemdNotifyTomcatStatusProvider() {
-      return new SystemdNotifyTomcatStatusProvider();
+    SystemdTomcatStatusProvider systemdNotifyTomcatStatusProvider() {
+      return new SystemdTomcatStatusProvider();
     }
   }
 
   /**
-   * Auto-configuration class for systemd integration when using Spring Boot Actuator.
+   * Autoconfiguration class for systemd integration when using Spring Boot Actuator.
    */
   @Configuration
+  @ConditionalOnSystemd
   @ConditionalOnClass(HealthIndicator.class)
   @ConditionalOnProperty(name = "enabled", prefix = "systemd.health-provider")
   @EnableConfigurationProperties(SystemdHealthProviderProperties.class)
   public static class SystemdAutoActuatorHealthConfiguration {
 
+    SystemdAutoActuatorHealthConfiguration() {
+    }
+
     @Bean
     @NotNull
-    SystemdNotifyActuatorHealthProvider systemdNotifyActuatorHealthProvider(
+    SystemdActuatorHealthProvider systemdNotifyActuatorHealthProvider(
         @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") @NotNull Systemd systemd,
         @NotNull ObjectProvider<List<HealthIndicator>> healthIndicatorsProvider, @NotNull SystemdHealthProviderProperties properties) {
-      Objects.requireNonNull(systemd, "Systemd must not be null");
-      Objects.requireNonNull(healthIndicatorsProvider, "Health indicators provider must not be null");
-      Objects.requireNonNull(properties, "Properties must not be null");
+      requireNonNull(systemd, "Systemd must not be null");
+      requireNonNull(healthIndicatorsProvider, "Health indicators provider must not be null");
+      requireNonNull(properties, "Properties must not be null");
 
       List<HealthIndicator> healthIndicators = Optional.ofNullable(healthIndicatorsProvider.getIfAvailable()).orElse(emptyList());
       Set<Status> unhealthyStatusCodes = properties.getUnhealthyStatusCodes().stream().map(Status::new).collect(Collectors.toSet());
-      SystemdNotifyActuatorHealthProvider healthProvider = new SystemdNotifyActuatorHealthProvider(healthIndicators, unhealthyStatusCodes);
+      SystemdActuatorHealthProvider healthProvider = new SystemdActuatorHealthProvider(healthIndicators, unhealthyStatusCodes);
       if (properties.getUnhealthyPendingPeriodMs() != null) {
         systemd.setHealthProvider(new PendingHealthProvider(healthProvider, properties.getUnhealthyPendingPeriodMs(), ChronoUnit.MILLIS));
       } else {

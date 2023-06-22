@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Joao Silva
+ * Copyright 2018-2023 Joao Silva
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,13 +21,13 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Interface that represents any object that can contribute with status information regarding the running process to the service supervisor.
  *
- * <p>Status providers can be registered through {@link com.github.jpmsilva.jsystemd.Systemd#addStatusProviders(SystemdNotifyStatusProvider...)}
+ * <p>Status providers can be registered through {@link com.github.jpmsilva.jsystemd.Systemd#addStatusProviders(SystemdStatusProvider...)}
  *
  * @author Joao Silva
- * @see Systemd#addStatusProviders(SystemdNotifyStatusProvider...)
+ * @see Systemd#addStatusProviders(SystemdStatusProvider...)
  */
 @SuppressWarnings("WeakerAccess")
-public interface SystemdNotifyStatusProvider {
+public interface SystemdStatusProvider {
 
   /**
    * Exposes status information to send to systemd.

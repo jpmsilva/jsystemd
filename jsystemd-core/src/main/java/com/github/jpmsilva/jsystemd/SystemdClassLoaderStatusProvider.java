@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Joao Silva
+ * Copyright 2018-2023 Joao Silva
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,17 +20,22 @@ import java.lang.management.ClassLoadingMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.Optional;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.core.annotation.Order;
 
 /**
- * Implementation of {@link SystemdNotifyStatusProvider} that provides information regarding loaded classes.
+ * Implementation of {@link SystemdStatusProvider} that provides information regarding loaded classes.
  *
  * @author Joao Silva
  */
-public class SystemdNotifyClassLoaderStatusProvider implements SystemdNotifyStatusProvider {
+@Order(-1000)
+public class SystemdClassLoaderStatusProvider implements SystemdStatusProvider {
 
   /**
-   * {@inheritDoc}
+   * Create a new SystemdNotifyClassLoaderStatusProvider.
    */
+  public SystemdClassLoaderStatusProvider() {
+  }
+
   @Override
   public @NotNull String status() {
     return Optional.ofNullable(ManagementFactory.getClassLoadingMXBean())

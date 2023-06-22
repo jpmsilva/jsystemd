@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Joao Silva
+ * Copyright 2018-2023 Joao Silva
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,11 @@
 
 package com.github.jpmsilva.jsystemd;
 
+import static com.github.jpmsilva.jsystemd.SystemdUtilities.isUnderSystemd;
+import static com.github.jpmsilva.jsystemd.SystemdUtilities.notifySocketPath;
+import static com.github.jpmsilva.jsystemd.SystemdUtilities.osName;
 import static java.lang.invoke.MethodHandles.lookup;
+import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -24,14 +28,16 @@ import static org.slf4j.LoggerFactory.getLogger;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import org.apache.commons.lang3.concurrent.BasicThreadFactory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -51,17 +57,34 @@ public class Systemd implements AutoCloseable {
   private static final Logger logger = getLogger(lookup().lookupClass());
 
   @NotNull
-  private final SystemdNotify systemdNotify = SystemdUtilities.getSystemdNotify();
+  private final AtomicLong counter = new AtomicLong(0);
+
   @NotNull
-  private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1, new BasicThreadFactory.Builder()
-      .namingPattern("Systemd-%d")
-      .build());
+  private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1, r -> {
+    final Thread thread = new Thread(r);
+    thread.setName(String.format("jsystemd-%d", counter.incrementAndGet()));
+    return thread;
+  });
+
   @NotNull
-  private final List<SystemdNotifyStatusProvider> providers = new CopyOnWriteArrayList<>();
+  private final List<SystemdStatusProvider> providers = new CopyOnWriteArrayList<>();
+
   @Nullable
   private HealthProvider healthProvider;
+
+  private long period = 5;
+
+  private TimeUnit unit = SECONDS;
+
   private long timeout = MICROSECONDS.convert(29, SECONDS);
-  private volatile boolean ready = false;
+
+  @NotNull
+  private final AtomicReference<ScheduledFuture<?>> future = new AtomicReference<>();
+
+  @NotNull
+  private final AtomicBoolean ready = new AtomicBoolean(false);
+
+  String options = "";
 
   private Systemd() {
   }
@@ -76,12 +99,12 @@ public class Systemd implements AutoCloseable {
   }
 
   /**
-   * Adds the status providers to the the list of providers in the specified position.
+   * Adds the status providers to the list of providers in the specified position.
    *
    * @param index position to add the providers
    * @param providers the providers to add
    */
-  public void addStatusProviders(int index, SystemdNotifyStatusProvider... providers) {
+  public void addStatusProviders(int index, SystemdStatusProvider... providers) {
     addStatusProviders(index, Arrays.asList(providers));
   }
 
@@ -90,18 +113,18 @@ public class Systemd implements AutoCloseable {
    *
    * @param providers the providers to add
    */
-  public void addStatusProviders(SystemdNotifyStatusProvider... providers) {
+  public void addStatusProviders(SystemdStatusProvider... providers) {
     addStatusProviders(this.providers.size(), Arrays.asList(providers));
   }
 
   /**
-   * Adds the status providers to the the list of providers in the specified position.
+   * Adds the status providers to the list of providers in the specified position.
    *
    * @param index position to add the providers
    * @param providers the providers to add
    */
   @SuppressWarnings("WeakerAccess")
-  public void addStatusProviders(int index, List<SystemdNotifyStatusProvider> providers) {
+  public void addStatusProviders(int index, List<SystemdStatusProvider> providers) {
     this.providers.addAll(index, providers);
   }
 
@@ -110,7 +133,7 @@ public class Systemd implements AutoCloseable {
    *
    * @return the current list of providers
    */
-  public @NotNull List<SystemdNotifyStatusProvider> getStatusProviders() {
+  public @NotNull List<SystemdStatusProvider> getStatusProviders() {
     return Collections.unmodifiableList(providers);
   }
 
@@ -119,9 +142,9 @@ public class Systemd implements AutoCloseable {
    *
    * @param providers the providers to set
    */
-  public void setStatusProviders(@NotNull List<SystemdNotifyStatusProvider> providers) {
+  public void setStatusProviders(@NotNull List<SystemdStatusProvider> providers) {
     this.providers.clear();
-    this.providers.addAll(Objects.requireNonNull(providers, "Providers must not be null"));
+    this.providers.addAll(requireNonNull(providers, "Providers must not be null"));
   }
 
   /**
@@ -146,9 +169,41 @@ public class Systemd implements AutoCloseable {
     executor.scheduleAtFixedRate(this::updateStatus, period, period, unit);
   }
 
-  private void enableExtendTimeout(long period, @NotNull TimeUnit unit, long timeout) {
+  private void enablePeriodicExtendTimeout(long period, @NotNull TimeUnit unit, long timeout) {
+    this.period = period;
+    this.unit = unit;
     this.timeout = timeout;
-    executor.scheduleAtFixedRate(this::extendTimeout, period, period, unit);
+    enablePeriodicExtendTimeout();
+  }
+
+  /**
+   * Enables the periodic extension of the timeout.
+   *
+   * @see #extendTimeout()
+   * @see #disablePeriodicExtendTimeout()
+   */
+  public void enablePeriodicExtendTimeout() {
+    future.getAndUpdate((future) -> {
+      if (future == null) {
+        return executor.scheduleAtFixedRate(this::extendTimeout, period, period, unit);
+      }
+      return null;
+    });
+  }
+
+  /**
+   * Disables the periodic extension of the timeout.
+   *
+   * @see #extendTimeout()
+   * @see #enablePeriodicExtendTimeout()
+   */
+  public void disablePeriodicExtendTimeout() {
+    future.getAndUpdate((future) -> {
+      if (future != null && !future.isDone()) {
+        future.cancel(false);
+      }
+      return null;
+    });
   }
 
   private void enableWatchdog(long period, @NotNull TimeUnit unit) {
@@ -160,19 +215,18 @@ public class Systemd implements AutoCloseable {
    * periodic status updates.
    */
   public void updateStatus() {
-    systemdNotify.status(providers.stream()
-        .map(SystemdNotifyStatusProvider::status)
-        .filter(t -> t.length() > 0)
-        .collect(Collectors.joining(", ")));
+    SystemdNotify.status(providers.stream().map(SystemdStatusProvider::status).filter(t -> t.length() > 0).collect(Collectors.joining(", ")));
   }
 
   /**
-   * Forces the timeout to be extended. The amount of time to extend is specified when the Systemd instance is build with {@link
-   * Systemd.Builder#enableExtendTimeout(long, TimeUnit, long)}, or 29 seconds if otherwise. Timeout extensions can only be sent during startup.
+   * Forces the timeout to be extended. The amount of time to extend is specified when the Systemd instance is build with
+   * {@link Systemd.Builder#extendTimeout(long, TimeUnit, long)}, or 29 seconds if otherwise. Timeout extensions can only be sent during startup.
+   *
+   * @see Systemd.Builder#extendTimeout(long, TimeUnit, long)
    */
   public void extendTimeout() {
-    if (!ready) {
-      systemdNotify.extendTimeout(timeout);
+    if (!ready.get()) {
+      SystemdNotify.extendTimeout(timeout);
     }
   }
 
@@ -190,16 +244,17 @@ public class Systemd implements AutoCloseable {
       return;
     }
     logger.debug("Triggering heartbeat to watchdog");
-    systemdNotify.watchdog();
+    SystemdNotify.watchdog();
   }
 
   /**
-   * Notifies systemd that the unit is ready.
+   * Notifies systemd that the application is ready.
    */
   public void ready() {
-    ready = true;
-    systemdNotify.ready();
-    updateStatus();
+    if (ready.compareAndSet(false, true)) {
+      SystemdNotify.ready();
+      updateStatus();
+    }
   }
 
   /**
@@ -208,12 +263,33 @@ public class Systemd implements AutoCloseable {
    * @return {@code true} if and only if {@link #ready} has been called.
    */
   public boolean isReady() {
-    return ready;
+    return ready.get();
   }
 
   /**
-   * {@inheritDoc}
+   * Signals that the application is stopping.
    */
+  public void stopping() {
+    SystemdNotify.stopping();
+  }
+
+  private void options(String options) {
+    this.options = options;
+  }
+
+  /**
+   * Logs information regarding the status of the integration with systemd. Meant to be used once the application has done sufficient work to initialize
+   * logging.
+   */
+  public void logStatus() {
+    if (isUnderSystemd()) {
+      logger.info("Running under systemd, OS name: \"{}\", notify socket: \"{}\"", osName(), notifySocketPath());
+      logger.info("Enabled Systemd integration with options=({})", options);
+    } else {
+      logger.info("Not running under systemd, OS name: \"{}\"", osName());
+    }
+  }
+
   @Override
   public void close() throws Exception {
     synchronized (executor) {
@@ -231,6 +307,9 @@ public class Systemd implements AutoCloseable {
    * Specialized build class of {@link Systemd} objects.
    */
   public static class Builder {
+
+    private Builder() {
+    }
 
     private long statusUpdatePeriod = -1;
     private TimeUnit statusUpdateUnit;
@@ -251,7 +330,7 @@ public class Systemd implements AutoCloseable {
       if (period < 0) {
         throw new IllegalArgumentException("Illegal value for period");
       }
-      Objects.requireNonNull(unit, "Unit must not be null");
+      requireNonNull(unit, "Unit must not be null");
 
       this.statusUpdatePeriod = period;
       this.statusUpdateUnit = unit;
@@ -271,8 +350,8 @@ public class Systemd implements AutoCloseable {
       if (period < 0) {
         throw new IllegalArgumentException("Illegal value for period");
       }
-      Objects.requireNonNull(unit, "Unit must not be null");
-      if (timeout < 0) {
+      requireNonNull(unit, "Unit must not be null");
+      if (timeout <= 0) {
         throw new IllegalArgumentException("Illegal value for timeout");
       }
 
@@ -293,7 +372,7 @@ public class Systemd implements AutoCloseable {
       if (period < 0) {
         throw new IllegalArgumentException("Illegal value for period");
       }
-      Objects.requireNonNull(unit, "Unit must not be null");
+      requireNonNull(unit, "Unit must not be null");
 
       if (period > 0) {
         this.watchdogPeriod = period;
@@ -310,18 +389,17 @@ public class Systemd implements AutoCloseable {
     public Systemd build() {
       Systemd systemd = new Systemd();
       if (statusUpdatePeriod > -1) {
-        systemd.enableStatusUpdate(statusUpdatePeriod, Objects.requireNonNull(statusUpdateUnit));
+        systemd.enableStatusUpdate(statusUpdatePeriod, requireNonNull(statusUpdateUnit));
       }
       if (extendTimeoutPeriod > -1) {
-        systemd.enableExtendTimeout(extendTimeoutPeriod, Objects.requireNonNull(extendTimeoutUnit), extendTimeoutTimeout);
+        systemd.enablePeriodicExtendTimeout(extendTimeoutPeriod, requireNonNull(extendTimeoutUnit), extendTimeoutTimeout);
       }
       if (watchdogPeriod > -1) {
-        systemd.enableWatchdog(watchdogPeriod, Objects.requireNonNull(watchdogUnit));
+        systemd.enableWatchdog(watchdogPeriod, requireNonNull(watchdogUnit));
       }
-      logger.info(
-          "Enabling Systemd integration with options=(statusUpdatePeriod={} {}, extendTimeoutPeriod={} {}, extendTimeoutTimeout={}, watchdogPeriod={} {})",
-          statusUpdatePeriod, statusUpdateUnit, extendTimeoutPeriod, extendTimeoutUnit, extendTimeoutTimeout,
-          watchdogPeriod, watchdogUnit);
+      systemd.options(
+          String.format("statusUpdatePeriod=%d %s, extendTimeoutPeriod=%d %s, extendTimeoutTimeout=%d MICROSECONDS, watchdogPeriod=%d %s", statusUpdatePeriod,
+              statusUpdateUnit, extendTimeoutPeriod, extendTimeoutUnit, extendTimeoutTimeout, watchdogPeriod, watchdogUnit));
       return systemd;
     }
   }

@@ -2,7 +2,7 @@
 
 ## Under Spring Boot
 
-When using the auto-configuration class, [SystemdNotifyStatusProvider](apidocs/com/github/jpmsilva/jsystemd/SystemdNotifyStatusProvider.html) beans
+When using the autoconfiguration class, [SystemdNotifyStatusProvider](apidocs/com/github/jpmsilva/jsystemd/SystemdNotifyStatusProvider.html) beans
 will also be searched in the application context and used to compose an extended status message that systemd will display
 when using the `status` verb.
 
@@ -18,14 +18,14 @@ Additionally, if running with the embedded Tomcat container, status regarding To
  Main PID: 11142 (java)
    Status: "Heap: 139.5 MiB/256 MiB, Non-heap: 62.7 MiB/64.1 MiB, Classes: 7915"
    CGroup: /system.slice/myservice.service
-           └─11142 /opt/jdk1.8.0/bin/java -XX:+ExitOnOutOfMemoryError -Xms256M -Xmx512M -XX:+UseG1GC -jar /opt/myservice/myservice.jar
+           └─11142 /opt/jdk17/bin/java -XX:+ExitOnOutOfMemoryError -jar /opt/myservice/myservice.jar
 ```
 
 ## Regular Java application
 
 After creating the [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) instance to interface with the service supervisor, register
 any instance of [SystemdNotifyStatusProvider](apidocs/com/github/jpmsilva/jsystemd/SystemdNotifyStatusProvider.html)
-with [addStatusProviders](apidocs/com/github/jpmsilva/jsystemd/Systemd.html#addStatusProviders-com.github.jpmsilva.jsystemd.SystemdNotifyStatusProvider...-).
+with [addStatusProviders](apidocs/com/github/jpmsilva/jsystemd/Systemd.html#addStatusProviders-com.github.jpmsilva.jsystemd.SystemdStatusProvider...-).
 
 The following table lists the provided implementations:
 
@@ -49,7 +49,7 @@ You can create your own status information extending [SystemdNotifyStatusProvide
 and provide an instance of such custom classes to systemd
 
 * if using your own managed instance of [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html),
-by using [addStatusProviders](apidocs/com/github/jpmsilva/jsystemd/Systemd.html#addStatusProviders-com.github.jpmsilva.jsystemd.SystemdNotifyStatusProvider...-)
+by using [addStatusProviders](apidocs/com/github/jpmsilva/jsystemd/Systemd.html#addStatusProviders-com.github.jpmsilva.jsystemd.SystemdStatusProvider...-)
 * under Spring Boot, by registering it as a bean in any configuration class:
 
 ```java

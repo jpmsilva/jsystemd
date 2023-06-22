@@ -17,5 +17,5 @@ This information is shown when requesting the service status:
  Main PID: 21034 (java)
    Status: "Heap: 339 MiB/512 MiB, Non-heap: 118.1 MiB/121.5 MiB, Classes: 15734, http-nio-8080: 2/10"
    CGroup: /system.slice/myservice.service
-           └─21034 /opt/jdk1.8.0/bin/java -XX:+ExitOnOutOfMemoryError -Xms256M -Xmx512M -XX:+UseG1GC -jar /opt/myservice/myservice.jar
+           └─21034 /opt/jdk17/bin/java -XX:+ExitOnOutOfMemoryError -jar /opt/myservice/myservice.jar
 ```

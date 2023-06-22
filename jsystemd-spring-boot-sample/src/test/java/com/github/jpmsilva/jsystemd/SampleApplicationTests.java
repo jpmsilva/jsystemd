@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Joao Silva
+ * Copyright 2023 Joao Silva
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,14 @@
 
 package com.github.jpmsilva.jsystemd;
 
-/**
- * Implementation of a {@link SystemdNotify} that does nothing. This implements a disabled state for systemd integration.
- *
- * @author Joao Silva
- */
-class SystemdNotifyNoop implements SystemdNotify {
+import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
 
-  /**
-   * This implementation is always usable.
-   *
-   * @return {@code true} always
-   */
-  @Override
-  public boolean usable() {
-    return true;
-  }
+@SpringBootTest
+class SampleApplicationTests {
+
+	@Test
+	void contextLoads() {
+	}
+
 }

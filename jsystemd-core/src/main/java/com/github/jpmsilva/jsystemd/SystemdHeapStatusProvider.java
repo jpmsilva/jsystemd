@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Joao Silva
+ * Copyright 2018-2023 Joao Silva
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,27 +16,33 @@
 
 package com.github.jpmsilva.jsystemd;
 
-import com.jakewharton.byteunits.BinaryByteUnit;
+import static com.github.jpmsilva.jsystemd.SystemdUtilities.formatByteCount;
+
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.Optional;
 import org.jetbrains.annotations.NotNull;
+import org.springframework.core.annotation.Order;
 
 /**
- * Implementation of {@link SystemdNotifyStatusProvider} that provides information regarding the non-heap zone of the memory.
+ * Implementation of {@link SystemdStatusProvider} that provides information regarding the heap zone of the memory.
  *
  * @author Joao Silva
  */
-public class SystemdNotifyNonHeapStatusProvider implements SystemdNotifyStatusProvider {
+@Order(-3000)
+public class SystemdHeapStatusProvider implements SystemdStatusProvider {
 
   /**
-   * {@inheritDoc}
+   * Create a new SystemdNotifyHeapStatusProvider.
    */
+  public SystemdHeapStatusProvider() {
+  }
+
   @Override
   public @NotNull String status() {
     return Optional.ofNullable(ManagementFactory.getMemoryMXBean())
-        .map(MemoryMXBean::getNonHeapMemoryUsage)
-        .map(t -> String.format("Non-heap: %s/%s", BinaryByteUnit.format(t.getUsed()), BinaryByteUnit.format(t.getCommitted())))
+        .map(MemoryMXBean::getHeapMemoryUsage)
+        .map(t -> String.format("Heap: %s/%s", formatByteCount(t.getUsed()), formatByteCount(t.getCommitted())))
         .orElse("");
   }
 }

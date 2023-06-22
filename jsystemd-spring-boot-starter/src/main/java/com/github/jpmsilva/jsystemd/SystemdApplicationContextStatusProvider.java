@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Joao Silva
+ * Copyright 2018-2023 Joao Silva
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,13 +30,13 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.core.annotation.Order;
 
 /**
- * Implementation of {@link SystemdNotifyStatusProvider} that provides information regarding the bean creation progress of a bean factory.
+ * Implementation of {@link SystemdStatusProvider} that provides information regarding the bean creation progress of a bean factory.
  *
  * @author Joao Silva
  * @see BeanPostProcessor
  */
 @Order(-4000)
-public class SystemdNotifyApplicationContextStatusProvider implements SystemdNotifyStatusProvider, BeanPostProcessor {
+public class SystemdApplicationContextStatusProvider implements SystemdStatusProvider, BeanPostProcessor {
 
   @NotNull
   private final Systemd systemd;
@@ -56,7 +56,7 @@ public class SystemdNotifyApplicationContextStatusProvider implements SystemdNot
    *
    * @param systemd the {@link Systemd} to send status information to
    */
-  SystemdNotifyApplicationContextStatusProvider(@SuppressWarnings("SameParameterValue") @NotNull Systemd systemd, int applicationId, String contextId,
+  SystemdApplicationContextStatusProvider(@SuppressWarnings("SameParameterValue") @NotNull Systemd systemd, int applicationId, String contextId,
       ConfigurableListableBeanFactory factory) {
     this.systemd = Objects.requireNonNull(systemd, "Systemd must not be null");
     this.applicationId = applicationId;
@@ -84,17 +84,11 @@ public class SystemdNotifyApplicationContextStatusProvider implements SystemdNot
     return beanName -> factory.getBeanDefinition(beanName).isSingleton();
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public @NotNull String status() {
     return systemd.isReady() ? "" : status;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public @Nullable Object postProcessBeforeInitialization(@NotNull Object bean, @NotNull String beanName) throws BeansException {
     if (factory != null) {
@@ -106,9 +100,6 @@ public class SystemdNotifyApplicationContextStatusProvider implements SystemdNot
     return bean;
   }
 
-  /**
-   * {@inheritDoc}
-   */
   @Override
   public @Nullable Object postProcessAfterInitialization(@NotNull Object bean, @NotNull String beanName) throws BeansException {
     return bean;
