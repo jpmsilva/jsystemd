@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-Copyright 2018-2023 Joao Silva
+Copyright 2023 Joao Silva
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -19,7 +19,7 @@ limitations under the License.
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <artifactId>jsystemd-core</artifactId>
+  <artifactId>jsystemd-spring-boot-sample</artifactId>
 
   <parent>
     <groupId>com.github.jpmsilva.jsystemd</groupId>
@@ -27,35 +27,42 @@ limitations under the License.
     <version>3.0.0</version>
   </parent>
 
-  <name>jsystemd core</name>
-  <description>
-    The core library for systemd integration. This component does not depend on Spring, and can be used in any Java application.
+  <name>jsystemd sample Spring Boot application</name>
+  <description>Spring boot sample application.
   </description>
 
   <dependencies>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
     </dependency>
+
     <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-core</artifactId>
-      <scope>provided</scope>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-actuator</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>com.github.jpmsilva.jsystemd</groupId>
+      <artifactId>jsystemd-spring-boot-starter</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
   <build>
     <plugins>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <compilerArgs>
-            <compilerArg>--add-modules</compilerArg>
-            <compilerArg>java.management</compilerArg>
-          </compilerArgs>
-        </configuration>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+        <version>${org.springframework.boot.version}</version>
       </plugin>
     </plugins>
   </build>
+
 </project>

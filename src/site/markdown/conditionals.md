@@ -2,7 +2,7 @@
 
 _Note: this page is only relevant for Spring Boot applications._
 
-The auto-configuration class ot the [starter module](jsystemd-spring-boot-starter/index.html)  
+The autoconfiguration class ot the [starter module](jsystemd-spring-boot-starter/index.html)
 is guarded with [ConditionalOnSystemd](apidocs/com/github/jpmsilva/jsystemd/ConditionalOnSystemd.html).
 
 This conditional checks if running under Linux, and searches for the presence of the environment

@@ -19,7 +19,7 @@ When using Spring Boot, simply import the `systemd-spring-boot-starter` module a
   </dependencies>
 ```
 
-Auto-configuration takes place through the class [SystemdAutoConfiguration](apidocs/com/github/jpmsilva/jsystemd/SystemdAutoConfiguration.html),
+Autoconfiguration takes place through the class [SystemdAutoConfiguration](apidocs/com/github/jpmsilva/jsystemd/SystemdAutoConfiguration.html),
 and will notify systemd once your application starts up successfully, via a Spring Boot event listener
 of type [ApplicationReadyEvent](https://docs.spring.io/spring-boot/docs/current/api/org/springframework/boot/context/event/ApplicationReadyEvent.html).
 
@@ -56,7 +56,7 @@ After=syslog.target
 [Service]
 Type=notify
 WorkingDirectory=/opt/myservice
-ExecStart=/opt/jdk1.8.0/bin/java -XX:+ExitOnOutOfMemoryError -Xms256M -Xmx512M -XX:+UseG1GC -jar /opt/myservice/myservice.jar
+ExecStart=/opt/jdk17/bin/java -XX:+ExitOnOutOfMemoryError -jar /opt/myservice/myservice.jar
 SuccessExitStatus=143
 KillMode=mixed
 TimeoutStopSec=10

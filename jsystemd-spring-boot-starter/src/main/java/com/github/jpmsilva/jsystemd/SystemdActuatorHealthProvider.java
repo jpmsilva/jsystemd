@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 TomTom N.V.
+ * Copyright 2023 Joao Silva
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,13 +30,15 @@ import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 import org.springframework.boot.actuate.health.HealthIndicator;
 import org.springframework.boot.actuate.health.Status;
+import org.springframework.core.annotation.Order;
 
 /**
  * Implementation of {@link HealthProvider} that provides application health based on Spring Boot Actuator Health Indicators.
  *
  * @author Christian Lorenz
  */
-public class SystemdNotifyActuatorHealthProvider implements SystemdNotifyStatusProvider, HealthProvider {
+@Order(2000)
+public class SystemdActuatorHealthProvider implements SystemdStatusProvider, HealthProvider {
 
   private static final Logger logger = getLogger(lookup().lookupClass());
 
@@ -53,7 +56,7 @@ public class SystemdNotifyActuatorHealthProvider implements SystemdNotifyStatusP
    * @param healthIndicators Spring Boot Actuator Health Indicators
    * @param unhealthyStatusCodes list of status codes considered as unhealthy
    */
-  public SystemdNotifyActuatorHealthProvider(@NotNull List<HealthIndicator> healthIndicators, @NotNull Set<Status> unhealthyStatusCodes) {
+  public SystemdActuatorHealthProvider(@NotNull List<HealthIndicator> healthIndicators, @NotNull Set<Status> unhealthyStatusCodes) {
     this.healthIndicators = Objects.requireNonNull(healthIndicators, "Health indicators must not be null");
     this.unhealthyStatusCodes = Objects.requireNonNull(unhealthyStatusCodes, "Unhealthy status codes must not be null");
     if (this.unhealthyStatusCodes.isEmpty()) {
@@ -67,7 +70,7 @@ public class SystemdNotifyActuatorHealthProvider implements SystemdNotifyStatusP
   public Health health() {
     Collection<HealthIndicator> unhealthyIndicators = healthIndicators.stream()
         .filter(it -> unhealthyStatusCodes.contains(it.health().getStatus()))
-        .collect(Collectors.toList());
+        .toList();
     logger.debug("Application health state={}", unhealthyIndicators.stream().map(HealthIndicator::health).collect(Collectors.toList()));
     boolean healthy = unhealthyIndicators.isEmpty();
     return new Health(healthy, unhealthyIndicators.stream()

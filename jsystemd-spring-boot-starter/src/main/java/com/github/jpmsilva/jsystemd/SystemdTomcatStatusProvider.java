@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Joao Silva
+ * Copyright 2018-2023 Joao Silva
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,11 +19,11 @@ package com.github.jpmsilva.jsystemd;
 import static java.lang.invoke.MethodHandles.lookup;
 import static org.slf4j.LoggerFactory.getLogger;
 
-import com.github.jpmsilva.groundlevel.utilities.StringUtilities;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.stream.Collectors;
 import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
@@ -33,20 +33,24 @@ import org.slf4j.Logger;
 import org.springframework.core.annotation.Order;
 
 /**
- * Implementation of {@link SystemdNotifyStatusProvider} that provides information regarding Tomcat thread pools.
+ * Implementation of {@link SystemdStatusProvider} that provides information regarding Tomcat thread pools.
  *
  * @author Joao Silva
  * @see Registry
  */
 @Order(1000)
-public class SystemdNotifyTomcatStatusProvider implements SystemdNotifyStatusProvider {
+public class SystemdTomcatStatusProvider implements SystemdStatusProvider {
 
   private static final Logger logger = getLogger(lookup().lookupClass());
 
   @NotNull
   private final MBeanServer mbeanServer;
 
-  public SystemdNotifyTomcatStatusProvider() {
+
+  /**
+   * Create a new SystemdNotifyTomcatStatusProvider.
+   */
+  public SystemdTomcatStatusProvider() {
     mbeanServer = Objects.requireNonNull(Registry.getRegistry(null, null).getMBeanServer(), "No usable MBeanServer instance");
   }
 
@@ -73,17 +77,11 @@ public class SystemdNotifyTomcatStatusProvider implements SystemdNotifyStatusPro
           String name = attr.getName();
           try {
             switch (name) {
-              case "name":
-                status.name = (String) mbeanServer.getAttribute(objectName, name);
-                break;
-              case "currentThreadsBusy":
-                status.currentThreadsBusy = (int) mbeanServer.getAttribute(objectName, name);
-                break;
-              case "currentThreadCount":
-                status.currentThreadCount = (int) mbeanServer.getAttribute(objectName, name);
-                break;
-              default:
-                break;
+              case "name" -> status.name = (String) mbeanServer.getAttribute(objectName, name);
+              case "currentThreadsBusy" -> status.currentThreadsBusy = (int) mbeanServer.getAttribute(objectName, name);
+              case "currentThreadCount" -> status.currentThreadCount = (int) mbeanServer.getAttribute(objectName, name);
+              default -> {
+              }
             }
           } catch (Throwable t) {
             logger.warn("Could not read attribute {}", name, t);
@@ -94,7 +92,7 @@ public class SystemdNotifyTomcatStatusProvider implements SystemdNotifyStatusPro
         logger.warn("Could not read object {}", objectName, e);
       }
     }
-    return StringUtilities.join(", ", statuses);
+    return statuses.stream().map(ConnectorStatus::toString).collect(Collectors.joining(", "));
   }
 
   private static class ConnectorStatus {

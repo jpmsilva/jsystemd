@@ -31,7 +31,7 @@ public interface HealthProvider {
   /**
    * Determines if an application is healthy.
    *
-   * @return true if application is healthy, otherwise false
+   * @return representation of the application {@link Health} state
    */
   Health health();
 
@@ -40,14 +40,20 @@ public interface HealthProvider {
    */
   class Health {
 
+    /**
+     * <code>true</code> if this object represents a healthy state, <code>false</code> otherwise.
+     */
     public final boolean healthy;
 
+    /**
+     * Additional health details for each application component.
+     */
     public final Map<String, Object> details;
 
     /**
      * Provides for a health representation (healthy/unhealthy), with health details for each component.
      *
-     * @param healthy <code>true</code> if this object represents an healthy state, <code>false</code> otherwise
+     * @param healthy <code>true</code> if this object represents a healthy state, <code>false</code> otherwise
      * @param details additional health details for each application component
      * @throws NullPointerException if details is null
      */
@@ -57,7 +63,7 @@ public interface HealthProvider {
     }
 
     /**
-     * Synthesize an health object that represents an healthy application state.
+     * Synthesize a health object that represents a healthy application state.
      *
      * @return a synthetic healthy state.
      */

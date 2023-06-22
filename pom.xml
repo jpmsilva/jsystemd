@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-Copyright 2018 Joao Silva
+Copyright 2018-2023 Joao Silva
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ limitations under the License.
 
   <groupId>com.github.jpmsilva.jsystemd</groupId>
   <artifactId>jsystemd</artifactId>
-  <version>2.0.1</version>
+  <version>3.0.0</version>
   <packaging>pom</packaging>
 
   <name>jsystemd</name>
@@ -40,7 +40,7 @@ limitations under the License.
   <licenses>
     <license>
       <name>The Apache Software License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
       <distribution>repo</distribution>
     </license>
   </licenses>
@@ -62,35 +62,35 @@ limitations under the License.
   </developers>
 
   <properties>
-    <java.version>1.8</java.version>
+    <maven.compiler.release>17</maven.compiler.release>
 
     <!-- Plugin version -->
-    <plugin.clean.version>3.1.0</plugin.clean.version>
-    <plugin.install.version>3.0.0-M1</plugin.install.version>
-    <plugin.resources.version>3.2.0</plugin.resources.version>
-    <plugin.surefire.version>3.0.0-M5</plugin.surefire.version>
-    <plugin.compiler.version>3.8.0</plugin.compiler.version>
-    <plugin.jar.version>3.1.1</plugin.jar.version>
-    <plugin.site.version>3.9.1</plugin.site.version>
+    <plugin.clean.version>3.2.0</plugin.clean.version>
+    <plugin.install.version>3.1.1</plugin.install.version>
+    <plugin.resources.version>3.3.1</plugin.resources.version>
+    <plugin.surefire.version>3.1.0</plugin.surefire.version>
+    <plugin.compiler.version>3.11.0</plugin.compiler.version>
+    <plugin.jar.version>3.3.0</plugin.jar.version>
+    <plugin.site.version>4.0.0-M8</plugin.site.version>
     <plugin.github-site.version>0.12</plugin.github-site.version>
-    <plugin.nexus-staging.version>1.6.8</plugin.nexus-staging.version>
-    <plugin.deploy.version>3.0.0-M1</plugin.deploy.version>
-    <plugin.project-info-reports.version>3.1.1</plugin.project-info-reports.version>
-    <plugin.jgitflow.version>1.0-m5.1</plugin.jgitflow.version>
-    <plugin.gpg.version>1.6</plugin.gpg.version>
-    <plugin.source.version>3.0.1</plugin.source.version>
-    <plugin.javadoc.version>3.1.0</plugin.javadoc.version>
-    <plugin.checkstyle.version>3.1.2</plugin.checkstyle.version>
+    <plugin.nexus-staging.version>1.6.13</plugin.nexus-staging.version>
+    <plugin.deploy.version>3.1.1</plugin.deploy.version>
+    <plugin.project-info-reports.version>3.4.3</plugin.project-info-reports.version>
+    <plugin.jgitflow.version>1.0-m10</plugin.jgitflow.version>
+    <plugin.gpg.version>3.1.0</plugin.gpg.version>
+    <plugin.source.version>3.2.1</plugin.source.version>
+    <plugin.javadoc.version>3.5.0</plugin.javadoc.version>
+    <plugin.checkstyle.version>3.2.2</plugin.checkstyle.version>
     <plugin.github-release.version>1.4.0</plugin.github-release.version>
-    <plugin.jxr.version>3.0.0</plugin.jxr.version>
-    <plugin.pmd.version>3.14.0</plugin.pmd.version>
-    <plugin.enforcer.version>3.0.0-M3</plugin.enforcer.version>
+    <plugin.jxr.version>3.3.0</plugin.jxr.version>
+    <plugin.pmd.version>3.21.0</plugin.pmd.version>
+    <plugin.enforcer.version>3.3.0</plugin.enforcer.version>
 
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-    <org.springframework.boot.version>2.3.8.RELEASE</org.springframework.boot.version>
-    <org.slf4j.version>1.7.30</org.slf4j.version>
+    <org.springframework.boot.version>3.0.0</org.springframework.boot.version>
+    <org.slf4j.version>2.0.7</org.slf4j.version>
   </properties>
 
   <distributionManagement>
@@ -108,29 +108,14 @@ limitations under the License.
   <dependencyManagement>
     <dependencies>
       <dependency>
-        <groupId>net.java.dev.jna</groupId>
-        <artifactId>jna</artifactId>
-        <version>5.7.0</version>
-      </dependency>
-      <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
         <version>${org.slf4j.version}</version>
       </dependency>
       <dependency>
-        <groupId>com.jakewharton.byteunits</groupId>
-        <artifactId>byteunits</artifactId>
-        <version>0.9.1</version>
-      </dependency>
-      <dependency>
-        <groupId>org.apache.commons</groupId>
-        <artifactId>commons-lang3</artifactId>
-        <version>3.11</version>
-      </dependency>
-      <dependency>
         <groupId>org.jetbrains</groupId>
         <artifactId>annotations</artifactId>
-        <version>20.1.0</version>
+        <version>24.0.1</version>
       </dependency>
 
       <dependency>
@@ -148,7 +133,7 @@ limitations under the License.
     <dependency>
       <groupId>org.jetbrains</groupId>
       <artifactId>annotations</artifactId>
-      <optional>true</optional>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
 
@@ -184,8 +169,6 @@ limitations under the License.
           <artifactId>maven-compiler-plugin</artifactId>
           <version>${plugin.compiler.version}</version>
           <configuration>
-            <source>${java.version}</source>
-            <target>${java.version}</target>
             <showWarnings>true</showWarnings>
             <showDeprecation>true</showDeprecation>
           </configuration>
@@ -204,13 +187,6 @@ limitations under the License.
           <configuration>
             <skipDeploy>true</skipDeploy>
           </configuration>
-          <dependencies>
-            <dependency>
-              <groupId>org.apache.maven.doxia</groupId>
-              <artifactId>doxia-module-markdown</artifactId>
-              <version>1.9.1</version>
-            </dependency>
-          </dependencies>
         </plugin>
 
         <plugin>
@@ -256,7 +232,7 @@ limitations under the License.
         </plugin>
 
         <plugin>
-          <groupId>external.atlassian.jgitflow</groupId>
+          <groupId>ch.dvbern.oss.maven.jgitflow</groupId>
           <artifactId>jgitflow-maven-plugin</artifactId>
           <version>${plugin.jgitflow.version}</version>
           <configuration>
@@ -292,9 +268,6 @@ limitations under the License.
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
           <version>${plugin.javadoc.version}</version>
-          <configuration>
-            <source>${java.version}</source>
-          </configuration>
         </plugin>
 
         <plugin>
@@ -376,9 +349,19 @@ limitations under the License.
         <artifactId>maven-pmd-plugin</artifactId>
         <executions>
           <execution>
+            <id>validate-pmd</id>
             <phase>validate</phase>
             <goals>
               <goal>check</goal>
+            </goals>
+            <configuration>
+              <excludeFromFailureFile>exclude-pmd.properties</excludeFromFailureFile>
+            </configuration>
+          </execution>
+          <execution>
+            <id>validate-cpd</id>
+            <phase>validate</phase>
+            <goals>
               <goal>cpd-check</goal>
             </goals>
           </execution>
@@ -521,7 +504,7 @@ limitations under the License.
         <reportSets>
           <reportSet>
             <id>default</id>
-            <!-- overwrite the default javadoc set inherited to all child modules, so as to not generate multiple apidocs folders -->
+            <!-- overwrite the default javadoc set inherited to all child modules, to not generate multiple apidocs folders -->
             <reports>
             </reports>
           </reportSet>
@@ -581,6 +564,7 @@ limitations under the License.
 
   <modules>
     <module>jsystemd-core</module>
+    <module>jsystemd-spring-boot-sample</module>
     <module>jsystemd-spring-boot-starter</module>
   </modules>
 </project>

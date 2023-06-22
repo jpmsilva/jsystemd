@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Joao Silva
+ * Copyright 2018-2023 Joao Silva
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 package com.github.jpmsilva.jsystemd;
 
 import static com.github.jpmsilva.jsystemd.SystemdUtilities.isUnderSystemd;
-import static com.github.jpmsilva.jsystemd.SystemdUtilities.notifySocket;
+import static com.github.jpmsilva.jsystemd.SystemdUtilities.notifySocketPath;
 import static com.github.jpmsilva.jsystemd.SystemdUtilities.osName;
 
 import org.jetbrains.annotations.NotNull;
@@ -45,9 +45,9 @@ class OnSystemdCondition extends SpringBootCondition {
   public ConditionOutcome getMatchOutcome(ConditionContext context, AnnotatedTypeMetadata metadata) {
     if (isUnderSystemd()) {
       return ConditionOutcome.match(message.foundExactly(
-          "Operating system is " + osName() + " and NOTIFY_SOCKET points to \"" + notifySocket() + "\""));
+          "Operating system is " + osName() + " and NOTIFY_SOCKET points to \"" + notifySocketPath() + "\""));
     }
     return ConditionOutcome.noMatch(message.notAvailable(
-        "Operating system is " + osName() + " and NOTIFY_SOCKET points to \"" + notifySocket() + "\""));
+        "Operating system is " + osName() + " and NOTIFY_SOCKET points to \"" + notifySocketPath() + "\""));
   }
 }
