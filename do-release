@@ -9,5 +9,5 @@ git checkout master && \
 git pull && \
 git checkout development && \
 git pull && \
-"${SCRIPTPATH}"/mvnw jgitflow:release-start -am -pl :jsystemd-core,:jsystemd-spring-boot-starter && \
-"${SCRIPTPATH}"/mvnw jgitflow:release-finish -am -pl :jsystemd-core,:jsystemd-spring-boot-starter
+"${SCRIPTPATH}"/mvnw jgitflow:release-start -P !sample -am -pl :jsystemd-core,:jsystemd-spring-boot-starter && \
+"${SCRIPTPATH}"/mvnw jgitflow:release-finish -P !sample -am -pl :jsystemd-core,:jsystemd-spring-boot-starter

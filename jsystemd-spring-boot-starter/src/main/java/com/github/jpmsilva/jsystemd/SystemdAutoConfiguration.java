@@ -35,7 +35,8 @@ import org.springframework.boot.actuate.health.Status;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.boot.availability.AvailabilityChangeEvent;
+import org.springframework.boot.availability.ReadinessState;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
@@ -64,13 +65,17 @@ public class SystemdAutoConfiguration {
   }
 
   /**
-   * Event listener for the {@link ApplicationReadyEvent} event to report to systemd that the service is ready.
+   * Event listener for the {@link AvailabilityChangeEvent} event to report to systemd that the service is ready.
    *
-   * @param event the {@link ApplicationReadyEvent} received
+   * <p>The application is considered ready when the event is a {@link ReadinessState} with the state {@link ReadinessState#ACCEPTING_TRAFFIC}.
+   *
+   * @param event the {@link AvailabilityChangeEvent} received
    */
   @EventListener
-  public void started(@SuppressWarnings("unused") ApplicationReadyEvent event) {
-    systemd.ready();
+  public void started(@SuppressWarnings("unused") AvailabilityChangeEvent<ReadinessState> event) {
+    if(event.getState() == ReadinessState.ACCEPTING_TRAFFIC) {
+      systemd.ready();
+    }
   }
 
   @Bean
