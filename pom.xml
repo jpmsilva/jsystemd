@@ -21,7 +21,7 @@ limitations under the License.
 
   <groupId>com.github.jpmsilva.jsystemd</groupId>
   <artifactId>jsystemd</artifactId>
-  <version>3.0.1-SNAPSHOT</version>
+  <version>3.1.1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>jsystemd</name>
@@ -321,7 +321,7 @@ limitations under the License.
           <artifactId>maven-pmd-plugin</artifactId>
           <version>${plugin.pmd.version}</version>
           <configuration>
-            <xrefLocation></xrefLocation>
+            <xrefLocation />
           </configuration>
         </plugin>
 
