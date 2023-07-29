@@ -16,18 +16,12 @@
 
 package com.github.jpmsilva.jsystemd;
 
-import static com.github.jpmsilva.jsystemd.SystemdUtilities.hasNotifySocket;
-import static com.github.jpmsilva.jsystemd.SystemdUtilities.isLinux;
 import static java.lang.invoke.MethodHandles.lookup;
 import static java.util.Objects.requireNonNull;
 import static org.slf4j.LoggerFactory.getLogger;
 
-import java.io.IOException;
-import java.net.StandardProtocolFamily;
+import com.sun.jna.Native;
 import java.net.UnixDomainSocketAddress;
-import java.nio.ByteBuffer;
-import java.nio.channels.SocketChannel;
-import java.nio.file.Path;
 import org.jetbrains.annotations.NotNull;
 import org.slf4j.Logger;
 
@@ -41,47 +35,13 @@ public class SystemdNotify {
 
   private static final Logger logger = getLogger(lookup().lookupClass());
 
-  private static final SocketChannel channel = createSocketChannel();
-
-  private static SocketChannel createSocketChannel() {
-    if (isLinux() && hasNotifySocket()) {
-      SocketChannel channel = null;
-      try {
-        Path socketPath = SystemdUtilities.notifySocketPath();
-        if (socketPath.toFile().exists()) {
-          channel = SocketChannel.open(StandardProtocolFamily.UNIX);
-          channel.configureBlocking(true);
-          channel.connect(UnixDomainSocketAddress.of(socketPath));
-          channel.shutdownInput();
-          return channel;
-        } else {
-          logger.warn("Specified socket path does not exist - systemd integration disabled: " + socketPath);
-        }
-      } catch (IOException e) {
-        if (channel != null) {
-          try {
-            channel.close();
-          } catch (IOException ex) {
-            e.addSuppressed(ex);
-          }
-        }
-        if (logger.isDebugEnabled()) {
-          logger.warn("Could not connect to systemd socket", e);
-        } else {
-          logger.warn("Could not connect to systemd socket: " + e.getMessage());
-        }
-      }
-    }
-    return null;
-  }
-
   /**
    * Allows knowing if this library is usable under current execution conditions (operating system type, systemd available, etc...).
    *
    * @return {@code true} if and only if the library can be used
    */
   static boolean usable() {
-    return channel != null && channel.isConnected();
+    return Library.initialized;
   }
 
   /**
@@ -151,34 +111,13 @@ public class SystemdNotify {
    * @param message the message to send, according to <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html#Description">specification</a>
    */
   private static void invoke(String message) {
-    requireNonNull(message);
-    if (usable() && !message.isEmpty()) {
-      try {
-        synchronized (requireNonNull(channel)) {
-          ByteBuffer buffer = ByteBuffer.allocate(1024);
-          buffer.clear();
-          if (message.endsWith("\n")) {
-            buffer.put(message.getBytes());
-          } else {
-            buffer.put((message + "\n").getBytes());
-          }
-          buffer.flip();
-          while (buffer.hasRemaining()) {
-            channel.write(buffer);
-          }
-        }
-      } catch (IOException e) {
-        if (logger.isDebugEnabled()) {
-          logger.warn("Failed to send systemd message " + message, e);
-        } else {
-          logger.warn("Failed to send systemd message " + message + ": " + e.getMessage());
-        }
-      }
+    if (usable() && message != null && !message.isEmpty()) {
+      Library.sd_notify(0, message);
     }
   }
 
   /**
-   * Registers a JVM shutdown hook that closes the system integration channel.
+   * Registers a JVM shutdown hook that closes the systemd integration channel.
    *
    * @see Runtime#addShutdownHook(Thread)
    * @see #close()
@@ -193,14 +132,25 @@ public class SystemdNotify {
    * <p>Normally, the integration channel will be closed when the JVM shuts down.<br>
    * However, you may wish of explicitly close the integration channel, to ensure that all closeable resources are effectively closed.<br> As such, this method
    * should only be called at most once during the lifecycle of the JVM.
+   *
+   * <p>Currenty this does nothing, as currently the only supported integration channel is the native libsystemd library, which does not need any cleanup.
    */
   public static void close() {
-    if (channel != null) {
+  }
+
+  private static class Library {
+
+    private static boolean initialized = false;
+
+    static {
       try {
-        channel.close();
-      } catch (IOException ignored) {
-        // This is a best effort at this point
+        Native.register("systemd");
+        initialized = true;
+      } catch (UnsatisfiedLinkError ignored) {
       }
     }
+
+    @SuppressWarnings({"UnusedReturnValue", "checkstyle:ParameterName"})
+    public static native int sd_notify(int unset_environment, String state);
   }
 }

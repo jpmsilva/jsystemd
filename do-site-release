@@ -5,4 +5,4 @@ SCRIPTPATH=$(dirname "$SCRIPT")
 
 set -e
 
-"${SCRIPTPATH}"/mvnw clean package site site:site -am -pl :jsystemd-core,:jsystemd-spring-boot-starter --debug
+"${SCRIPTPATH}"/mvnw clean package site site:site -P !sample -am -pl :jsystemd-core,:jsystemd-spring-boot-starter --debug

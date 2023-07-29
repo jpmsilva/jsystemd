@@ -21,7 +21,7 @@ limitations under the License.
 
   <groupId>com.github.jpmsilva.jsystemd</groupId>
   <artifactId>jsystemd</artifactId>
-  <version>3.0.0</version>
+  <version>3.1.0</version>
   <packaging>pom</packaging>
 
   <name>jsystemd</name>
@@ -107,6 +107,11 @@ limitations under the License.
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna</artifactId>
+        <version>5.13.0</version>
+      </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
@@ -268,6 +273,16 @@ limitations under the License.
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-javadoc-plugin</artifactId>
           <version>${plugin.javadoc.version}</version>
+          <configuration>
+            <links>
+              <link>https://docs.oracle.com/en/java/javase/17/docs/api/</link>
+              <link>https://docs.spring.io/spring-boot/docs/3.0.0/api/</link>
+              <link>https://docs.spring.io/spring-framework/docs/6.0.2/javadoc-api/</link>
+              <link>https://java-native-access.github.io/jna/5.13.0/javadoc/</link>
+            </links>
+            <doctitle>${project.name} ${project.version}</doctitle>
+            <windowtitle>${project.artifactId} ${project.version}</windowtitle>
+          </configuration>
         </plugin>
 
         <plugin>
@@ -305,6 +320,9 @@ limitations under the License.
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-pmd-plugin</artifactId>
           <version>${plugin.pmd.version}</version>
+          <configuration>
+            <xrefLocation />
+          </configuration>
         </plugin>
 
         <plugin>
@@ -390,6 +408,15 @@ limitations under the License.
   </build>
 
   <profiles>
+    <profile>
+      <id>sample</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <modules>
+        <module>jsystemd-spring-boot-sample</module>
+      </modules>
+    </profile>
     <profile>
       <id>release-profile</id>
       <activation>
@@ -564,7 +591,6 @@ limitations under the License.
 
   <modules>
     <module>jsystemd-core</module>
-    <module>jsystemd-spring-boot-sample</module>
     <module>jsystemd-spring-boot-starter</module>
   </modules>
 </project>
