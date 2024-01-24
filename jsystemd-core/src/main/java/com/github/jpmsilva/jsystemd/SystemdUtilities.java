@@ -108,7 +108,7 @@ abstract class SystemdUtilities {
   }
 
   static boolean hasNotifySocket() {
-    return notifySocketPath != null;
+    return notifySocketPath != null && notifySocketPath.toFile().exists();
   }
 
   private static final String[] unitPrefixes = new String[]{"", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei"};

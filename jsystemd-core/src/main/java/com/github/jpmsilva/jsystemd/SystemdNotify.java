@@ -16,6 +16,8 @@
 
 package com.github.jpmsilva.jsystemd;
 
+import static com.github.jpmsilva.jsystemd.SystemdUtilities.hasNotifySocket;
+import static com.github.jpmsilva.jsystemd.SystemdUtilities.isLinux;
 import static java.lang.invoke.MethodHandles.lookup;
 import static java.util.Objects.requireNonNull;
 import static org.slf4j.LoggerFactory.getLogger;
@@ -133,7 +135,7 @@ public class SystemdNotify {
    * However, you may wish of explicitly close the integration channel, to ensure that all closeable resources are effectively closed.<br> As such, this method
    * should only be called at most once during the lifecycle of the JVM.
    *
-   * <p>Currenty this does nothing, as currently the only supported integration channel is the native libsystemd library, which does not need any cleanup.
+   * <p>Currently this does nothing, as currently the only supported integration channel is the native libsystemd library, which does not need any cleanup.
    */
   public static void close() {
   }
@@ -143,10 +145,12 @@ public class SystemdNotify {
     private static boolean initialized = false;
 
     static {
-      try {
-        Native.register("systemd");
-        initialized = true;
-      } catch (UnsatisfiedLinkError ignored) {
+      if (isLinux() && hasNotifySocket()) {
+        try {
+          Native.register("systemd");
+          initialized = true;
+        } catch (UnsatisfiedLinkError ignored) {
+        }
       }
     }
 

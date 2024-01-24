@@ -73,7 +73,7 @@ public class SystemdAutoConfiguration {
    */
   @EventListener
   public void started(@SuppressWarnings("unused") AvailabilityChangeEvent<ReadinessState> event) {
-    if(event.getState() == ReadinessState.ACCEPTING_TRAFFIC) {
+    if (event.getState() == ReadinessState.ACCEPTING_TRAFFIC) {
       systemd.ready();
     }
   }
@@ -82,12 +82,6 @@ public class SystemdAutoConfiguration {
   @NotNull
   SystemdLifecycle systemdLifecycle() {
     return new SystemdLifecycle(systemd);
-  }
-
-  @Bean
-  @NotNull
-  SystemdServletContextListener systemdServletContextListener() {
-    return new SystemdServletContextListener();
   }
 
   @Bean
