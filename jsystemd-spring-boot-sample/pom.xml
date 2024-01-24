@@ -24,7 +24,7 @@ limitations under the License.
   <parent>
     <groupId>com.github.jpmsilva.jsystemd</groupId>
     <artifactId>jsystemd</artifactId>
-    <version>3.0.1-SNAPSHOT</version>
+    <version>3.1.1-SNAPSHOT</version>
   </parent>
 
   <name>jsystemd sample Spring Boot application</name>
@@ -69,6 +69,17 @@ limitations under the License.
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
         <version>${org.springframework.boot.version}</version>
+        <executions>
+          <execution>
+            <id>repackage</id>
+            <goals>
+              <goal>repackage</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <mainClass>com.github.jpmsilva.jsystemd.SampleApplication</mainClass>
+        </configuration>
       </plugin>
     </plugins>
   </build>
