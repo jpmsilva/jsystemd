@@ -31,17 +31,17 @@ The following table lists the provided implementations:
 
 | Class                                                                                                                                    | Purpose                                                                            | Sample                        |
 |------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|-------------------------------|
-| [SystemdNotifyHeapStatusProvider](apidocs/com/github/jpmsilva/jsystemd/SystemdNotifyHeapStatusProvider.html)                             | Provides information regarding heap memory status                                  | `Heap: 139.5 MiB/256 MiB`     |
-| [SystemdNotifyNonHeapStatusProvider](apidocs/com/github/jpmsilva/jsystemd/SystemdNotifyNonHeapStatusProvider.html)                       | Provides information regarding non heap memory status                              | `Non-heap: 62.7 MiB/64.1 MiB` |
-| [SystemdNotifyClassLoaderStatusProvider](apidocs/com/github/jpmsilva/jsystemd/SystemdNotifyClassLoaderStatusProvider.html)               | Provides information regarding the number of loaded classes                        | `Classes: 7915`               |
-| [SystemdNotifyApplicationRunStatusProvider](apidocs/com/github/jpmsilva/jsystemd/SystemdNotifyApplicationRunStatusProvider.html)         | Provides information regarding the application startup sequence state              | `State: context prepared`     |
-| [SystemdNotifyApplicationContextStatusProvider](apidocs/com/github/jpmsilva/jsystemd/SystemdNotifyApplicationContextStatusProvider.html) | Provides information regarding the bean creation status of the application context | `Creating bean 94 of 472`     |
-| [SystemdNotifyTomcatStatusProvider](apidocs/com/github/jpmsilva/jsystemd/SystemdNotifyTomcatStatusProvider.html)                         | Provides information regarding Tomcat's connectors                                 | `http-nio-8080: 2/10`         |
+| [SystemdHeapStatusProvider](apidocs/com/github/jpmsilva/jsystemd/SystemdHeapStatusProvider.html)                                   | Provides information regarding heap memory status                                  | `Heap: 139.5 MiB/256 MiB`     |
+| [SystemdNonHeapStatusProvider](apidocs/com/github/jpmsilva/jsystemd/SystemdNonHeapStatusProvider.html)                                   | Provides information regarding non heap memory status                              | `Non-heap: 62.7 MiB/64.1 MiB` |
+| [SystemdClassLoaderStatusProvider](apidocs/com/github/jpmsilva/jsystemd/SystemdClassLoaderStatusProvider.html)                           | Provides information regarding the number of loaded classes                        | `Classes: 7915`               |
+| [SystemdApplicationRunStatusProvider](apidocs/com/github/jpmsilva/jsystemd/SystemdApplicationRunStatusProvider.html)                     | Provides information regarding the application startup sequence state              | `State: context prepared`     |
+| [SystemdApplicationContextStatusProvider](apidocs/com/github/jpmsilva/jsystemd/SystemdApplicationContextStatusProvider.html)             | Provides information regarding the bean creation status of the application context | `Creating bean 94 of 472`     |
+| [SystemdTomcatStatusProvider](apidocs/com/github/jpmsilva/jsystemd/SystemdTomcatStatusProvider.html)                                     | Provides information regarding Tomcat's connectors                                 | `http-nio-8080: 2/10`         |
 
 See the [Startup progress](startup-progress.html) page for more information
-regarding `SystemdNotifyApplicationRunStatusProvider` and `SystemdNotifyApplicationContextStatusProvider`.
+regarding `SystemdApplicationRunStatusProvider` and `SystemdApplicationContextStatusProvider`.
 
-See the [Tomcat status](tomcat-status.html) page for more information regarding `SystemdNotifyTomcatStatusProvider`.
+See the [Tomcat status](tomcat-status.html) page for more information regarding `SystemdTomcatStatusProvider`.
 
 ## Custom status providers
 

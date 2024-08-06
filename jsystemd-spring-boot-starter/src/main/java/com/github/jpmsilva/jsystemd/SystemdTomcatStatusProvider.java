@@ -48,7 +48,7 @@ public class SystemdTomcatStatusProvider implements SystemdStatusProvider {
 
 
   /**
-   * Create a new SystemdNotifyTomcatStatusProvider.
+   * Create a new SystemdTomcatStatusProvider.
    */
   public SystemdTomcatStatusProvider() {
     mbeanServer = Objects.requireNonNull(Registry.getRegistry(null, null).getMBeanServer(), "No usable MBeanServer instance");

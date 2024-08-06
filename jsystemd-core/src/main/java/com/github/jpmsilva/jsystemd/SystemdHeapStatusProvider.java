@@ -33,7 +33,7 @@ import org.springframework.core.annotation.Order;
 public class SystemdHeapStatusProvider implements SystemdStatusProvider {
 
   /**
-   * Create a new SystemdNotifyHeapStatusProvider.
+   * Create a new SystemdHeapStatusProvider.
    */
   public SystemdHeapStatusProvider() {
   }

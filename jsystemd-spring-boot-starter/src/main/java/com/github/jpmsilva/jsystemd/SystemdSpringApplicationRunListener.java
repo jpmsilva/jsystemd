@@ -94,7 +94,7 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
       if (!beanFactory.containsSingleton(SYSTEMD_BEAN_NAME)) {
         beanFactory.registerSingleton(SYSTEMD_BEAN_NAME, requireNonNull(systemd));
       }
-      beanFactory.registerSingleton("systemdNotifyApplicationContextStatusProvider",
+    beanFactory.registerSingleton("systemdApplicationContextStatusProvider",
           new SystemdApplicationContextStatusProvider(requireNonNull(systemd), applicationId, context.getId(), beanFactory));
     }
   }

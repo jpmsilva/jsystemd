@@ -33,7 +33,7 @@ import org.springframework.core.annotation.Order;
 public class SystemdNonHeapStatusProvider implements SystemdStatusProvider {
 
   /**
-   * Create a new SystemdNotifyNonHeapStatusProvider.
+   * Create a new SystemdNonHeapStatusProvider.
    */
   public SystemdNonHeapStatusProvider() {
   }

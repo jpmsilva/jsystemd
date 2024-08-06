@@ -31,7 +31,7 @@ import org.springframework.core.annotation.Order;
 public class SystemdClassLoaderStatusProvider implements SystemdStatusProvider {
 
   /**
-   * Create a new SystemdNotifyClassLoaderStatusProvider.
+   * Create a new SystemdClassLoaderStatusProvider.
    */
   public SystemdClassLoaderStatusProvider() {
   }

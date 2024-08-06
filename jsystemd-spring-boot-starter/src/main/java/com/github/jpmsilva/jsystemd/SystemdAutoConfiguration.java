@@ -136,7 +136,7 @@ public class SystemdAutoConfiguration {
 
     @Bean
     @NotNull
-    SystemdTomcatStatusProvider systemdNotifyTomcatStatusProvider() {
+    SystemdTomcatStatusProvider systemdTomcatStatusProvider() {
       return new SystemdTomcatStatusProvider();
     }
   }
@@ -156,7 +156,7 @@ public class SystemdAutoConfiguration {
 
     @Bean
     @NotNull
-    SystemdActuatorHealthProvider systemdNotifyActuatorHealthProvider(
+    SystemdActuatorHealthProvider systemdActuatorHealthProvider(
         @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") @NotNull Systemd systemd,
         @NotNull ObjectProvider<List<HealthIndicator>> healthIndicatorsProvider, @NotNull SystemdHealthProviderProperties properties) {
       requireNonNull(systemd, "Systemd must not be null");
