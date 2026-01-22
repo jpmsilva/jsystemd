@@ -189,7 +189,7 @@ limitations under the License.
           <artifactId>site-maven-plugin</artifactId>
           <version>${plugin.github-site.version}</version>
           <configuration>
-            <server>github</server>
+            <server>github.com</server>
             <message>New site version: ${project.version}</message>
             <merge>true</merge>
             <repositoryOwner>jpmsilva</repositoryOwner>
@@ -266,8 +266,8 @@ limitations under the License.
           <configuration>
             <links>
               <link>https://docs.oracle.com/en/java/javase/17/docs/api/</link>
-              <link>https://docs.spring.io/spring-boot/docs/3.0.0/api/</link>
-              <link>https://docs.spring.io/spring-framework/docs/6.0.2/javadoc-api/</link>
+              <link>https://docs.spring.io/spring-boot/api/java/</link>
+              <link>https://docs.spring.io/spring-framework/docs/7.0.1/javadoc-api/</link>
               <link>https://java-native-access.github.io/jna/5.13.0/javadoc/</link>
             </links>
             <doctitle>${project.name} ${project.version}</doctitle>
