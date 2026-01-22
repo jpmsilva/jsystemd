@@ -22,8 +22,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -38,15 +38,15 @@ import org.springframework.core.annotation.Order;
 @Order(-4000)
 public class SystemdApplicationContextStatusProvider implements SystemdStatusProvider, BeanPostProcessor {
 
-  @NotNull
+  @NonNull
   private final Systemd systemd;
   private final int applicationId;
   private final String contextId;
   private final ConfigurableListableBeanFactory factory;
   private boolean definitionsLoaded = false;
-  @NotNull
+  @NonNull
   private Set<String> definitions = new HashSet<>();
-  @NotNull
+  @NonNull
   private String status = "";
 
   /**
@@ -56,7 +56,7 @@ public class SystemdApplicationContextStatusProvider implements SystemdStatusPro
    *
    * @param systemd the {@link Systemd} to send status information to
    */
-  SystemdApplicationContextStatusProvider(@SuppressWarnings("SameParameterValue") @NotNull Systemd systemd, int applicationId, String contextId,
+  SystemdApplicationContextStatusProvider(@SuppressWarnings("SameParameterValue") @NonNull Systemd systemd, int applicationId, String contextId,
       ConfigurableListableBeanFactory factory) {
     this.systemd = Objects.requireNonNull(systemd, "Systemd must not be null");
     this.applicationId = applicationId;
@@ -85,12 +85,12 @@ public class SystemdApplicationContextStatusProvider implements SystemdStatusPro
   }
 
   @Override
-  public @NotNull String status() {
+  public @NonNull String status() {
     return systemd.isReady() ? "" : status;
   }
 
   @Override
-  public @Nullable Object postProcessBeforeInitialization(@NotNull Object bean, @NotNull String beanName) throws BeansException {
+  public @Nullable Object postProcessBeforeInitialization(@NonNull Object bean, @NonNull String beanName) throws BeansException {
     if (factory != null) {
       ensureDefinitionsLoaded();
       status = String.format("Application %d (%s): creating bean %d of %d", applicationId, contextId, getSingletonCount(), definitions.size());
@@ -101,7 +101,7 @@ public class SystemdApplicationContextStatusProvider implements SystemdStatusPro
   }
 
   @Override
-  public @Nullable Object postProcessAfterInitialization(@NotNull Object bean, @NotNull String beanName) throws BeansException {
+  public @Nullable Object postProcessAfterInitialization(@NonNull Object bean, @NonNull String beanName) throws BeansException {
     return bean;
   }
 }

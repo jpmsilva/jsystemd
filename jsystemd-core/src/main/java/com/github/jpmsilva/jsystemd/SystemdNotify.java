@@ -24,7 +24,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import com.sun.jna.Native;
 import java.net.UnixDomainSocketAddress;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 
 /**
@@ -63,7 +63,7 @@ public class SystemdNotify {
    *
    * @see <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html#STATUS=%E2%80%A6">status</a>
    */
-  static void status(@NotNull String message) {
+  static void status(@NonNull String message) {
     if (usable()) {
       logger.debug("Notifying systemd that service status is {}", requireNonNull(message, "Message must not be null"));
       invoke("STATUS=" + message);
@@ -140,6 +140,7 @@ public class SystemdNotify {
   public static void close() {
   }
 
+  @SuppressWarnings("checkstyle:EmptyCatchBlock")
   private static class Library {
 
     private static boolean initialized = false;
@@ -154,7 +155,7 @@ public class SystemdNotify {
       }
     }
 
-    @SuppressWarnings({"UnusedReturnValue", "checkstyle:ParameterName"})
+    @SuppressWarnings({"UnusedReturnValue", "checkstyle:ParameterName", "checkstyle:MethodName"})
     public static native int sd_notify(int unset_environment, String state);
   }
 }

@@ -20,7 +20,8 @@ import static com.github.jpmsilva.jsystemd.SystemdUtilities.isUnderSystemd;
 import static com.github.jpmsilva.jsystemd.SystemdUtilities.notifySocketPath;
 import static com.github.jpmsilva.jsystemd.SystemdUtilities.osName;
 
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.NullMarked;
 import org.springframework.boot.autoconfigure.condition.ConditionMessage;
 import org.springframework.boot.autoconfigure.condition.ConditionMessage.Builder;
 import org.springframework.boot.autoconfigure.condition.ConditionOutcome;
@@ -38,10 +39,11 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
  */
 class OnSystemdCondition extends SpringBootCondition {
 
-  @NotNull
+  @NonNull
   private final Builder message = ConditionMessage.forCondition(ConditionalOnSystemd.class);
 
   @Override
+  @NullMarked
   public ConditionOutcome getMatchOutcome(ConditionContext context, AnnotatedTypeMetadata metadata) {
     if (isUnderSystemd()) {
       return ConditionOutcome.match(message.foundExactly(

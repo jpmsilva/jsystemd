@@ -21,7 +21,7 @@ import static com.github.jpmsilva.jsystemd.SystemdUtilities.formatByteCount;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.Optional;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.springframework.core.annotation.Order;
 
 /**
@@ -39,7 +39,7 @@ public class SystemdHeapStatusProvider implements SystemdStatusProvider {
   }
 
   @Override
-  public @NotNull String status() {
+  public @NonNull String status() {
     return Optional.ofNullable(ManagementFactory.getMemoryMXBean())
         .map(MemoryMXBean::getHeapMemoryUsage)
         .map(t -> String.format("Heap: %s/%s", formatByteCount(t.getUsed()), formatByteCount(t.getCommitted())))

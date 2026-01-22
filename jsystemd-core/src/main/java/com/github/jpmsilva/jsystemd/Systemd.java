@@ -38,8 +38,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 
 /**
@@ -56,17 +56,17 @@ public class Systemd implements AutoCloseable {
 
   private static final Logger logger = getLogger(lookup().lookupClass());
 
-  @NotNull
+  @NonNull
   private final AtomicLong counter = new AtomicLong(0);
 
-  @NotNull
+  @NonNull
   private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1, r -> {
     final Thread thread = new Thread(r);
     thread.setName(String.format("jsystemd-%d", counter.incrementAndGet()));
     return thread;
   });
 
-  @NotNull
+  @NonNull
   private final List<SystemdStatusProvider> providers = new CopyOnWriteArrayList<>();
 
   @Nullable
@@ -78,10 +78,10 @@ public class Systemd implements AutoCloseable {
 
   private long timeout = MICROSECONDS.convert(29, SECONDS);
 
-  @NotNull
+  @NonNull
   private final AtomicReference<ScheduledFuture<?>> future = new AtomicReference<>();
 
-  @NotNull
+  @NonNull
   private final AtomicBoolean ready = new AtomicBoolean(false);
 
   String options = "";
@@ -94,7 +94,7 @@ public class Systemd implements AutoCloseable {
    *
    * @return a builder instance
    */
-  public static @NotNull Builder builder() {
+  public static @NonNull Builder builder() {
     return new Builder();
   }
 
@@ -133,7 +133,7 @@ public class Systemd implements AutoCloseable {
    *
    * @return the current list of providers
    */
-  public @NotNull List<SystemdStatusProvider> getStatusProviders() {
+  public @NonNull List<SystemdStatusProvider> getStatusProviders() {
     return Collections.unmodifiableList(providers);
   }
 
@@ -142,7 +142,7 @@ public class Systemd implements AutoCloseable {
    *
    * @param providers the providers to set
    */
-  public void setStatusProviders(@NotNull List<SystemdStatusProvider> providers) {
+  public void setStatusProviders(@NonNull List<SystemdStatusProvider> providers) {
     this.providers.clear();
     this.providers.addAll(requireNonNull(providers, "Providers must not be null"));
   }
@@ -165,11 +165,11 @@ public class Systemd implements AutoCloseable {
     this.healthProvider = provider;
   }
 
-  private void enableStatusUpdate(long period, @NotNull TimeUnit unit) {
+  private void enableStatusUpdate(long period, @NonNull TimeUnit unit) {
     executor.scheduleAtFixedRate(this::updateStatus, period, period, unit);
   }
 
-  private void enablePeriodicExtendTimeout(long period, @NotNull TimeUnit unit, long timeout) {
+  private void enablePeriodicExtendTimeout(long period, @NonNull TimeUnit unit, long timeout) {
     this.period = period;
     this.unit = unit;
     this.timeout = timeout;
@@ -206,16 +206,16 @@ public class Systemd implements AutoCloseable {
     });
   }
 
-  private void enableWatchdog(long period, @NotNull TimeUnit unit) {
+  private void enableWatchdog(long period, @NonNull TimeUnit unit) {
     executor.scheduleAtFixedRate(this::watchdog, period, period, unit);
   }
 
   /**
-   * Forces the current status to be calculated and sent to systemd. The method {@link Systemd.Builder#enableStatusUpdate(long, TimeUnit)} can be used to enable
+   * Forces the current status to be calculated and sent to systemd. The method {@link Systemd.Builder#statusUpdate(long, TimeUnit)} can be used to enable
    * periodic status updates.
    */
   public void updateStatus() {
-    SystemdNotify.status(providers.stream().map(SystemdStatusProvider::status).filter(t -> t.length() > 0).collect(Collectors.joining(", ")));
+    SystemdNotify.status(providers.stream().map(SystemdStatusProvider::status).filter(t -> !t.isEmpty()).collect(Collectors.joining(", ")));
   }
 
   /**
@@ -231,7 +231,7 @@ public class Systemd implements AutoCloseable {
   }
 
   /**
-   * Forces the watchdog timestamp to be updated. The method {@link Systemd.Builder#enableWatchdog(long, TimeUnit)} can be used to enable periodic watchdog
+   * Forces the watchdog timestamp to be updated. The method {@link Systemd.Builder#watchdog(long, TimeUnit)} can be used to enable periodic watchdog
    * updates.
    *
    * <p>If health provider is set and returns unhealthy the watchdog timestamp is not updated.
@@ -239,7 +239,7 @@ public class Systemd implements AutoCloseable {
   @SuppressWarnings("WeakerAccess")
   public void watchdog() {
     Optional<HealthProvider> healthProvider = getHealthProvider();
-    if (healthProvider.isPresent() && !(healthProvider.get().health()).healthy) {
+    if (healthProvider.isPresent() && !healthProvider.get().health().healthy) {
       logger.warn("Suppressing heartbeat to watchdog because application is unhealthy (details={})", healthProvider.get().health().details);
       return;
     }
@@ -326,7 +326,7 @@ public class Systemd implements AutoCloseable {
      * @param unit the time unit of the period
      * @return the same builder instance
      */
-    public Builder statusUpdate(long period, @NotNull TimeUnit unit) {
+    public Builder statusUpdate(long period, @NonNull TimeUnit unit) {
       if (period < 0) {
         throw new IllegalArgumentException("Illegal value for period");
       }
@@ -346,7 +346,7 @@ public class Systemd implements AutoCloseable {
      * @return the same builder instance
      */
     @SuppressWarnings("unused")
-    public Builder extendTimeout(long period, @NotNull TimeUnit unit, long timeout) {
+    public Builder extendTimeout(long period, @NonNull TimeUnit unit, long timeout) {
       if (period < 0) {
         throw new IllegalArgumentException("Illegal value for period");
       }
@@ -368,7 +368,7 @@ public class Systemd implements AutoCloseable {
      * @param unit the time unit of the period
      * @return the same builder instance
      */
-    public Builder watchdog(long period, @NotNull TimeUnit unit) {
+    public Builder watchdog(long period, @NonNull TimeUnit unit) {
       if (period < 0) {
         throw new IllegalArgumentException("Illegal value for period");
       }

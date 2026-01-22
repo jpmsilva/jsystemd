@@ -20,10 +20,10 @@ package com.github.jpmsilva.jsystemd;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.springframework.boot.actuate.health.Status;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.boot.health.contributor.Status;
 
 /**
  * Properties class for systemd integration when using Spring Boot Actuator.
@@ -44,7 +44,7 @@ public class SystemdHealthProviderProperties {
   /**
    * Status codes from {@link Status} to consider as unhealthy. If omitted {@link Status#DOWN} is used.
    */
-  @NotNull
+  @NonNull
   private List<String> unhealthyStatusCodes = initStatusCodes();
 
   /**
@@ -83,7 +83,7 @@ public class SystemdHealthProviderProperties {
    * @return the status codes from {@link Status} to consider as unhealthy
    * @see #setUnhealthyStatusCodes(List)
    */
-  public @NotNull List<String> getUnhealthyStatusCodes() {
+  public @NonNull List<String> getUnhealthyStatusCodes() {
     return unhealthyStatusCodes;
   }
 
@@ -92,7 +92,7 @@ public class SystemdHealthProviderProperties {
    *
    * @param unhealthyStatusCodes the status codes from {@link Status} to consider as unhealthy
    */
-  public void setUnhealthyStatusCodes(@NotNull List<String> unhealthyStatusCodes) {
+  public void setUnhealthyStatusCodes(@NonNull List<String> unhealthyStatusCodes) {
     Objects.requireNonNull(unhealthyStatusCodes, "Unhealthy status codes must not be null");
     this.unhealthyStatusCodes = unhealthyStatusCodes;
   }
