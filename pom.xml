@@ -21,7 +21,7 @@ limitations under the License.
 
   <groupId>com.github.jpmsilva.jsystemd</groupId>
   <artifactId>jsystemd</artifactId>
-  <version>4.0.0-SNAPSHOT</version>
+  <version>4.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
 
   <name>jsystemd</name>
