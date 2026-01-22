@@ -21,7 +21,7 @@ limitations under the License.
 
   <groupId>com.github.jpmsilva.jsystemd</groupId>
   <artifactId>jsystemd</artifactId>
-  <version>3.1.1</version>
+  <version>4.0.0</version>
   <packaging>pom</packaging>
 
   <name>jsystemd</name>
@@ -65,38 +65,38 @@ limitations under the License.
     <maven.compiler.release>17</maven.compiler.release>
 
     <!-- Plugin version -->
-    <plugin.clean.version>3.2.0</plugin.clean.version>
-    <plugin.install.version>3.1.1</plugin.install.version>
-    <plugin.resources.version>3.3.1</plugin.resources.version>
-    <plugin.surefire.version>3.1.0</plugin.surefire.version>
-    <plugin.compiler.version>3.11.0</plugin.compiler.version>
-    <plugin.jar.version>3.3.0</plugin.jar.version>
-    <plugin.site.version>4.0.0-M8</plugin.site.version>
+    <plugin.clean.version>3.5.0</plugin.clean.version>
+    <plugin.install.version>3.1.4</plugin.install.version>
+    <plugin.resources.version>3.4.0</plugin.resources.version>
+    <plugin.surefire.version>3.5.4</plugin.surefire.version>
+    <plugin.compiler.version>3.14.1</plugin.compiler.version>
+    <plugin.jar.version>3.5.0</plugin.jar.version>
+    <plugin.site.version>3.21.0</plugin.site.version>
     <plugin.github-site.version>0.12</plugin.github-site.version>
-    <plugin.nexus-staging.version>1.6.13</plugin.nexus-staging.version>
-    <plugin.deploy.version>3.1.1</plugin.deploy.version>
-    <plugin.project-info-reports.version>3.4.3</plugin.project-info-reports.version>
+    <plugin.central-publishing.version>0.9.0</plugin.central-publishing.version>
+    <plugin.deploy.version>3.1.4</plugin.deploy.version>
+    <plugin.project-info-reports.version>3.9.0</plugin.project-info-reports.version>
     <plugin.jgitflow.version>1.0-m10</plugin.jgitflow.version>
-    <plugin.gpg.version>3.1.0</plugin.gpg.version>
-    <plugin.source.version>3.2.1</plugin.source.version>
-    <plugin.javadoc.version>3.5.0</plugin.javadoc.version>
-    <plugin.checkstyle.version>3.2.2</plugin.checkstyle.version>
-    <plugin.github-release.version>1.4.0</plugin.github-release.version>
-    <plugin.jxr.version>3.3.0</plugin.jxr.version>
-    <plugin.pmd.version>3.21.0</plugin.pmd.version>
-    <plugin.enforcer.version>3.3.0</plugin.enforcer.version>
+    <plugin.gpg.version>3.2.8</plugin.gpg.version>
+    <plugin.source.version>3.4.0</plugin.source.version>
+    <plugin.javadoc.version>3.12.0</plugin.javadoc.version>
+    <plugin.checkstyle.version>3.6.0</plugin.checkstyle.version>
+    <plugin.github-release.version>1.6.0</plugin.github-release.version>
+    <plugin.jxr.version>3.6.0</plugin.jxr.version>
+    <plugin.pmd.version>3.28.0</plugin.pmd.version>
+    <plugin.enforcer.version>3.6.2</plugin.enforcer.version>
 
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-    <org.springframework.boot.version>3.0.0</org.springframework.boot.version>
-    <org.slf4j.version>2.0.7</org.slf4j.version>
+    <org.springframework.boot.version>4.0.0</org.springframework.boot.version>
+    <org.slf4j.version>2.0.17</org.slf4j.version>
   </properties>
 
   <distributionManagement>
     <snapshotRepository>
-      <id>ossrh</id>
-      <url>https://oss.sonatype.org/content/repositories/snapshots</url>
+      <id>central</id>
+      <url>https://central.sonatype.com/repository/maven-snapshots/</url>
     </snapshotRepository>
     <site>
       <id>github-pages-sites</id>
@@ -117,11 +117,6 @@ limitations under the License.
         <artifactId>slf4j-api</artifactId>
         <version>${org.slf4j.version}</version>
       </dependency>
-      <dependency>
-        <groupId>org.jetbrains</groupId>
-        <artifactId>annotations</artifactId>
-        <version>24.0.1</version>
-      </dependency>
 
       <dependency>
         <!-- Import dependency management from Spring Boot -->
@@ -133,14 +128,6 @@ limitations under the License.
       </dependency>
     </dependencies>
   </dependencyManagement>
-
-  <dependencies>
-    <dependency>
-      <groupId>org.jetbrains</groupId>
-      <artifactId>annotations</artifactId>
-      <scope>provided</scope>
-    </dependency>
-  </dependencies>
 
   <build>
     <pluginManagement>
@@ -167,6 +154,9 @@ limitations under the License.
           <groupId>org.apache.maven.plugins</groupId>
           <artifactId>maven-surefire-plugin</artifactId>
           <version>${plugin.surefire.version}</version>
+          <configuration>
+            <argLine>-XX:+EnableDynamicAgentLoading</argLine>
+          </configuration>
         </plugin>
 
         <plugin>
@@ -213,14 +203,14 @@ limitations under the License.
         </plugin>
 
         <plugin>
-          <groupId>org.sonatype.plugins</groupId>
-          <artifactId>nexus-staging-maven-plugin</artifactId>
-          <version>${plugin.nexus-staging.version}</version>
+          <groupId>org.sonatype.central</groupId>
+          <artifactId>central-publishing-maven-plugin</artifactId>
+          <version>${plugin.central-publishing.version}</version>
           <extensions>true</extensions>
           <configuration>
-            <serverId>ossrh</serverId>
-            <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-            <autoReleaseAfterClose>true</autoReleaseAfterClose>
+            <publishingServerId>central</publishingServerId>
+            <autoPublish>true</autoPublish>
+            <waitUntil>published</waitUntil>
           </configuration>
         </plugin>
 
@@ -293,7 +283,7 @@ limitations under the License.
             <dependency>
               <groupId>com.puppycrawl.tools</groupId>
               <artifactId>checkstyle</artifactId>
-              <version>8.40</version>
+              <version>13.0.0</version>
             </dependency>
           </dependencies>
         </plugin>
@@ -356,7 +346,8 @@ limitations under the License.
             </goals>
             <configuration>
               <failsOnError>true</failsOnError>
-              <configLocation>google_checkstyle.xml</configLocation>
+              <!-- https://github.com/checkstyle/checkstyle/blob/checkstyle-13.0.0/src/main/resources/google_checks.xml with line length set to 160 -->
+              <configLocation>google_checks.xml</configLocation>
               <consoleOutput>true</consoleOutput>
             </configuration>
           </execution>
@@ -430,8 +421,8 @@ limitations under the License.
       <build>
         <plugins>
           <plugin>
-            <groupId>org.sonatype.plugins</groupId>
-            <artifactId>nexus-staging-maven-plugin</artifactId>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
             <extensions>true</extensions>
           </plugin>
 
@@ -551,7 +542,8 @@ limitations under the License.
         <artifactId>maven-checkstyle-plugin</artifactId>
         <configuration>
           <failsOnError>true</failsOnError>
-          <configLocation>google_checkstyle.xml</configLocation>
+          <!-- https://github.com/checkstyle/checkstyle/blob/checkstyle-13.0.0/src/main/resources/google_checks.xml with line length set to 160 -->
+          <configLocation>google_checks.xml</configLocation>
           <consoleOutput>true</consoleOutput>
         </configuration>
         <reportSets>
@@ -587,6 +579,9 @@ limitations under the License.
             </reports>
           </reportSet>
         </reportSets>
+        <configuration>
+          <excludeFromFailureFile>exclude-pmd.properties</excludeFromFailureFile>
+        </configuration>
       </plugin>
     </plugins>
   </reporting>

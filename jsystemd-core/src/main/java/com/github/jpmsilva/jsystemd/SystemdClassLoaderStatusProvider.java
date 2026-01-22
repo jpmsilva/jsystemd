@@ -19,7 +19,7 @@ package com.github.jpmsilva.jsystemd;
 import java.lang.management.ClassLoadingMXBean;
 import java.lang.management.ManagementFactory;
 import java.util.Optional;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.springframework.core.annotation.Order;
 
 /**
@@ -31,13 +31,13 @@ import org.springframework.core.annotation.Order;
 public class SystemdClassLoaderStatusProvider implements SystemdStatusProvider {
 
   /**
-   * Create a new SystemdNotifyClassLoaderStatusProvider.
+   * Create a new SystemdClassLoaderStatusProvider.
    */
   public SystemdClassLoaderStatusProvider() {
   }
 
   @Override
-  public @NotNull String status() {
+  public @NonNull String status() {
     return Optional.ofNullable(ManagementFactory.getClassLoadingMXBean())
         .map(ClassLoadingMXBean::getLoadedClassCount)
         .map(t -> String.format("Classes: %d", t))

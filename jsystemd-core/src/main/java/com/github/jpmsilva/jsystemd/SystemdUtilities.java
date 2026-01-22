@@ -53,7 +53,7 @@ abstract class SystemdUtilities {
       try {
         return Long.parseLong(watchdogUsec);
       } catch (NumberFormatException e) {
-        logger.warn("Value of environment property WATCHDOG_USEC cannot be read as a number - watchdog disabled: " + watchdogUsec);
+        logger.warn("Value of environment property WATCHDOG_USEC cannot be read as a number - watchdog disabled: {}", watchdogUsec);
       }
     }
     return 0;

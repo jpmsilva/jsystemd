@@ -23,12 +23,12 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import com.github.jpmsilva.jsystemd.SystemdApplicationRunStatusProvider.ApplicationState;
 import java.time.Duration;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.boot.ConfigurableBootstrapContext;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringApplicationRunListener;
+import org.springframework.boot.bootstrap.ConfigurableBootstrapContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.ConfigurableEnvironment;
 
@@ -56,7 +56,7 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
    * @param args the arguments passed to the Spring Application
    */
   @SuppressWarnings({"PMD.UnusedFormalParameter", "unused"})
-  public SystemdSpringApplicationRunListener(@NotNull SpringApplication springApplication, String[] args) {
+  public SystemdSpringApplicationRunListener(@NonNull SpringApplication springApplication, String[] args) {
     applicationId = requireNonNull(springApplication, "Spring application must not be null").hashCode();
     if (isUnderSystemd()) {
       provider = new SystemdApplicationRunStatusProvider(requireNonNull(systemd, "Systemd must not be null"), applicationId);
@@ -72,21 +72,21 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
   }
 
   @Override
-  public void starting(ConfigurableBootstrapContext bootstrapContext) {
+  public void starting(@NonNull ConfigurableBootstrapContext bootstrapContext) {
     if (provider != null) {
       provider.state(ApplicationState.STARTING);
     }
   }
 
   @Override
-  public void environmentPrepared(ConfigurableBootstrapContext bootstrapContext, ConfigurableEnvironment environment) {
+  public void environmentPrepared(@NonNull ConfigurableBootstrapContext bootstrapContext, @NonNull ConfigurableEnvironment environment) {
     if (provider != null) {
       provider.state(ApplicationState.ENVIRONMENT_PREPARED);
     }
   }
 
   @Override
-  public void contextPrepared(ConfigurableApplicationContext context) {
+  public void contextPrepared(@NonNull ConfigurableApplicationContext context) {
     if (provider != null) {
       provider.state(ApplicationState.CONTEXT_PREPARED);
 
@@ -94,27 +94,27 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
       if (!beanFactory.containsSingleton(SYSTEMD_BEAN_NAME)) {
         beanFactory.registerSingleton(SYSTEMD_BEAN_NAME, requireNonNull(systemd));
       }
-      beanFactory.registerSingleton("systemdNotifyApplicationContextStatusProvider",
+      beanFactory.registerSingleton("systemdApplicationContextStatusProvider",
           new SystemdApplicationContextStatusProvider(requireNonNull(systemd), applicationId, context.getId(), beanFactory));
     }
   }
 
   @Override
-  public void contextLoaded(ConfigurableApplicationContext context) {
+  public void contextLoaded(@NonNull ConfigurableApplicationContext context) {
     if (provider != null) {
       provider.state(ApplicationState.CONTEXT_LOADED);
     }
   }
 
   @Override
-  public void started(ConfigurableApplicationContext context, Duration timeTaken) {
+  public void started(@NonNull ConfigurableApplicationContext context, Duration timeTaken) {
     if (provider != null) {
       provider.state(ApplicationState.STARTED, timeTaken);
     }
   }
 
   @Override
-  public void ready(ConfigurableApplicationContext context, Duration timeTaken) {
+  public void ready(@NonNull ConfigurableApplicationContext context, Duration timeTaken) {
     if (provider != null) {
       provider.state(ApplicationState.READY, timeTaken);
     }

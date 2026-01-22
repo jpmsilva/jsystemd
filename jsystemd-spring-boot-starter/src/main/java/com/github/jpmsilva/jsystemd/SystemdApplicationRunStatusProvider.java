@@ -17,8 +17,8 @@
 package com.github.jpmsilva.jsystemd;
 
 import java.time.Duration;
-import org.jetbrains.annotations.NotNull;
-import org.springframework.boot.ConfigurableBootstrapContext;
+import org.jspecify.annotations.NonNull;
+import org.springframework.boot.bootstrap.ConfigurableBootstrapContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -33,10 +33,10 @@ import org.springframework.core.env.ConfigurableEnvironment;
 @Order(-5000)
 public class SystemdApplicationRunStatusProvider implements SystemdStatusProvider {
 
-  @NotNull
+  @NonNull
   private final Systemd systemd;
   private final int applicationId;
-  @NotNull
+  @NonNull
   private String status = "";
 
   /**
@@ -46,14 +46,14 @@ public class SystemdApplicationRunStatusProvider implements SystemdStatusProvide
    *
    * @param systemd the {@link Systemd} to send status information to
    */
-  SystemdApplicationRunStatusProvider(@SuppressWarnings("SameParameterValue") @NotNull Systemd systemd, int applicationId) {
+  SystemdApplicationRunStatusProvider(@SuppressWarnings("SameParameterValue") @NonNull Systemd systemd, int applicationId) {
     this.systemd = systemd;
     this.applicationId = applicationId;
     this.systemd.addStatusProviders(0, this);
   }
 
   @Override
-  public @NotNull String status() {
+  public @NonNull String status() {
     return systemd.isReady() ? "" : status;
   }
 
@@ -62,7 +62,7 @@ public class SystemdApplicationRunStatusProvider implements SystemdStatusProvide
    *
    * @param state the current application startup sequence state
    */
-  void state(@NotNull ApplicationState state) {
+  void state(@NonNull ApplicationState state) {
     status = String.format("Application %d state: %s", applicationId, state.toString().toLowerCase().replace("_", " "));
     systemd.extendTimeout();
     systemd.updateStatus();
@@ -74,7 +74,7 @@ public class SystemdApplicationRunStatusProvider implements SystemdStatusProvide
    * @param state the current application startup sequence state
    * @param timeTaken the time taken for the application to reach this state
    */
-  public void state(@NotNull ApplicationState state, @NotNull Duration timeTaken) {
+  public void state(@NonNull ApplicationState state, @NonNull Duration timeTaken) {
     status = String.format("Application %d state: %s, time taken: %s", applicationId, state.toString().toLowerCase().replace("_", " "),
         formatDuration(timeTaken));
     systemd.extendTimeout();

@@ -27,17 +27,17 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.catalina.startup.Tomcat;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.actuate.health.HealthIndicator;
-import org.springframework.boot.actuate.health.Status;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.availability.AvailabilityChangeEvent;
 import org.springframework.boot.availability.ReadinessState;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.boot.health.contributor.HealthIndicator;
+import org.springframework.boot.health.contributor.Status;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -56,11 +56,11 @@ import org.springframework.core.annotation.AnnotationAwareOrderComparator;
 @ConditionalOnSystemd
 public class SystemdAutoConfiguration {
 
-  @NotNull
+  @NonNull
   private final Systemd systemd;
 
   @Autowired
-  SystemdAutoConfiguration(@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") @NotNull Systemd systemd) {
+  SystemdAutoConfiguration(@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") @NonNull Systemd systemd) {
     this.systemd = requireNonNull(systemd, "Systemd must not be null");
   }
 
@@ -79,25 +79,25 @@ public class SystemdAutoConfiguration {
   }
 
   @Bean
-  @NotNull
+  @NonNull
   SystemdLifecycle systemdLifecycle() {
     return new SystemdLifecycle(systemd);
   }
 
   @Bean
-  @NotNull
+  @NonNull
   SystemdStatusProvider systemdNotifyHeapStatus() {
     return new SystemdHeapStatusProvider();
   }
 
   @Bean
-  @NotNull
+  @NonNull
   SystemdStatusProvider systemdNotifyNonHeapStatus() {
     return new SystemdNonHeapStatusProvider();
   }
 
   @Bean
-  @NotNull
+  @NonNull
   SystemdStatusProvider systemdNotifyClassLoaderStatus() {
     return new SystemdClassLoaderStatusProvider();
   }
@@ -107,8 +107,8 @@ public class SystemdAutoConfiguration {
   static class SystemdStatusProviderConfiguration {
 
     @Autowired
-    SystemdStatusProviderConfiguration(@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") @NotNull Systemd systemd,
-        @NotNull ConfigurableApplicationContext applicationContext, @NotNull ObjectProvider<List<SystemdStatusProvider>> statuses) {
+    SystemdStatusProviderConfiguration(@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") @NonNull Systemd systemd,
+        @NonNull ConfigurableApplicationContext applicationContext, @NonNull ObjectProvider<List<SystemdStatusProvider>> statuses) {
       requireNonNull(systemd, "Systemd must not be null");
       requireNonNull(applicationContext, "Application context must not be null");
       requireNonNull(statuses, "Statuses must not be null");
@@ -135,8 +135,8 @@ public class SystemdAutoConfiguration {
     }
 
     @Bean
-    @NotNull
-    SystemdTomcatStatusProvider systemdNotifyTomcatStatusProvider() {
+    @NonNull
+    SystemdTomcatStatusProvider systemdTomcatStatusProvider() {
       return new SystemdTomcatStatusProvider();
     }
   }
@@ -155,10 +155,10 @@ public class SystemdAutoConfiguration {
     }
 
     @Bean
-    @NotNull
-    SystemdActuatorHealthProvider systemdNotifyActuatorHealthProvider(
-        @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") @NotNull Systemd systemd,
-        @NotNull ObjectProvider<List<HealthIndicator>> healthIndicatorsProvider, @NotNull SystemdHealthProviderProperties properties) {
+    @NonNull
+    SystemdActuatorHealthProvider systemdActuatorHealthProvider(
+        @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection") @NonNull Systemd systemd,
+        @NonNull ObjectProvider<List<HealthIndicator>> healthIndicatorsProvider, @NonNull SystemdHealthProviderProperties properties) {
       requireNonNull(systemd, "Systemd must not be null");
       requireNonNull(healthIndicatorsProvider, "Health indicators provider must not be null");
       requireNonNull(properties, "Properties must not be null");

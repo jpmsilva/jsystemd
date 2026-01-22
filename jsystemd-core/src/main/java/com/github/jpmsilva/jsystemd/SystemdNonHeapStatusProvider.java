@@ -21,7 +21,7 @@ import static com.github.jpmsilva.jsystemd.SystemdUtilities.formatByteCount;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.util.Optional;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.springframework.core.annotation.Order;
 
 /**
@@ -33,13 +33,13 @@ import org.springframework.core.annotation.Order;
 public class SystemdNonHeapStatusProvider implements SystemdStatusProvider {
 
   /**
-   * Create a new SystemdNotifyNonHeapStatusProvider.
+   * Create a new SystemdNonHeapStatusProvider.
    */
   public SystemdNonHeapStatusProvider() {
   }
 
   @Override
-  public @NotNull String status() {
+  public @NonNull String status() {
     return Optional.ofNullable(ManagementFactory.getMemoryMXBean())
         .map(MemoryMXBean::getNonHeapMemoryUsage)
         .map(t -> String.format("Non-heap: %s/%s", formatByteCount(t.getUsed()), formatByteCount(t.getCommitted())))

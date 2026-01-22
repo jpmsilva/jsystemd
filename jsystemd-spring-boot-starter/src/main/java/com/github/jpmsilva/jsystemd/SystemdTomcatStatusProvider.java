@@ -28,7 +28,7 @@ import javax.management.MBeanAttributeInfo;
 import javax.management.MBeanServer;
 import javax.management.ObjectName;
 import org.apache.tomcat.util.modeler.Registry;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.springframework.core.annotation.Order;
 
@@ -43,19 +43,18 @@ public class SystemdTomcatStatusProvider implements SystemdStatusProvider {
 
   private static final Logger logger = getLogger(lookup().lookupClass());
 
-  @NotNull
+  @NonNull
   private final MBeanServer mbeanServer;
 
-
   /**
-   * Create a new SystemdNotifyTomcatStatusProvider.
+   * Create a new SystemdTomcatStatusProvider.
    */
   public SystemdTomcatStatusProvider() {
     mbeanServer = Objects.requireNonNull(Registry.getRegistry(null, null).getMBeanServer(), "No usable MBeanServer instance");
   }
 
   @Override
-  public @NotNull String status() {
+  public @NonNull String status() {
     List<ConnectorStatus> statuses = new LinkedList<>();
     Set<ObjectName> objectNames;
     try {

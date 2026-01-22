@@ -11,7 +11,7 @@ The distribution of this software is composed of two parts:
 * the [jsystemd-spring-boot-starter](jsystemd-spring-boot-starter/index.html) module that provides automatic configuration of jsystemd when running under
 inside Spring Boot applications.
 
-**Warning:** As of release 3, the minimum supported JVM version is 17, and the Spring Boot starter requires at least Spring 3.
+**Warning:** As of release 4, the minimum supported JVM version is 17, and the Spring Boot starter requires at least Spring Boot 4.
 
 The jsystemd-core module packages some components that expose the status of the JVM to systemd (the Spring Boot starter package automatically configures those).
 
