@@ -36,7 +36,7 @@ The core is intentionally lean. Its runtime dependencies are:
 
 | Dependency                                                           | Why                                                                                                                                                                                                                                                                                                                               |
 |----------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [JNA](https://github.com/java-native-access/jna) (`net.java.dev.jna:jna`) | On Java 17 to 21, calls `sd_notify` in `libsystemd`. The JDK cannot send datagrams over Unix domain sockets ([JDK-8297837](https://bugs.openjdk.org/browse/JDK-8297837)), which is how systemd receives notifications, so a native call is needed. On Java 22 and later, the notifications are sent with the Foreign Function and Memory API of the JDK instead, so JNA can be left out, unless systemd uses a `vsock:` address. Only used when running on Linux under systemd (`NOTIFY_SOCKET` is set); see [Native library](https://jpmsilva.github.io/jsystemd-site/native-library.html). |
+| [JNA](https://github.com/java-native-access/jna) (`net.java.dev.jna:jna`) | On Java 17 to 21, calls `sd_notify` in `libsystemd`. The JDK cannot send datagrams over Unix domain sockets ([JDK-8297837](https://bugs.openjdk.org/browse/JDK-8297837)), which is how systemd receives notifications, so a native call is needed. On Java 22 and later, the notifications are sent with the Foreign Function and Memory API of the JDK instead, so JNA can be left out, unless systemd uses a `vsock:` address. Only used when running on Linux under systemd (`NOTIFY_SOCKET` is set); see [Native library](https://jpmsilva.github.io/jsystemd-site/versions/latest/native-library.html). |
 | [SLF4J API](https://www.slf4j.org/) (`org.slf4j:slf4j-api`)           | Logging, through whichever logging framework your application already uses.                                                                                                                                                                                                                                                     |
 | [JSpecify](https://jspecify.dev/) (`org.jspecify:jspecify`)           | Nullness annotations on the public API, for IDEs and static analysis tools. Annotations only: no code runs from it.                                                                                                                                                                                                             |
 
@@ -75,7 +75,7 @@ systemd.ready();
 ```
 
 The instance can also enable periodic status updates, watchdog heartbeats and timeout extensions, and status and health providers can be
-registered on it. The [How to](https://jpmsilva.github.io/jsystemd-site/howto.html) page describes the full lifecycle, with a complete example.
+registered on it. The [How to](https://jpmsilva.github.io/jsystemd-site/versions/latest/howto.html) page describes the full lifecycle, with a complete example.
 
 The service unit then uses `Type=notify`:
 
@@ -122,12 +122,12 @@ starter to configure the `Systemd` instance and wire the providers yourself:
 
 For Keycloak, the provider tells systemd that Keycloak is ready once it has completed its bootstrap and its HTTP server listens, and that it is stopping
 as soon as it is told to stop, sends the watchdog heartbeats, and reports the status of the JVM. It is a single jar, to copy to the `providers` directory
-of Keycloak: see [Keycloak](https://jpmsilva.github.io/jsystemd-site/keycloak.html).
+of Keycloak: see [Keycloak](https://jpmsilva.github.io/jsystemd-site/versions/latest/keycloak.html).
 
 ## Documentation
 
 Refer to the [documentation site](https://jpmsilva.github.io/jsystemd-site/) for the full documentation, including the
-[upgrade notes](https://jpmsilva.github.io/jsystemd-site/upgrading.html).
+[upgrade notes](https://jpmsilva.github.io/jsystemd-site/versions/latest/upgrading.html).
 
 ## Building
 
