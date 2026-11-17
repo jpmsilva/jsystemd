@@ -134,7 +134,17 @@ fi
 SETTINGS=$(mktemp)
 mvnw -q -N help:effective-settings -Doutput="${SETTINGS}"
 for SERVER in ${SERVERS}; do
-  grep -q "<id>${SERVER}</id>" "${SETTINGS}" || problem "no server ${SERVER} in the Maven settings, to publish with"
+  # the server, with each of its elements on a line of its own, as the help plugin writes them; the passwords are masked, but only when set
+  CREDENTIALS=$(awk -v id="<id>${SERVER}</id>" '/<server>/ { block = "" } { block = block $0 "\n" } /<\/server>/ && index(block, id) { print block }' \
+    "${SETTINGS}" | grep -E -o '<(username|password|privateKey)>[^<]+</' | sed 's/^<\([a-zA-Z]*\)>.*/\1/' | sort -u | tr '\n' ' ')
+  if ! grep -q "<id>${SERVER}</id>" "${SETTINGS}"; then
+    problem "no server ${SERVER} in the Maven settings, to publish with"
+  # the GitHub release plugin takes a username and a password, which may be a token, or a token alone as the privateKey, but not a password alone
+  elif ! [[ ( " ${CREDENTIALS}" == *" username "* && " ${CREDENTIALS}" == *" password "* ) ||
+    ( "${SERVER}" = github && " ${CREDENTIALS}" == *" privateKey "* ) ]]; then
+    problem "the server ${SERVER} in the Maven settings has no credentials to publish with: set its username and password$(
+      [ "${SERVER}" = github ] && echo ", or a token as its privateKey")"
+  fi
 done
 rm -f "${SETTINGS}"
 

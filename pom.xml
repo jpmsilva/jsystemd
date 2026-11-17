@@ -501,6 +501,10 @@ limitations under the License.
             <fileSets>
               <fileSet>
                 <directory>${project.build.directory}/github-release</directory>
+                <!-- needed: without includes, the plugin includes no file at all, rather than all of them -->
+                <includes>
+                  <include>*</include>
+                </includes>
               </fileSet>
             </fileSets>
           </configuration>
