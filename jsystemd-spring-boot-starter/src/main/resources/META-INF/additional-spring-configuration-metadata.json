@@ -1,0 +1,46 @@
+{
+  "properties": [
+    {
+      "name": "systemd.status-providers.garbage-collection.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable the status provider.",
+      "defaultValue": false
+    },
+    {
+      "name": "systemd.status-providers.cpu.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable the status provider.",
+      "defaultValue": false
+    },
+    {
+      "name": "systemd.health-provider.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable the health provider based on Spring Boot Actuator.",
+      "deprecation": {
+        "level": "error",
+        "replacement": "systemd.status-providers.actuator-health.health",
+        "since": "5.0.0"
+      }
+    },
+    {
+      "name": "systemd.health-provider.unhealthy-status-codes",
+      "type": "java.util.List<java.lang.String>",
+      "description": "Status codes to consider as unhealthy.",
+      "deprecation": {
+        "level": "error",
+        "replacement": "systemd.status-providers.actuator-health.unhealthy-status-codes",
+        "since": "5.0.0"
+      }
+    },
+    {
+      "name": "systemd.health-provider.unhealthy-pending-period-ms",
+      "type": "java.lang.Long",
+      "description": "Period, in milliseconds, to wait before reporting the unhealthy state.",
+      "deprecation": {
+        "level": "error",
+        "replacement": "systemd.status-providers.actuator-health.unhealthy-delay",
+        "since": "5.0.0"
+      }
+    }
+  ]
+}

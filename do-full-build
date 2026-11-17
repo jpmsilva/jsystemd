@@ -1,0 +1,103 @@
+#!/bin/bash
+
+# Builds every module and runs all the tests: the unit tests on each JDK toolchain they need, and the integration tests in containers.
+# Checks first that the build can run, and bails out before building if it cannot. Extra arguments are passed on to Maven.
+
+SCRIPT=$(readlink -f "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
+
+set -e
+
+fail() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+ok() {
+  echo "ok: $*"
+}
+
+# the Java specification version of a JDK, as in 17 or 25
+java_version() {
+  "$1/bin/java" -XshowSettings:properties -version 2>&1 | sed -n 's/^ *java\.specification\.version = //p'
+}
+
+# the JDK Maven runs on: mvnw takes JAVA_HOME when it is set, and the java on the PATH otherwise
+if [ -n "$JAVA_HOME" ]; then
+  [ -x "$JAVA_HOME/bin/java" ] || fail "JAVA_HOME is $JAVA_HOME, which has no bin/java: point it to an installed JDK"
+  maven_jdk="$JAVA_HOME"
+else
+  java=$(command -v java) || fail "no JAVA_HOME, and no java on the PATH: Maven needs a JDK to run on"
+  maven_jdk=$(dirname "$(dirname "$(readlink -f "$java")")")
+fi
+
+for tool in xmllint curl; do
+  command -v "$tool" > /dev/null || fail "$tool is needed to check the build environment"
+done
+
+# the supported JDK versions, from the build itself: the minimum one, which the sources are built with, is also the first the tests run on
+evaluate() {
+  "${SCRIPTPATH}"/mvnw -q -N -f "${SCRIPTPATH}/pom.xml" help:evaluate -Dexpression="$1" -DforceStdout
+}
+min_jdk=$(evaluate maven.compiler.release) || fail "could not read maven.compiler.release from the build"
+supported_jdks=$(evaluate supported.jdk.versions) || fail "could not read supported.jdk.versions from the build"
+jdks=$(tr ',' ' ' <<< "$supported_jdks")
+[[ " $jdks " == *" $min_jdk "* ]] || fail "the supported JDKs ($supported_jdks) do not include the one the sources are built with ($min_jdk)"
+# the JDK that the classes of jsystemd-core for Java 22 and later are compiled and tested with, whose toolchain is checked along with the others below
+java22_jdk=$(evaluate java22.jdk.version) || fail "could not read java22.jdk.version from the build"
+[[ " $jdks " == *" $java22_jdk "* ]] || fail "the supported JDKs ($supported_jdks) do not include the one the classes for Java 22 are built with ($java22_jdk)"
+
+maven_version=$(java_version "$maven_jdk")
+[ "${maven_version%%.*}" -ge "$min_jdk" ] 2> /dev/null || fail "Maven runs on Java ${maven_version:-unknown} at $maven_jdk, and the build needs Java $min_jdk or later"
+ok "Maven runs on Java $maven_version at $maven_jdk"
+
+# a JDK toolchain for each of those versions, the first that provides it as Maven picks it, in an installed JDK of that same version
+toolchains="$HOME/.m2/toolchains.xml"
+[ -f "$toolchains" ] || fail "no $toolchains: it must define a JDK toolchain for each of Java $supported_jdks"
+xmllint --noout "$toolchains" 2> /dev/null || fail "$toolchains is not well-formed XML"
+
+element() {
+  printf "*[local-name()='%s']" "$1"
+}
+
+for version in $jdks; do
+  xpath="string(//$(element toolchain)[$(element type)='jdk'][$(element provides)/$(element version)='$version'][1]/$(element configuration)/$(element jdkHome))"
+  jdk_home=$(xmllint --xpath "$xpath" "$toolchains")
+  [ -n "$jdk_home" ] || fail "$toolchains has no JDK toolchain that provides version $version"
+
+  # Maven expands ${env.NAME} in the toolchains
+  while [[ "$jdk_home" =~ \$\{env\.([A-Za-z_][A-Za-z0-9_]*)\} ]]; do
+    jdk_home="${jdk_home//${BASH_REMATCH[0]}/${!BASH_REMATCH[1]}}"
+  done
+
+  [ -x "$jdk_home/bin/java" ] || fail "the JDK $version toolchain points to $jdk_home, which has no bin/java: update $toolchains"
+  actual=$(java_version "$jdk_home")
+  [ "$actual" = "$version" ] || fail "the JDK $version toolchain points to $jdk_home, which is Java ${actual:-unknown}: update $toolchains"
+  ok "JDK $version toolchain at $jdk_home"
+done
+
+# the Docker API the integration tests reach through Testcontainers, which takes DOCKER_HOST, then docker.host in its properties, then the default socket
+docker_host="$DOCKER_HOST"
+if [ -z "$docker_host" ] && [ -f "$HOME/.testcontainers.properties" ]; then
+  docker_host=$(sed -n 's/^docker\.host *= *//p' "$HOME/.testcontainers.properties")
+fi
+docker_host="${docker_host:-unix:///var/run/docker.sock}"
+
+case "$docker_host" in
+  unix://*)
+    socket="${docker_host#unix://}"
+    [ -S "$socket" ] || fail "no Docker API socket at $socket: start Docker, or the Podman API socket (systemctl --user start podman.socket)"
+    # on a socket activated service, this also starts it
+    ping=$(curl -s --max-time 30 --unix-socket "$socket" http://localhost/_ping) || true
+    ;;
+  tcp://*)
+    ping=$(curl -s --max-time 30 "http://${docker_host#tcp://}/_ping") || true
+    ;;
+  *)
+    fail "unsupported Docker host $docker_host"
+    ;;
+esac
+[ "$ping" = "OK" ] || fail "the Docker API at $docker_host does not answer"
+ok "Docker API at $docker_host"
+
+"${SCRIPTPATH}"/mvnw -f "${SCRIPTPATH}/pom.xml" clean verify -P integration-tests "$@"

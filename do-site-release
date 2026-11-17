@@ -5,4 +5,7 @@ SCRIPTPATH=$(dirname "$SCRIPT")
 
 set -e
 
-"${SCRIPTPATH}"/mvnw clean package site site:site -P !sample -am -pl :jsystemd-core,:jsystemd-spring-boot-starter --debug
+# the published modules, without the samples and the tests, which are not published; their dependencies, such as the parent, are added by -am
+MODULES=:jsystemd-core,:jsystemd-spring-boot,:jsystemd-spring-boot-starter,:jsystemd-keycloak
+
+"${SCRIPTPATH}"/mvnw clean package site site:site -P !sample -am -pl "${MODULES}"

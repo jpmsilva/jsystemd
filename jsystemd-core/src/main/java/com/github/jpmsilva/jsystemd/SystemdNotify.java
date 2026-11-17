@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 Joao Silva
+ * Copyright 2018-2026 Joao Silva
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,26 +16,30 @@
 
 package com.github.jpmsilva.jsystemd;
 
-import static com.github.jpmsilva.jsystemd.SystemdUtilities.hasNotifySocket;
-import static com.github.jpmsilva.jsystemd.SystemdUtilities.isLinux;
 import static java.lang.invoke.MethodHandles.lookup;
 import static java.util.Objects.requireNonNull;
 import static org.slf4j.LoggerFactory.getLogger;
 
-import com.sun.jna.Native;
-import java.net.UnixDomainSocketAddress;
-import org.jspecify.annotations.NonNull;
+import java.util.Optional;
 import org.slf4j.Logger;
 
 /**
- * Low level API that interfaces with systemd through a {@link UnixDomainSocketAddress}. Not meant for direct usage.
+ * Low level API that sends notifications to systemd, through the socket in the environment variable {@code NOTIFY_SOCKET}. Not meant for direct usage.
+ *
+ * <p>On Java 17 to 21, the notifications are sent by calling {@code sd_notify} from the native libsystemd library, through JNA. On Java 22 and later, they
+ * are sent directly to the socket, with the Foreign Function and Memory API, so that neither JNA nor libsystemd are needed, except for {@code vsock:}
+ * addresses, or as a fallback (see {@link NotifyChannel}).
  *
  * @author Joao Silva
  * @see <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html">sd_notify</a>
  */
-public class SystemdNotify {
+@SuppressWarnings("PMD.TooManyStaticImports")
+public final class SystemdNotify {
 
   private static final Logger logger = getLogger(lookup().lookupClass());
+
+  private SystemdNotify() {
+  }
 
   /**
    * Allows knowing if this library is usable under current execution conditions (operating system type, systemd available, etc...).
@@ -43,7 +47,26 @@ public class SystemdNotify {
    * @return {@code true} if and only if the library can be used
    */
   static boolean usable() {
-    return Library.initialized;
+    return NotifyChannel.initialized();
+  }
+
+  /**
+   * Allows knowing why this library is not usable when systemd expects notifications (the environment variable {@code NOTIFY_SOCKET} is set).
+   *
+   * @return the error raised while setting up the notifications, such as when the native libsystemd library cannot be loaded on Java 17 to 21, or empty if
+   *     they were set up or there was no need to
+   */
+  static Optional<Throwable> loadFailure() {
+    return Optional.ofNullable(NotifyChannel.failure());
+  }
+
+  /**
+   * Allows knowing how the notifications are sent.
+   *
+   * @return the Foreign Function and Memory API, on Java 22 and later, libsystemd through JNA, or none when they could not be set up, or there was no need
+   */
+  static String channel() {
+    return NotifyChannel.implementation();
   }
 
   /**
@@ -63,7 +86,7 @@ public class SystemdNotify {
    *
    * @see <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html#STATUS=%E2%80%A6">status</a>
    */
-  static void status(@NonNull String message) {
+  static void status(String message) {
     if (usable()) {
       logger.debug("Notifying systemd that service status is {}", requireNonNull(message, "Message must not be null"));
       invoke("STATUS=" + message);
@@ -114,7 +137,7 @@ public class SystemdNotify {
    */
   private static void invoke(String message) {
     if (usable() && message != null && !message.isEmpty()) {
-      Library.sd_notify(0, message);
+      NotifyChannel.send(message);
     }
   }
 
@@ -135,27 +158,9 @@ public class SystemdNotify {
    * However, you may wish of explicitly close the integration channel, to ensure that all closeable resources are effectively closed.<br> As such, this method
    * should only be called at most once during the lifecycle of the JVM.
    *
-   * <p>Currently this does nothing, as currently the only supported integration channel is the native libsystemd library, which does not need any cleanup.
+   * <p>Currently this does nothing, as no integration channel keeps resources open between notifications: the native libsystemd library opens a socket for
+   * each notification, and so does the channel used on Java 22 and later.
    */
   public static void close() {
-  }
-
-  @SuppressWarnings("checkstyle:EmptyCatchBlock")
-  private static class Library {
-
-    private static boolean initialized = false;
-
-    static {
-      if (isLinux() && hasNotifySocket()) {
-        try {
-          Native.register("systemd");
-          initialized = true;
-        } catch (UnsatisfiedLinkError ignored) {
-        }
-      }
-    }
-
-    @SuppressWarnings({"UnusedReturnValue", "checkstyle:ParameterName", "checkstyle:MethodName"})
-    public static native int sd_notify(int unset_environment, String state);
   }
 }

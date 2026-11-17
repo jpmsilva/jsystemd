@@ -1,13 +1,299 @@
 #!/bin/bash
 
+# Releases the library: sets the release version in all the modules on development, merges it into master, tags it, publishes the published modules from
+# the tag to Maven Central, sets the next development version on development, pushes master, development and the tag, and creates the GitHub release.
+#
+# Usage: do-release [--publish] [release version] [next development version]
+#
+# Without --publish, does a dry run: the same checks, and the same build of the release, signed, but in a temporary worktree, so that the branches, the
+# working tree and the tags are left as they are, and nothing is published to Maven Central, pushed, or released on GitHub.
+#
+# Asks for the versions not given, proposing the current version without -SNAPSHOT, and the next patch version, and asks for a confirmation either way.
+# Nothing is pushed until the release is published, so a failed release can be undone locally, as the script says when it fails.
+
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 
-set -e
+set -e -o pipefail
 
-git checkout master && \
-git pull && \
-git checkout development && \
-git pull && \
-"${SCRIPTPATH}"/mvnw jgitflow:release-start -P !sample -am -pl :jsystemd-core,:jsystemd-spring-boot-starter && \
-"${SCRIPTPATH}"/mvnw jgitflow:release-finish -P !sample -am -pl :jsystemd-core,:jsystemd-spring-boot-starter
+# the published modules, without the samples and the tests, which are not published; their dependencies, such as the parent, are added by -am
+MODULES=:jsystemd-core,:jsystemd-spring-boot,:jsystemd-spring-boot-starter,:jsystemd-keycloak
+TAG_PREFIX=version-
+# the servers of the Maven settings that the release publishes with, to Maven Central and to GitHub
+SERVERS="central github"
+
+PUBLISH=false
+if [ "$1" = "--publish" ]; then
+  PUBLISH=true
+  shift
+fi
+
+fail() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+# reads an answer, failing when there is no input to read it from, as when run without a terminal
+ask() {
+  read -r -p "$1" "$2" || fail "no answer to \"$1\": run this script in a terminal"
+}
+
+# a problem that fails a release: fails it, or only reports it in a dry run, which carries on to find the others
+problem() {
+  if ${PUBLISH}; then
+    fail "$@"
+  fi
+  echo "problem: $*" >&2
+  PROBLEMS=true
+}
+PROBLEMS=false
+
+# the directory the release is made in: the repository itself, or a temporary worktree in a dry run
+WORK=${SCRIPTPATH}
+
+mvnw() {
+  "${WORK}"/mvnw "$@"
+}
+
+# enters a directory, which on_exit leaves, as many times as entered, back to the directory the script was run from
+PUSHED=0
+enter() {
+  pushd "$1" > /dev/null
+  PUSHED=$((PUSHED + 1))
+}
+
+# what is left to do, or to undo, if a step fails: nothing until the release starts; in a dry run, the temporary worktree is removed either way
+STAGE=none
+on_exit() {
+  local status=$?
+  # back to the directory the script was run from
+  while [ ${PUSHED} -gt 0 ]; do
+    popd > /dev/null
+    PUSHED=$((PUSHED - 1))
+  done
+  if ! ${PUBLISH}; then
+    # only ever the temporary worktree, once created, never the repository itself
+    if [ "${WORK}" != "${SCRIPTPATH}" ] && [ -d "${WORK}" ]; then
+      # the build output of each module, kept for inspection, such as the signed files, in the target directory of the same module of the repository,
+      # replacing that of an earlier dry run; also when the dry run failed
+      local target kept
+      for target in "${WORK}"/target "${WORK}"/*/target; do
+        [ -d "${target}" ] || continue
+        kept=${SCRIPTPATH}/${target#"${WORK}"/}/release-dry-run
+        rm -rf "${kept}"
+        mkdir -p "$(dirname "${kept}")"
+        cp -a "${target}" "${kept}"
+        echo "Kept the build output in ${kept#"${SCRIPTPATH}"/}"
+      done
+      git -C "${SCRIPTPATH}" worktree remove --force "${WORK}"
+      rmdir "$(dirname "${WORK}")"
+    fi
+    [ ${status} -eq 0 ] || [ "${STAGE}" = none ] || echo "The dry run failed: the release would fail the same way." >&2
+    return
+  fi
+  [ ${status} -eq 0 ] || [ "${STAGE}" = none ] && return
+  echo >&2
+  case "${STAGE}" in
+    local)
+      echo "The release failed before it was published, and nothing was pushed. To undo it locally:" >&2
+      echo "  git checkout -f development && git reset --hard origin/development" >&2
+      echo "  git checkout master && git reset --hard origin/master" >&2
+      echo "  git tag -d ${TAG}   # if it was created" >&2
+      ;;
+    published)
+      echo "The release was published to Maven Central, but not completed: nothing was pushed. Finish it with the following; the GitHub release" >&2
+      echo "attaches the files in ${GITHUB_RELEASE_FILES}, which the release stages right after publishing, unless it failed before:" >&2
+      echo "  git checkout -f development   # and set ${NEXT} with versions:set and commit, if not done" >&2
+      echo "  git push --atomic origin master development ${TAG}" >&2
+      echo "  git checkout ${TAG} && ./mvnw -N de.jutzig:github-release-plugin:release && git checkout development" >&2
+      ;;
+    pushed)
+      echo "The release was published and pushed, but the GitHub release was not created. Create it with:" >&2
+      echo "  git checkout ${TAG} && ./mvnw -N de.jutzig:github-release-plugin:release && git checkout development" >&2
+      ;;
+  esac
+}
+trap on_exit EXIT
+
+# the commands run from the repository, or from the temporary worktree in a dry run
+enter "${SCRIPTPATH}"
+
+if ${PUBLISH}; then
+  echo "Releasing, and publishing the release."
+else
+  echo "Dry run: nothing is published, pushed or released on GitHub, and the repository is left as it is. Use --publish to release."
+fi
+
+# a release with changes that are not committed would not be the one tagged, nor would a dry run build them, so neither goes on; the global ignore file is
+# left out, so that the local files it hides, such as local tool settings, are noticed too
+CHANGES=$(git -c core.excludesFile=/dev/null status --porcelain --untracked-files=all)
+if [ -n "${CHANGES}" ]; then
+  fail "commit, stash or remove these files before releasing, or ignore them in .gitignore:"$'\n'"${CHANGES}"
+fi
+
+SETTINGS=$(mktemp)
+mvnw -q -N help:effective-settings -Doutput="${SETTINGS}"
+for SERVER in ${SERVERS}; do
+  grep -q "<id>${SERVER}</id>" "${SETTINGS}" || problem "no server ${SERVER} in the Maven settings, to publish with"
+done
+rm -f "${SETTINGS}"
+
+echo "Updating master and development from origin..."
+# the branches only: fetching all the tags would fail on any local tag that differs from the one of origin, which does not matter to the release
+git fetch origin master development
+if ${PUBLISH}; then
+  git checkout -q master
+  git merge -q --ff-only origin/master
+  git checkout -q development
+  git merge -q --ff-only origin/development
+  MASTER=master
+  DEVELOPMENT=development
+else
+  # what the branches would be once updated, without updating them: the remote branch when the local one is behind
+  for BRANCH in master development; do
+    if git merge-base --is-ancestor "${BRANCH}" "origin/${BRANCH}"; then
+      REF=origin/${BRANCH}
+    elif git merge-base --is-ancestor "origin/${BRANCH}" "${BRANCH}"; then
+      REF=${BRANCH}
+    else
+      problem "${BRANCH} and origin/${BRANCH} have diverged, so ${BRANCH} cannot be updated from origin"
+      REF=${BRANCH}
+    fi
+    [ "${BRANCH}" = master ] && MASTER=${REF} || DEVELOPMENT=${REF}
+  done
+fi
+# master only ever receives development, so that the release can be merged into it as is, without conflicts
+git merge-base --is-ancestor "${MASTER}" "${DEVELOPMENT}" || problem "master has commits that development does not have: merge master into development first"
+
+if ! ${PUBLISH}; then
+  WORK=$(mktemp -d)/jsystemd
+  git worktree add -q --detach "${WORK}" "${DEVELOPMENT}"
+  echo "Dry run in ${WORK}, from ${DEVELOPMENT} ($(git rev-parse --short "${DEVELOPMENT}"))"
+  enter "${WORK}"
+fi
+
+CURRENT=$(mvnw -q -N help:evaluate -Dexpression=project.version -DforceStdout)
+[[ "${CURRENT}" == *-SNAPSHOT ]] || fail "the current version, ${CURRENT}, is not a development version"
+echo "Current version: ${CURRENT}"
+
+DEFAULT_RELEASE=${CURRENT%-SNAPSHOT}
+RELEASE=$1
+if [ -z "${RELEASE}" ]; then
+  ask "Release version [${DEFAULT_RELEASE}]: " RELEASE
+  RELEASE=${RELEASE:-${DEFAULT_RELEASE}}
+fi
+[[ "${RELEASE}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "the release version, ${RELEASE}, is not of the form 1.2.3"
+TAG=${TAG_PREFIX}${RELEASE}
+git rev-parse -q --verify "refs/tags/${TAG}" > /dev/null && fail "the tag ${TAG} already exists"
+git ls-remote --exit-code --tags origin "refs/tags/${TAG}" > /dev/null && fail "the tag ${TAG} already exists in origin"
+
+# the next patch version
+DEFAULT_NEXT="${RELEASE%.*}.$((${RELEASE##*.} + 1))-SNAPSHOT"
+NEXT=$2
+if [ -z "${NEXT}" ]; then
+  ask "Next development version [${DEFAULT_NEXT}]: " NEXT
+  NEXT=${NEXT:-${DEFAULT_NEXT}}
+fi
+[[ "${NEXT}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-SNAPSHOT$ ]] || fail "the next development version, ${NEXT}, is not of the form 1.2.4-SNAPSHOT"
+
+echo
+if ${PUBLISH}; then
+  echo "About to release ${RELEASE}:"
+  echo "  - set ${RELEASE} in all modules, commit on development, merge into master, and tag ${TAG}"
+  echo "  - build and publish ${MODULES//:/} from the tag"
+  echo "  - set ${NEXT} on development"
+  echo "  - push master, development and ${TAG}, and create the GitHub release"
+else
+  echo "About to do a dry run of the release of ${RELEASE}:"
+  echo "  - set ${RELEASE} in all modules, and commit, in the temporary worktree"
+  echo "  - build and sign ${MODULES//:/}, without publishing them"
+  echo "  - set ${NEXT}, and commit, in the temporary worktree"
+fi
+ask "Proceed? [y/N] " ANSWER
+[[ "${ANSWER}" =~ ^[yY]$ ]] || fail "release cancelled"
+
+# from here on, a failed release has something to undo, or to finish
+STAGE=local
+
+# the time of the entries of the jars, as set in the root pom
+output_timestamp() {
+  sed -n 's|.*<project.build.outputTimestamp>\(.*\)</project.build.outputTimestamp>.*|\1|p' pom.xml
+}
+
+# sets the version of all the modules, including those only built in profiles, such as the samples and the integration tests, and checks that all the
+# poms have it: the version of the root pom, and of the parent in the others, which both follow the artifactId of the root pom; it also sets the time of
+# the entries of the jars, for reproducible builds, and checks that it changed, as it is the same for every build of a version
+set_version() {
+  local timestamp poms versions
+  timestamp=$(output_timestamp)
+  mvnw -q versions:set -DnewVersion="$1" -DprocessAllModules=true -DgenerateBackupPoms=false -DupdateBuildOutputTimestampPolicy=always
+  poms=$(git ls-files '*pom.xml' | wc -l)
+  versions=$(git grep -h -A1 -F '<artifactId>jsystemd</artifactId>' -- '*pom.xml' | sed -n 's|.*<version>\(.*\)</version>.*|\1|p' | sort | uniq -c)
+  [ "$(echo ${versions})" = "${poms} $1" ] || fail "not all the ${poms} poms have the version $1: ${versions}"
+  [ "$(output_timestamp)" != "${timestamp}" ] || fail "the time of the entries of the jars was not updated from ${timestamp}"
+  git commit -q -a -m "$2"
+}
+
+# stages the files to attach to the GitHub release, which attaches those in target/github-release: the jars of each published module, under their Maven
+# names, as the name of a built jar may differ, and the SHA-256 checksum of each, in the format of sha256sum, so that sha256sum -c checks it
+GITHUB_RELEASE_FILES=target/github-release
+stage_github_release_files() {
+  local module final jar name
+  rm -rf "${GITHUB_RELEASE_FILES}"
+  mkdir -p "${GITHUB_RELEASE_FILES}"
+  for module in ${MODULES//[:,]/ }; do
+    # the artifactId of each published module is the name of its directory
+    final=$(mvnw -q -N -f "${module}/pom.xml" help:evaluate -Dexpression=project.build.finalName -DforceStdout)
+    for jar in "${module}/target/${final}"*.jar; do
+      [ -f "${jar}" ] || fail "no jar of ${module} in ${module}/target"
+      name=${module}-${RELEASE}${jar#"${module}/target/${final}"}
+      cp "${jar}" "${GITHUB_RELEASE_FILES}/${name}"
+      echo "$(sha256sum < "${jar}" | cut -d ' ' -f 1)  ${name}" > "${GITHUB_RELEASE_FILES}/${name}.sha256"
+    done
+  done
+  echo "Files to attach to the GitHub release of ${RELEASE}, in ${GITHUB_RELEASE_FILES}:"
+  ls -1 "${GITHUB_RELEASE_FILES}" | sed 's/^/  /'
+}
+
+if ! ${PUBLISH}; then
+  set_version "${RELEASE}" "Release ${RELEASE}"
+  # the same build as the release, up to the signatures, short of publishing
+  mvnw clean verify -DperformRelease=true -am -pl "${MODULES}"
+  echo
+  echo "Signed artifacts of ${RELEASE}:"
+  find . -path '*/target/*' -name "*-${RELEASE}*.asc" -printf '  %P\n' | sort
+  stage_github_release_files
+  set_version "${NEXT}" "Prepare ${NEXT}"
+  echo
+  if ${PROBLEMS}; then
+    echo "The dry run of ${RELEASE} built, but the release would fail on the problems reported above."
+    exit 1
+  fi
+  echo "The dry run of ${RELEASE} succeeded. A release would also merge into master, tag ${TAG}, publish to Maven Central, set ${NEXT} on"
+  echo "development, push master, development and ${TAG}, and create the GitHub release: run it with --publish."
+  exit 0
+fi
+
+set_version "${RELEASE}" "Release ${RELEASE}"
+git checkout -q master
+git merge -q --ff-only development
+git tag -a "${TAG}" -m "Version ${RELEASE}"
+
+git checkout -q "${TAG}"
+mvnw clean deploy -DperformRelease=true -am -pl "${MODULES}"
+STAGE=published
+stage_github_release_files
+
+git checkout -q development
+set_version "${NEXT}" "Prepare ${NEXT}"
+
+# all or nothing, so that the remote never has the tag without the branches
+git push --atomic origin master development "${TAG}"
+STAGE=pushed
+
+git checkout -q "${TAG}"
+mvnw -N de.jutzig:github-release-plugin:release
+git checkout -q development
+
+echo
+echo "Released ${RELEASE}; development is now at ${NEXT}."

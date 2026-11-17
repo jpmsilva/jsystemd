@@ -1,5 +1,6 @@
 /*
  * Copyright 2020 TomTom N.V.
+ * Copyright 2026 Joao Silva
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +17,17 @@
 
 package com.github.jpmsilva.jsystemd;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 
 /**
  * A health provider can be used to control the watchdog heartbeat. An unhealthy state does not trigger the heartbeat.
+ *
+ * <p>Health providers only report the health: they must not drive the lifecycle of the application with {@link Systemd#ready()},
+ * {@link Systemd#stopping()} or {@link Systemd#close()}, as they are called from the periodic watchdog heartbeats, which {@link Systemd#close()} waits for.
  *
  * @author Christian Lorenz
  */
@@ -36,19 +41,17 @@ public interface HealthProvider {
   Health health();
 
   /**
-   * Wrapper of health state.
+   * The health state of an application. Immutable: the details are copied, keeping their order, and cannot be modified.
+   *
+   * @param healthy <code>true</code> if this object represents a healthy state, <code>false</code> otherwise
+   * @param details additional health details for each application component
    */
-  class Health {
+  record Health(boolean healthy, Map<String, Object> details) {
 
     /**
-     * <code>true</code> if this object represents a healthy state, <code>false</code> otherwise.
+     * A health object that represents a healthy application state.
      */
-    public final boolean healthy;
-
-    /**
-     * Additional health details for each application component.
-     */
-    public final Map<String, Object> details;
+    public static final Health HEALTHY = new Health(true, Collections.emptyMap());
 
     /**
      * Provides for a health representation (healthy/unhealthy), with health details for each component.
@@ -57,23 +60,8 @@ public interface HealthProvider {
      * @param details additional health details for each application component
      * @throws NullPointerException if details is null
      */
-    public Health(boolean healthy, Map<String, Object> details) {
-      this.healthy = healthy;
-      this.details = new HashMap<>(Objects.requireNonNull(details, "Details must not be null"));
-    }
-
-    /**
-     * Synthesize a health object that represents a healthy application state.
-     *
-     * @return a synthetic healthy state.
-     */
-    public static Health healthy() {
-      return new Health(true, Collections.emptyMap());
-    }
-
-    @Override
-    public String toString() {
-      return "Health{healthy=" + this.healthy + ", details=" + this.details + '}';
+    public Health {
+      details = Collections.unmodifiableMap(new LinkedHashMap<>(requireNonNull(details, "Details must not be null")));
     }
   }
 }

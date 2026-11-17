@@ -5,24 +5,6 @@
 
 $h1 How to use
 
-$h2 Under Spring Boot
-
-When using Spring Boot, simply import the `systemd-spring-boot-starter` module as a dependency:
-
-```xml
-  <dependencies>
-    <dependency>
-      <groupId>com.github.jpmsilva.jsystemd</groupId>
-      <artifactId>jsystemd-spring-boot-starter</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-  </dependencies>
-```
-
-Autoconfiguration takes place through the class [SystemdAutoConfiguration](apidocs/com/github/jpmsilva/jsystemd/SystemdAutoConfiguration.html),
-and will notify systemd once your application starts up successfully, via a Spring Boot event listener
-of type [ApplicationReadyEvent](https://docs.spring.io/spring-boot/docs/current/api/org/springframework/boot/context/event/ApplicationReadyEvent.html).
-
 $h2 Regular Java application
 
 As a regular Java application, you can also use jsystemd.
@@ -39,8 +21,174 @@ First, import the `jsystemd-core` module as a dependency:
   </dependencies>
 ```
 
-Then, create an instance of [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) using the provided builder methods,
-and once your application completes the startup sequence and is ready to do work, just call [ready](apidocs/com/github/jpmsilva/jsystemd/Systemd.html#ready--).
+$h3 Java 22 and later
+
+On Java 22 and later, such as on the Java 25 LTS, jsystemd notifies systemd with the Foreign Function and Memory API of the JDK, rather than through
+the [JNA](https://github.com/java-native-access/jna) library and libsystemd (see [Native library](native-library.html)). JNA is then no longer needed,
+and can be left out of the dependencies of the application:
+
+```xml
+  <dependencies>
+    <dependency>
+      <groupId>com.github.jpmsilva.jsystemd</groupId>
+      <artifactId>jsystemd-core</artifactId>
+      <version>${project.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>net.java.dev.jna</groupId>
+          <artifactId>jna</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+  </dependencies>
+```
+
+The same exclusion applies to the other modules, such as `jsystemd-spring-boot-starter`. Keep JNA when the application may also run on Java 17 to 21,
+or when systemd notifies it through a `vsock:` address, as from a virtual machine: without it, the integration is then disabled, with a warning (see
+[Native library](native-library.html)).
+
+Calling native code is a restricted operation from Java 22 on, which the JVM warns about unless the application allows it. Allow it by passing
+`--enable-native-access=ALL-UNNAMED` to `java`, or for an executable JAR, by adding `Enable-Native-Access: ALL-UNNAMED` to its manifest, as described in
+[Native library](native-library.html#Enabling_native_access).
+
+$h3 Integration
+
+Then, integrate an instance of [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) with the lifecycle of your application, as described below.
+When the application is not running under systemd, the notifications are simply not sent, so the same code can run anywhere.
+
+$h3 Lifecycle
+
+The application is expected to go through the following steps, in this order:
+
+1. **Get the [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) instance**, as early as possible, with [Systemd.instance()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html).
+   There is a single instance per process, as systemd follows a service through a single process.
+   The instance is enough to notify systemd when the application is ready and when it is stopping. It can also enable some optional periodic tasks,
+   depending on what the application needs, which can be enabled again with another period, or disabled, at any time:
+    * [enableStatusUpdate(period)](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) sends the status to systemd periodically, for the status to stay current while the application runs;
+    * [enableWatchdog()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) sends the watchdog heartbeat periodically, once the application is ready, when systemd expects it, that is, when the service unit sets `WatchdogSec`. systemd then
+      sets the `WATCHDOG_USEC` environment variable, and the heartbeat is sent at half that interval, as systemd recommends. When the variable is not
+      set, nothing is sent, so it is safe to always call it. A `WATCHDOG_USEC` of 1 cannot be honored, and throws an `IllegalStateException`. [enableWatchdog(period)](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) sends the heartbeat at a given period instead;
+    * [enableExtendTimeout(period, amount)](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) extends the startup timeout (`TimeoutStartSec`) periodically, by `amount` each time, for
+      applications that may take longer to start than that timeout allows. It stops once the application is ready or stopping, and can be enabled again
+      once ready, or once stopping, to extend the shutdown timeout (`TimeoutStopSec`) instead (see step 6). It requires systemd 236 or later.
+2. **Optionally, register status providers**, with [addStatusProviders(...)](apidocs/com/github/jpmsilva/jsystemd/Systemd.html), to compose the status shown by `systemctl status`: any of the built-in ones
+   (such as [HeapStatusProvider](apidocs/com/github/jpmsilva/jsystemd/HeapStatusProvider.html), [NonHeapStatusProvider](apidocs/com/github/jpmsilva/jsystemd/NonHeapStatusProvider.html), [ClassLoaderStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ClassLoaderStatusProvider.html) and [ThreadStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ThreadStatusProvider.html)), your own implementations of
+   [StatusProvider](apidocs/com/github/jpmsilva/jsystemd/StatusProvider.html), or none at all: without status providers, no status is sent.
+3. **Optionally, add health providers**, with [addHealthProviders(...)](apidocs/com/github/jpmsilva/jsystemd/Systemd.html): while any of them reports the application as unhealthy, the watchdog heartbeat is
+   not sent, so that systemd restarts the application once `WatchdogSec` elapses. Use the built-in health providers: the [ThreadStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ThreadStatusProvider.html), which
+   can report the application as unhealthy while any of its threads are deadlocked, when created with `new ThreadStatusProvider(true, true)`, and the
+   [FileDescriptorStatusProvider](apidocs/com/github/jpmsilva/jsystemd/FileDescriptorStatusProvider.html), which can report it as unhealthy when its file descriptors are about to run out, when created with
+   `new FileDescriptorStatusProvider(true, 0.9)`; your own implementations of
+   [HealthProvider](apidocs/com/github/jpmsilva/jsystemd/HealthProvider.html); or both. Health providers whose unhealthy state may resolve by itself, such
+   as those depending on external systems, can extend
+   [DelayableHealthProvider](apidocs/com/github/jpmsilva/jsystemd/DelayableHealthProvider.html) instead, so that their unhealthy state is only reported once it
+   lasts longer than the delay set with [setUnhealthyDelay(...)](apidocs/com/github/jpmsilva/jsystemd/DelayableHealthProvider.html), avoiding restarts on short outages.
+   Health providers can also be removed, with [removeHealthProviders(...)](apidocs/com/github/jpmsilva/jsystemd/Systemd.html). Without health providers, the heartbeat only shows that the application is alive.
+   See [Health providers](health-providers.html) for more information.
+4. **Start the application.** Optionally, during a long startup, the status can be updated with [updateStatus()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html), and the startup timeout extended
+   with [extendTimeout()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html), at each milestone, whether or not the periodic tasks are enabled.
+5. **Call [ready()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html)** once the application is ready to do work. This tells systemd that the service has started, which a service with `Type=notify` needs:
+   otherwise, systemd considers the startup failed once `TimeoutStartSec` elapses. The startup timeout is no longer extended afterwards, and its periodic
+   extension, if enabled, stops.
+6. **On shutdown, call [stopping()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) first**, before stopping the application itself. This tells systemd that the service is stopping, and also stops the
+   watchdog heartbeats: from then on, systemd only enforces `TimeoutStopSec`, so the application can take the time it needs to stop. It can also be called
+   before [ready()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html), when the application stops while it starts up: the periodic extension of the startup timeout then stops, and
+   [ready()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) does nothing afterwards. A long shutdown can extend `TimeoutStopSec` the same way as a long startup extends
+   `TimeoutStartSec`: with [extendTimeout()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) at each milestone, or with
+   [enableExtendTimeout(period, amount)](apidocs/com/github/jpmsilva/jsystemd/Systemd.html), enabled again once ready, in preparation for the shutdown, or once stopping, as the
+   periodic extension of the startup does not carry over to the shutdown, where it would keep a hung shutdown from ever timing out. Enabled once ready,
+   it only starts extending the timeout once the application is stopping.
+7. **Call [close()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) last**, once the application has stopped. This stops the periodic tasks. As the watchdog heartbeats stop with them, it also calls
+   [stopping()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) first, if the application did not, so that systemd does not kill the application if the rest of its shutdown takes longer than
+   `WatchdogSec`. Calling [stopping()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) as soon as the shutdown starts is still recommended: until then, systemd keeps enforcing the watchdog, and
+   the shutdown may stop the heartbeats on its own, for instance when a health provider reports the application as unhealthy once a resource it checks is
+   closed. A closed instance cannot be reused, but notifications sent directly to systemd, such as the status updates, keep working.
+
+The shutdown steps belong wherever the application shuts down. `systemctl stop` stops the application with `SIGTERM`, which runs the JVM shutdown hooks,
+so a shutdown hook is the most direct place for them, as in the example below. Applications built on a framework or container that has its own lifecycle
+can instead hook into that lifecycle, as the Spring Boot starter does with the Spring application context. Either way, add `SuccessExitStatus=143` to the
+service unit (see below), so that systemd does not consider an exit caused by `SIGTERM` to be a failure.
+
+$h3 Example
+
+The following example uses every feature, including the optional ones (the periodic tasks, the status providers and the health providers). Only
+[ready()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html), [stopping()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) and [close()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) are needed for a minimal integration.
+
+```java
+import com.github.jpmsilva.jsystemd.ClassLoaderStatusProvider;
+import com.github.jpmsilva.jsystemd.HealthProvider.Health;
+import com.github.jpmsilva.jsystemd.HeapStatusProvider;
+import com.github.jpmsilva.jsystemd.NonHeapStatusProvider;
+import com.github.jpmsilva.jsystemd.Systemd;
+import com.github.jpmsilva.jsystemd.ThreadStatusProvider;
+import java.time.Duration;
+import java.util.Map;
+
+public class MyApplication {
+
+  public static void main(String[] args) {
+    Systemd systemd = Systemd.instance();
+    // the periodic tasks are all optional: the instance alone is enough for a minimal integration
+    systemd.enableStatusUpdate(Duration.ofSeconds(5));
+    // only sends heartbeats when systemd expects them, that is, when the service unit sets WatchdogSec
+    systemd.enableWatchdog();
+    systemd.enableExtendTimeout(Duration.ofSeconds(5), Duration.ofSeconds(29));
+    // detects deadlocked threads, showing them in the status, and reports them as unhealthy
+    ThreadStatusProvider threads = new ThreadStatusProvider(true, true);
+    systemd.addStatusProviders(new HeapStatusProvider(), new NonHeapStatusProvider(), new ClassLoaderStatusProvider(), threads);
+    systemd.logStatus();
+
+    MyService service = new MyService();
+    systemd.addHealthProviders(threads,
+        () -> service.isHealthy() ? Health.HEALTHY : new Health(false, Map.of("reason", service.problem())));
+
+    Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+      systemd.stopping();
+      service.stop();
+      try {
+        systemd.close();
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+      }
+    }));
+
+    service.start();
+    systemd.ready();
+  }
+}
+```
+
+$h2 Under Spring Boot
+
+When using Spring Boot, simply import the `jsystemd-spring-boot-starter` module as a dependency:
+
+```xml
+  <dependencies>
+    <dependency>
+      <groupId>com.github.jpmsilva.jsystemd</groupId>
+      <artifactId>jsystemd-spring-boot-starter</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+```
+
+Autoconfiguration takes place through the class [SystemdAutoConfiguration](apidocs/com/github/jpmsilva/jsystemd/spring/autoconfigure/SystemdAutoConfiguration.html),
+and will notify systemd once your application starts up successfully, when it becomes ready to accept traffic
+([ReadinessState.ACCEPTING_TRAFFIC](https://docs.spring.io/spring-boot/api/java/org/springframework/boot/availability/ReadinessState.html)).
+Everything described above for regular Java applications is then taken care of automatically.
+
+An application only accepts traffic once its `ApplicationRunner` and `CommandLineRunner` beans have run, so a runner that runs for long, or never ends,
+such as one that processes a queue, keeps the service starting up, until the startup times out. Either:
+
+* set `systemd.ready-event=application-started`, to notify systemd once the application has started, as soon as its application context is refreshed,
+  before the runners run; or
+* call [Systemd.instance().ready()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) from the runner, once it is ready to do work, such as once it has
+  connected to the queue.
+
+systemd is only notified once, so the starter notifying it again once the application accepts traffic does nothing.
+
+To wire the integration yourself instead, depend on the `jsystemd-spring-boot` module, which has the same status and health providers without the
+autoconfiguration, and configure the [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) instance as described above for regular Java applications.
 
 $h2 Systemd service unit
 
@@ -66,4 +214,10 @@ TimeoutStartSec=30
 WantedBy=multi-user.target
 ```
 
-In the above example, `/opt/myservice/myservice.jar` is a packed Java application.
+In the above example, `/opt/myservice/myservice.jar` is a packed Java application. On Java 22 and later, also pass
+`--enable-native-access=ALL-UNNAMED` to `java` in `ExecStart`, unless the manifest of the JAR declares `Enable-Native-Access: ALL-UNNAMED`, so that the
+JVM does not warn that jsystemd calls native code (see [Native library](native-library.html#Enabling_native_access)):
+
+```
+ExecStart=/opt/jdk25/bin/java --enable-native-access=ALL-UNNAMED -XX:+ExitOnOutOfMemoryError -jar /opt/myservice/myservice.jar
+```

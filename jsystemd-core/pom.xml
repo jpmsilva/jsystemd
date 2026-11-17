@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <!--
-Copyright 2018-2023 Joao Silva
+Copyright 2018-2026 Joao Silva
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -24,13 +24,18 @@ limitations under the License.
   <parent>
     <groupId>com.github.jpmsilva.jsystemd</groupId>
     <artifactId>jsystemd</artifactId>
-    <version>4.0.1-SNAPSHOT</version>
+    <version>5.0.0-SNAPSHOT</version>
   </parent>
 
   <name>jsystemd core</name>
   <description>
     The core library for systemd integration. This component does not depend on Spring, and can be used in any Java application.
   </description>
+
+  <properties>
+    <!-- published, so its nullness is checked -->
+    <nullaway.skip>false</nullaway.skip>
+  </properties>
 
   <dependencies>
     <dependency>
@@ -42,9 +47,28 @@ limitations under the License.
       <artifactId>slf4j-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.springframework</groupId>
-      <artifactId>spring-core</artifactId>
-      <scope>provided</scope>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
@@ -53,11 +77,115 @@ limitations under the License.
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
+        <executions>
+          <execution>
+            <!-- the classes jsystemd-core uses from Java 22 on, into META-INF/versions of the multi-release jar; they are tested by
+            jsystemd-core-java22-tests, on the jar, as the JVM does not look into META-INF/versions of the classes directory that surefire tests -->
+            <id>compile-java22</id>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+            <configuration>
+              <jdkToolchain>
+                <version>${java22.jdk.version}</version>
+              </jdkToolchain>
+              <release>${java22.release}</release>
+              <!-- their nullness is checked as they are compiled, as in the nullaway execution of the other classes, as the JDK of this execution can run
+              Error Prone; it does not change the classes -->
+              <annotationProcessorPaths>
+                <path>
+                  <groupId>com.google.errorprone</groupId>
+                  <artifactId>error_prone_core</artifactId>
+                  <version>${com.google.errorprone.version}</version>
+                </path>
+                <path>
+                  <groupId>com.uber.nullaway</groupId>
+                  <artifactId>nullaway</artifactId>
+                  <version>${com.uber.nullaway.version}</version>
+                </path>
+              </annotationProcessorPaths>
+              <!-- appended to the arguments of the parent -->
+              <compilerArgs combine.children="append">
+                <compilerArg>-XDcompilePolicy=simple</compilerArg>
+                <compilerArg>--should-stop=ifError=FLOW</compilerArg>
+                <compilerArg>-Xplugin:ErrorProne -XepDisableAllChecks -Xep:NullAway:ERROR -XepOpt:NullAway:OnlyNullMarked=true -XepOpt:NullAway:JSpecifyMode=true</compilerArg>
+                <compilerArg>-J--add-exports=jdk.compiler/com.sun.tools.javac.api=ALL-UNNAMED</compilerArg>
+                <compilerArg>-J--add-exports=jdk.compiler/com.sun.tools.javac.file=ALL-UNNAMED</compilerArg>
+                <compilerArg>-J--add-exports=jdk.compiler/com.sun.tools.javac.main=ALL-UNNAMED</compilerArg>
+                <compilerArg>-J--add-exports=jdk.compiler/com.sun.tools.javac.model=ALL-UNNAMED</compilerArg>
+                <compilerArg>-J--add-exports=jdk.compiler/com.sun.tools.javac.parser=ALL-UNNAMED</compilerArg>
+                <compilerArg>-J--add-exports=jdk.compiler/com.sun.tools.javac.processing=ALL-UNNAMED</compilerArg>
+                <compilerArg>-J--add-exports=jdk.compiler/com.sun.tools.javac.tree=ALL-UNNAMED</compilerArg>
+                <compilerArg>-J--add-exports=jdk.compiler/com.sun.tools.javac.util=ALL-UNNAMED</compilerArg>
+                <compilerArg>-J--add-opens=jdk.compiler/com.sun.tools.javac.code=ALL-UNNAMED</compilerArg>
+                <compilerArg>-J--add-opens=jdk.compiler/com.sun.tools.javac.comp=ALL-UNNAMED</compilerArg>
+              </compilerArgs>
+              <compileSourceRoots>
+                <compileSourceRoot>${project.basedir}/src/main/java22</compileSourceRoot>
+              </compileSourceRoots>
+              <multiReleaseOutput>true</multiReleaseOutput>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <!-- the sources of the classes for Java 22 and later, in the sources jar, where the source plugin finds them, under META-INF/versions as in the jar:
+        they are added as resources only once the resources are copied to the classes, so that they do not end up in the jar itself -->
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>add-java22-sources</id>
+            <phase>prepare-package</phase>
+            <goals>
+              <goal>add-resource</goal>
+            </goals>
+            <configuration>
+              <resources>
+                <resource>
+                  <directory>${project.basedir}/src/main/java22</directory>
+                  <targetPath>META-INF/versions/${java22.release}</targetPath>
+                </resource>
+              </resources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
         <configuration>
-          <compilerArgs>
-            <compilerArg>--add-modules</compilerArg>
-            <compilerArg>java.management</compilerArg>
-          </compilerArgs>
+          <archive>
+            <manifestEntries>
+              <Multi-Release>true</Multi-Release>
+              <!-- a stable name on the module path, rather than one derived from the file name -->
+              <Automatic-Module-Name>com.github.jpmsilva.jsystemd</Automatic-Module-Name>
+            </manifestEntries>
+          </archive>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-checkstyle-plugin</artifactId>
+        <configuration>
+          <sourceDirectories>
+            <sourceDirectory>${project.build.sourceDirectory}</sourceDirectory>
+            <sourceDirectory>${project.basedir}/src/main/java22</sourceDirectory>
+          </sourceDirectories>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-pmd-plugin</artifactId>
+        <configuration>
+          <compileSourceRoots>
+            <compileSourceRoot>${project.build.sourceDirectory}</compileSourceRoot>
+            <compileSourceRoot>${project.basedir}/src/main/java22</compileSourceRoot>
+          </compileSourceRoots>
         </configuration>
       </plugin>
     </plugins>

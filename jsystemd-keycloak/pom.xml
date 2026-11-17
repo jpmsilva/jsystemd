@@ -1,0 +1,249 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+Copyright 2026 Joao Silva
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <artifactId>jsystemd-keycloak</artifactId>
+
+  <parent>
+    <groupId>com.github.jpmsilva.jsystemd</groupId>
+    <artifactId>jsystemd</artifactId>
+    <version>5.0.0-SNAPSHOT</version>
+  </parent>
+
+  <name>jsystemd provider for Keycloak</name>
+  <description>Keycloak provider that integrates Keycloak with systemd, telling it when Keycloak is ready and when it is stopping, and sending watchdog
+    heartbeats and status updates. Installed as a single jar, which includes jsystemd-core, in the providers directory of Keycloak.
+  </description>
+
+  <properties>
+    <!-- published, so its nullness is checked -->
+    <nullaway.skip>false</nullaway.skip>
+  </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <!-- the versions of the libraries that Keycloak provides, as Keycloak is built with them, such as those of Quarkus, ArC and SmallRye Health;
+        the dependency management of the parent takes precedence, as for the libraries that jsystemd-core bundles or the tests use -->
+        <groupId>org.keycloak</groupId>
+        <artifactId>keycloak-parent</artifactId>
+        <version>${org.keycloak.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <!-- bundled in the jar of the provider, without its dependencies, which Keycloak provides (see below) -->
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>jsystemd-core</artifactId>
+      <version>${project.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <!-- provided by Keycloak -->
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-core</artifactId>
+      <version>${org.keycloak.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-server-spi</artifactId>
+      <version>${org.keycloak.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-server-spi-private</artifactId>
+      <version>${org.keycloak.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <!-- only to know when the HTTP server listens, as Keycloak is built on Quarkus -->
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-core</artifactId>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <!-- only to look up the readiness health checks, when the health endpoints are enabled -->
+      <groupId>io.quarkus.arc</groupId>
+      <artifactId>arc</artifactId>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <!-- the CDI API, which ArC, above, depends on -->
+      <groupId>jakarta.enterprise</groupId>
+      <artifactId>jakarta.enterprise.cdi-api</artifactId>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>io.smallrye</groupId>
+      <artifactId>smallrye-health</artifactId>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <!-- the JSON API, in which SmallRye Health, above, reports the checks -->
+      <groupId>jakarta.json</groupId>
+      <artifactId>jakarta.json-api</artifactId>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>net.java.dev.jna</groupId>
+      <artifactId>jna</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.awaitility</groupId>
+      <artifactId>awaitility</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- an implementation of the JSON API, to build the reports of the readiness health checks -->
+      <groupId>org.eclipse.parsson</groupId>
+      <artifactId>parsson</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <finalName>${project.artifactId}</finalName>
+    <plugins>
+      <plugin>
+        <!-- a single jar to install in Keycloak, which replaces the jar of the module -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <artifactSet>
+                <includes>
+                  <include>${project.groupId}:jsystemd-core</include>
+                </includes>
+              </artifactSet>
+              <!-- the manifest and the Maven metadata of the provider are kept, rather than those of jsystemd-core -->
+              <filters>
+                <filter>
+                  <artifact>${project.groupId}:jsystemd-core</artifact>
+                  <excludes>
+                    <exclude>META-INF/MANIFEST.MF</exclude>
+                    <exclude>META-INF/maven/**</exclude>
+                  </excludes>
+                </filter>
+              </filters>
+              <transformers>
+                <!-- jsystemd-core is a multi-release jar, whose classes for Java 22 and later, under META-INF/versions, are only used if the jar says so;
+                its manifest is excluded above, so the provider says it in its own -->
+                <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <manifestEntries>
+                    <Multi-Release>true</Multi-Release>
+                  </manifestEntries>
+                </transformer>
+              </transformers>
+              <!-- published along with the jar, as Maven Central requires, with the sources of jsystemd-core; the sources of the provider itself are only
+              included when the sources jar of the module is attached, as in a release, which this one then replaces, with a warning that it was already
+              attached -->
+              <createSourcesJar>true</createSourcesJar>
+              <!-- rather than next to the pom.xml, which is the default -->
+              <dependencyReducedPomLocation>${project.build.directory}/dependency-reduced-pom.xml</dependencyReducedPomLocation>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <!-- appended to the links of the parent; to the latest version rather than to ${org.keycloak.version}, as Keycloak only keeps the API
+          documentation of its current minor version, so that the links of a released version would soon be dead -->
+          <links combine.children="append">
+            <link>https://www.keycloak.org/docs-api/latest/javadocs/</link>
+          </links>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

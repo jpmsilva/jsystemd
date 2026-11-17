@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+Copyright 2026 Joao Silva
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <artifactId>jsystemd-core-java22-tests</artifactId>
+
+  <parent>
+    <groupId>com.github.jpmsilva.jsystemd</groupId>
+    <artifactId>jsystemd</artifactId>
+    <version>5.0.0-SNAPSHOT</version>
+  </parent>
+
+  <name>jsystemd core tests for Java 22</name>
+  <description>
+    Tests the classes that jsystemd-core uses from Java 22 on, which send the notifications with the Foreign Function and Memory API, on its multi-release
+    jar: they are only used from there, as the JVM does not look into META-INF/versions of a classes directory. Not published.
+  </description>
+
+  <properties>
+    <maven.compiler.release>${java22.release}</maven.compiler.release>
+    <!-- so that the socket the tests bind is unique to each build, as for concurrent builds on the same machine -->
+    <maven.build.timestamp.format>yyyyMMddHHmmssSSS</maven.build.timestamp.format>
+  </properties>
+
+  <dependencies>
+    <dependency>
+      <!-- in the same build, the multi-release jar once packaged, which the integration tests below run on -->
+      <groupId>com.github.jpmsilva.jsystemd</groupId>
+      <artifactId>jsystemd-core</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <!-- rather than the toolchain of the release, as in the parent: there may be no JDK 22 -->
+          <jdkToolchain>
+            <version>${java22.jdk.version}</version>
+          </jdkToolchain>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <!-- only the integration tests run, on the jar: surefire would run on JDKs that do not have the API, on executions of the parent -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <executions>
+          <!-- NOTIFY_SOCKET is read once, so each address the tests need has its own execution, with its own summary, which its verify goal checks -->
+          <execution>
+            <id>test-java22-unix-socket</id>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>**/NotifyChannelIT.java</include>
+              </includes>
+              <environmentVariables>
+                <!-- the socket the tests receive the notifications on, in the abstract namespace, so that it has no file to clean up, and its address does
+                not depend on where the project is, as a file system path could exceed the 108 bytes of an address -->
+                <NOTIFY_SOCKET>@jsystemd-failsafe-${maven.build.timestamp}</NOTIFY_SOCKET>
+              </environmentVariables>
+              <summaryFile>${project.build.directory}/failsafe-reports/failsafe-summary-unix-socket.xml</summaryFile>
+            </configuration>
+          </execution>
+          <execution>
+            <id>test-java22-vsock</id>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <includes>
+                <include>**/NotifyChannelVsockIT.java</include>
+              </includes>
+              <environmentVariables>
+                <!-- the local machine (VMADDR_CID_LOCAL), rather than the host of a virtual machine -->
+                <NOTIFY_SOCKET>vsock:1:1234</NOTIFY_SOCKET>
+              </environmentVariables>
+              <summaryFile>${project.build.directory}/failsafe-reports/failsafe-summary-vsock.xml</summaryFile>
+            </configuration>
+          </execution>
+        </executions>
+        <configuration>
+          <jdkToolchain>
+            <version>${java22.jdk.version}</version>
+          </jdkToolchain>
+          <!-- the native access that applications are asked to enable, so that the JVM does not warn -->
+          <argLine>--enable-native-access=ALL-UNNAMED</argLine>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-deploy-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-source-plugin</artifactId>
+        <configuration>
+          <skipSource>true</skipSource>
+        </configuration>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-javadoc-plugin</artifactId>
+        <configuration>
+          <skip>true</skip>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

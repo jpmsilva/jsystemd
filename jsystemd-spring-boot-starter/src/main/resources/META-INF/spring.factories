@@ -1,4 +1,4 @@
-# Copyright 2018 Joao Silva
+# Copyright 2018-2026 Joao Silva
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 org.springframework.boot.SpringApplicationRunListener=\
-  com.github.jpmsilva.jsystemd.SystemdSpringApplicationRunListener
+  com.github.jpmsilva.jsystemd.spring.autoconfigure.SystemdSpringApplicationRunListener
