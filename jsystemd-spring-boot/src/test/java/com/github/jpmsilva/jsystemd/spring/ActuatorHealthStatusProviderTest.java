@@ -20,6 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
 
 import com.github.jpmsilva.jsystemd.HealthProvider;
+import com.github.jpmsilva.jsystemd.Systemd;
+import com.github.jpmsilva.jsystemd.SystemdNotify;
+import com.github.jpmsilva.jsystemd.SystemdProcess;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,6 +30,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 import org.springframework.boot.health.contributor.CompositeHealthContributor;
 import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthContributor;
@@ -156,6 +161,37 @@ class ActuatorHealthStatusProviderTest {
     })), Set.of(Status.DOWN), name -> false, true).health();
 
     assertThat(invocations).hasValue(0);
+  }
+
+  @Test
+  void showsTheHealthOnlyWhileRunning() throws Exception {
+    AtomicInteger invocations = new AtomicInteger();
+    // as the health indicator of a connection pool already closed while the application stops
+    ActuatorHealthStatusProvider provider = provider(Map.of("redis", (HealthIndicator) () -> {
+      invocations.incrementAndGet();
+      return Health.down().build();
+    }));
+    try (MockedStatic<SystemdNotify> notify = Mockito.mockStatic(SystemdNotify.class)) {
+      SystemdProcess.reset();
+      Systemd systemd = Systemd.instance();
+      try {
+        systemd.addStatusProviders(provider);
+
+        systemd.updateStatus();
+        systemd.ready();
+        systemd.stopping();
+        systemd.updateStatus();
+      } finally {
+        systemd.close();
+      }
+
+      // the indicators are only evaluated once ready, on the status update that ready() sends
+      notify.verify(SystemdProcess.status(() -> "health status: unhealthy (redis)"));
+      notify.verify(SystemdProcess.status(() -> ""), Mockito.times(2));
+      assertThat(invocations).hasValue(1);
+    } finally {
+      SystemdProcess.reset();
+    }
   }
 
   @Test

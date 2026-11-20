@@ -21,6 +21,9 @@ package com.github.jpmsilva.jsystemd;
  *
  * <p>Status providers can be registered through {@link com.github.jpmsilva.jsystemd.Systemd#addStatusProviders(StatusProvider...)}
  *
+ * <p>A status provider is asked for its status in every state of the application, unless it implements some of {@link StartingStatusProvider},
+ * {@link RunningStatusProvider} and {@link StoppingStatusProvider}, in which case it is only asked for it in those states.
+ *
  * <p>Status providers only report the status: they must not drive the lifecycle of the application with {@link Systemd#ready()},
  * {@link Systemd#stopping()} or {@link Systemd#close()}, as they are called from the periodic status updates, which {@link Systemd#close()} waits for.
  *

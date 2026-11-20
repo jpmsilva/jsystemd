@@ -16,6 +16,7 @@
 
 package com.github.jpmsilva.jsystemd.spring;
 
+import com.github.jpmsilva.jsystemd.StartingStatusProvider;
 import com.github.jpmsilva.jsystemd.StatusProvider;
 import com.github.jpmsilva.jsystemd.Systemd;
 import java.time.Duration;
@@ -27,12 +28,13 @@ import org.springframework.core.env.ConfigurableEnvironment;
 
 /**
  * Implementation of {@link StatusProvider} that provides information regarding the Spring Boot application startup sequence state. Its state is
- * meant to be updated by a {@link org.springframework.boot.SpringApplicationRunListener}, as the one of the Spring Boot starter does.
+ * meant to be updated by a {@link org.springframework.boot.SpringApplicationRunListener}, as the one of the Spring Boot starter does. It only reports while
+ * the application starts up, as a {@link StartingStatusProvider}.
  *
  * @author Joao Silva
  * @see org.springframework.boot.SpringApplicationRunListener
  */
-public class ApplicationRunStatusProvider implements StatusProvider {
+public class ApplicationRunStatusProvider implements StartingStatusProvider {
 
   // written during startup, read by the periodic status update task
   private volatile String status = "";
@@ -47,7 +49,7 @@ public class ApplicationRunStatusProvider implements StatusProvider {
 
   @Override
   public String status() {
-    return Systemd.instance().isReady() ? "" : status;
+    return status;
   }
 
   /**

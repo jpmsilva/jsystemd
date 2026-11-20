@@ -81,11 +81,14 @@ class ApplicationRunStatusProviderTest {
 
   @Test
   void reportsNothingOnceReady() {
+    systemd.addStatusProviders(provider);
     provider.state(ApplicationState.STARTED, Duration.ofSeconds(5));
 
     systemd.ready();
 
-    assertThat(provider.status()).isEmpty();
+    // left out of the status once ready, as it only reports while the application starts up
+    notify.verify(SystemdProcess.status(() -> "State: started, time taken: 5s"));
+    notify.verify(SystemdProcess.status(() -> ""));
   }
 
   @ParameterizedTest

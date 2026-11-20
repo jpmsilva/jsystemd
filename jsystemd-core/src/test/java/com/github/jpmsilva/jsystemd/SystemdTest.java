@@ -93,6 +93,41 @@ class SystemdTest {
     };
   }
 
+  // status providers that report in some states only, as their status method has a default, which keeps them from being written as lambdas
+  private static final class Starting implements StartingStatusProvider {
+
+    @Override
+    public @NonNull String status() {
+      return "starting";
+    }
+  }
+
+  // counts the calls, so that the tests can tell that it is not asked for its status in the other states
+  private record Running(AtomicInteger calls) implements RunningStatusProvider {
+
+    @Override
+    public @NonNull String status() {
+      calls.incrementAndGet();
+      return "running";
+    }
+  }
+
+  private static final class Stopping implements StoppingStatusProvider {
+
+    @Override
+    public @NonNull String status() {
+      return "stopping";
+    }
+  }
+
+  private static final class StartingAndStopping implements StartingStatusProvider, StoppingStatusProvider {
+
+    @Override
+    public @NonNull String status() {
+      return "starting and stopping";
+    }
+  }
+
   @Test
   void doesNotSendStatusWithoutProviders() {
     systemd.updateStatus();
@@ -267,6 +302,34 @@ class SystemdTest {
     systemd.updateStatus();
 
     notify.verify(() -> SystemdNotify.status("db down READY=1, cache down WATCHDOG=1, first second, queue down STOPPING=1"));
+  }
+
+  @Test
+  void asksProvidersForTheirStatusOnlyInTheStatesTheyReportIn() {
+    AtomicInteger runningCalls = new AtomicInteger();
+    systemd.addStatusProviders(provider("always"), new Starting(), new Running(runningCalls), new Stopping(), new StartingAndStopping());
+
+    systemd.updateStatus();
+    // which sends the status as well
+    systemd.ready();
+    systemd.stopping();
+    systemd.updateStatus();
+
+    notify.verify(() -> SystemdNotify.status("always, starting, starting and stopping"));
+    notify.verify(() -> SystemdNotify.status("always, running"));
+    notify.verify(() -> SystemdNotify.status("always, stopping, starting and stopping"));
+    // the provider is not even asked for its status in the other states, as its sources may not be available then
+    assertThat(runningCalls).hasValue(1);
+  }
+
+  @Test
+  void asksStoppingProvidersForTheirStatusWhenStoppingBeforeReady() {
+    systemd.addStatusProviders(new Running(new AtomicInteger()), new Stopping());
+
+    systemd.stopping();
+    systemd.updateStatus();
+
+    notify.verify(() -> SystemdNotify.status("stopping"));
   }
 
   @Test

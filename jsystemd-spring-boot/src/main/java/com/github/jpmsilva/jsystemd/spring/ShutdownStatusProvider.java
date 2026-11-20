@@ -20,6 +20,7 @@ import static java.util.Objects.requireNonNull;
 
 import com.github.jpmsilva.jsystemd.PhaseStatusProvider;
 import com.github.jpmsilva.jsystemd.StatusProvider;
+import com.github.jpmsilva.jsystemd.StoppingStatusProvider;
 import com.github.jpmsilva.jsystemd.Systemd;
 import org.springframework.boot.web.server.context.WebServerApplicationContext;
 import org.springframework.context.ApplicationContext;
@@ -47,7 +48,7 @@ import org.springframework.context.event.ContextClosedEvent;
  *
  * @author Joao Silva
  */
-public class ShutdownStatusProvider implements StatusProvider, ApplicationListener<ContextClosedEvent> {
+public class ShutdownStatusProvider implements StoppingStatusProvider, ApplicationListener<ContextClosedEvent> {
 
   /**
    * The name of the bean of the web server that shuts it down gracefully, registered by Spring Boot when it starts an embedded web server.

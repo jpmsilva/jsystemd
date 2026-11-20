@@ -16,6 +16,7 @@
 
 package com.github.jpmsilva.jsystemd.spring;
 
+import com.github.jpmsilva.jsystemd.StartingStatusProvider;
 import com.github.jpmsilva.jsystemd.StatusProvider;
 import com.github.jpmsilva.jsystemd.Systemd;
 import java.util.Arrays;
@@ -33,12 +34,13 @@ import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 
 /**
- * Implementation of {@link StatusProvider} that provides information regarding the bean creation progress of a bean factory.
+ * Implementation of {@link StatusProvider} that provides information regarding the bean creation progress of a bean factory. It only reports while the
+ * application starts up, as a {@link StartingStatusProvider}.
  *
  * @author Joao Silva
  * @see BeanPostProcessor
  */
-public class ApplicationContextStatusProvider implements StatusProvider, BeanPostProcessor {
+public class ApplicationContextStatusProvider implements StartingStatusProvider, BeanPostProcessor {
 
   /**
    * The minimum interval between two notifications sent to systemd, as a bean is created far more often than systemd needs to hear about it. It is kept well
@@ -99,7 +101,7 @@ public class ApplicationContextStatusProvider implements StatusProvider, BeanPos
   @Override
   public String status() {
     Set<String> definitions = this.definitions;
-    if (Systemd.instance().isReady() || definitions == null || definitions.isEmpty()) {
+    if (definitions == null || definitions.isEmpty()) {
       return "";
     }
     long created = definitions.stream().filter(factory::containsSingleton).count();

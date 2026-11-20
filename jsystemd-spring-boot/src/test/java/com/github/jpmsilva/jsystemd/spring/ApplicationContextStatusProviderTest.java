@@ -202,7 +202,9 @@ class ApplicationContextStatusProviderTest {
 
     systemd.ready();
 
-    assertThat(provider.status()).isEmpty();
+    // left out of the status once ready, as it only reports while the application starts up
+    notify.verify(SystemdProcess.status(() -> "Creating bean 0 of 3"));
+    notify.verify(SystemdProcess.status(() -> ""));
   }
 
   @Test

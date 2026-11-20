@@ -560,6 +560,10 @@ public class Systemd {
    * Forces the current status to be calculated and sent to systemd. The method {@link #enableStatusUpdate(Duration)} can be used to enable periodic
    * status updates.
    *
+   * <p>Only the status providers that report in the current state of the application are asked for their status: those that implement
+   * {@link StartingStatusProvider}, {@link RunningStatusProvider} or {@link StoppingStatusProvider} only in the states they implement, the others in every
+   * state.
+   *
    * <p>If there are no status providers, nothing is sent to systemd. A status provider that throws, or returns <code>null</code>, is left out of the status,
    * as it would otherwise fail the caller, such as {@link #ready()}; the first of its consecutive failures is logged as a warning.
    *
@@ -575,9 +579,12 @@ public class Systemd {
       return;
     }
     long update = statusUpdatesStarted.incrementAndGet();
+    // read once, so that the whole status is built for the same state, even if it changes meanwhile
+    State state = this.state;
     // systemd reads each line of a notification as a separate assignment, so a line break in the status would let it send other notifications, such as
     // READY=1 or WATCHDOG=1: line breaks are replaced, so that the status is always sent as a single STATUS= assignment
-    String status = statusProviders.stream().map(this::status).filter(t -> !t.isEmpty()).collect(Collectors.joining(", "));
+    String status = statusProviders.stream().filter(provider -> reportsIn(provider, state)).map(this::status).filter(t -> !t.isEmpty())
+        .collect(Collectors.joining(", "));
     String sent = cut(LINE_BREAKS.matcher(status).replaceAll(" "), STATUS_MAX_BYTES);
     statusLock.lock();
     try {
@@ -630,6 +637,21 @@ public class Systemd {
     } finally {
       statusLock.unlock();
     }
+  }
+
+  // whether the provider is asked for its status in the given state: in every state if it implements none of the marker interfaces of the states
+  private static boolean reportsIn(StatusProvider provider, State state) {
+    boolean starting = provider instanceof StartingStatusProvider;
+    boolean running = provider instanceof RunningStatusProvider;
+    boolean stopping = provider instanceof StoppingStatusProvider;
+    if (!starting && !running && !stopping) {
+      return true;
+    }
+    return switch (state) {
+      case STARTING -> starting;
+      case READY -> running;
+      case STOPPING -> stopping;
+    };
   }
 
   private String status(StatusProvider provider) {

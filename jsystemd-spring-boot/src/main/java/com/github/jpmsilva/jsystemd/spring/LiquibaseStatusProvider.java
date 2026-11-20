@@ -17,7 +17,9 @@
 package com.github.jpmsilva.jsystemd.spring;
 
 import com.github.jpmsilva.jsystemd.PhaseStatusProvider;
+import com.github.jpmsilva.jsystemd.StartingStatusProvider;
 import com.github.jpmsilva.jsystemd.StatusProvider;
+import com.github.jpmsilva.jsystemd.StoppingStatusProvider;
 import com.github.jpmsilva.jsystemd.Systemd;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -41,14 +43,16 @@ import org.springframework.beans.factory.config.BeanPostProcessor;
  *
  * <p>The progress is reported through a {@link PhaseStatusProvider} of its own, sent to systemd right away on every change, and cleared once the
  * migrations complete.
- * When they fail, the changeset that failed is still reported, while the application fails to start.
+ * When they fail, the changeset that failed is still reported, while the application fails to start: it reports while the application starts up, and
+ * while it stops, as a {@link StartingStatusProvider} and a {@link StoppingStatusProvider}, as an application that fails to start goes straight from
+ * starting to stopping.
  *
  * <p>The changesets are reported with a {@link liquibase.changelog.visitor.ChangeExecListener} that is set before the customizer the bean already has, if
  * any: a customizer that sets a listener of its own replaces it, in which case the changesets are not reported.
  *
  * @author Joao Silva
  */
-public class LiquibaseStatusProvider implements StatusProvider, BeanPostProcessor {
+public class LiquibaseStatusProvider implements StartingStatusProvider, StoppingStatusProvider, BeanPostProcessor {
 
   private final PhaseStatusProvider phase;
 

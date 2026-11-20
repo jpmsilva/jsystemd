@@ -23,6 +23,7 @@ import static org.slf4j.LoggerFactory.getLogger;
 
 import com.github.jpmsilva.jsystemd.DelayableHealthProvider;
 import com.github.jpmsilva.jsystemd.HealthProvider;
+import com.github.jpmsilva.jsystemd.RunningStatusProvider;
 import com.github.jpmsilva.jsystemd.StatusProvider;
 import java.time.Duration;
 import java.util.LinkedHashMap;
@@ -56,10 +57,14 @@ import org.springframework.boot.health.contributor.Status;
  * to the watchdog can also be delayed, with {@link #setUnhealthyDelay(Duration)}. The systemd status always shows the actual health, without the
  * delay.
  *
+ * <p>The health is only shown in the systemd status while the application runs, as a {@link RunningStatusProvider}: while it starts up, the health
+ * contributors may depend on beans not created yet, and once it is stopping, on resources already closed, such as connection pools, whose health checks
+ * would then fail, and log their failures.
+ *
  * @author Christian Lorenz
  * @author Joao Silva
  */
-public class ActuatorHealthStatusProvider extends DelayableHealthProvider implements StatusProvider {
+public class ActuatorHealthStatusProvider extends DelayableHealthProvider implements RunningStatusProvider {
 
   private static final Logger logger = getLogger(lookup().lookupClass());
 

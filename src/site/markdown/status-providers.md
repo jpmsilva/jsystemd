@@ -117,6 +117,27 @@ The status is asked for on every status update, from the thread that sends it: k
 A status provider only reports the status: it must not drive the lifecycle of the application, by calling `ready()`, `stopping()` or `close()` on the
 [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) instance.
 
+### Reporting only in some states of the application
+
+A status provider is asked for its status in every state of the application: while it starts up, while it runs, and while it stops. To only report in
+some of them, a status provider implements the matching interfaces, one or more of:
+
+* [StartingStatusProvider](apidocs/com/github/jpmsilva/jsystemd/StartingStatusProvider.html), until the application is ready (`ready()`);
+* [RunningStatusProvider](apidocs/com/github/jpmsilva/jsystemd/RunningStatusProvider.html), once ready, until the application is stopping
+  (`stopping()`);
+* [StoppingStatusProvider](apidocs/com/github/jpmsilva/jsystemd/StoppingStatusProvider.html), once the application is stopping, including when it stops
+  before it is ready.
+
+In the other states, the status provider is not even asked for its status. This suits status providers whose status means nothing in some states, such as
+the progress of the startup, or whose sources may not be available, such as the health of a remote service, checked with a connection pool that is closed
+once the application stops:
+
+```java
+public class QueueStatusProvider implements RunningStatusProvider {
+  // ...
+}
+```
+
 ## Under Spring Boot
 
 When using the autoconfiguration class, the built-in status providers are registered for the application, and
@@ -327,6 +348,9 @@ It is also a health provider, which can restart the application while it is unhe
 the settings of the health provider, such as the health group whose members are taken into account, or the status codes considered as unhealthy, apply to
 the status as well (see [Health providers](health-providers.html)).
 
+The health is only shown while the application runs: while it starts up, the health contributors may depend on beans not created yet, and while it stops,
+on resources already closed, such as connection pools, whose health checks would fail and log their failures.
+
 #### shutdown
 
 The `shutdown` status provider shows the stage the application is at while it shuts down, so that a slow shutdown can be told apart from a hung one.
@@ -338,7 +362,8 @@ It shows nothing until the application starts shutting down, and then follows th
 3. `Shutdown: destroying beans`, once all life cycle beans are stopped, while the beans are destroyed, such as connection pools.
 
 Every change of stage is sent to systemd right away. The status of the other status providers keeps being sent while the application shuts down, such
-as the connections of the web server, which drop as the requests complete. See [Startup and shutdown timeouts](timeouts.html) for how long systemd lets
+as the connections of the web server, which drop as the requests complete, except for those that only report while the application starts up or runs,
+such as the application health (see [Reporting only in some states of the application](#Reporting_only_in_some_states_of_the_application)). See [Startup and shutdown timeouts](timeouts.html) for how long systemd lets
 the shutdown take.
 
 #### Effects of disabling each status provider
