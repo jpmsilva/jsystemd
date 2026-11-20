@@ -81,12 +81,18 @@ docker_host="$DOCKER_HOST"
 if [ -z "$docker_host" ] && [ -f "$HOME/.testcontainers.properties" ]; then
   docker_host=$(sed -n 's/^docker\.host *= *//p' "$HOME/.testcontainers.properties")
 fi
+# Testcontainers does not look for the rootless Podman socket, so point it there when Docker is not running
+podman_socket="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/podman/podman.sock"
+if [ -z "$docker_host" ] && [ ! -S /var/run/docker.sock ] && [ -S "$podman_socket" ]; then
+  docker_host="unix://$podman_socket"
+  export DOCKER_HOST="$docker_host"
+fi
 docker_host="${docker_host:-unix:///var/run/docker.sock}"
 
 case "$docker_host" in
   unix://*)
     socket="${docker_host#unix://}"
-    [ -S "$socket" ] || fail "no Docker API socket at $socket: start Docker, or the Podman API socket (systemctl --user start podman.socket)"
+    [ -S "$socket" ] || fail "no Docker API socket at $socket: start Docker, or the Podman API socket (systemctl --user start podman.socket), or set DOCKER_HOST"
     # on a socket activated service, this also starts it
     ping=$(curl -s --max-time 30 --unix-socket "$socket" http://localhost/_ping) || true
     ;;
