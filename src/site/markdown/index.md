@@ -9,7 +9,7 @@ The distribution of this software is composed of the following modules:
 
 * the [jsystemd-core](jsystemd-core/index.html) module that includes all the basic bindings to integrate with systemd;
 * the [jsystemd-spring-boot](jsystemd-spring-boot/index.html) module that provides the building blocks of jsystemd for Spring Boot applications, such as
-status and health providers, without automatic configuration;
+status and health providers, without automatic configuration (see [How to use](howto.html#Manual_wiring));
 * the [jsystemd-spring-boot-starter](jsystemd-spring-boot-starter/index.html) module that provides automatic configuration of jsystemd inside Spring Boot
 applications;
 * the [jsystemd-keycloak](jsystemd-keycloak/index.html) provider that does the same for Keycloak (see [Keycloak](keycloak.html)).

@@ -187,8 +187,66 @@ such as one that processes a queue, keeps the service starting up, until the sta
 
 systemd is only notified once, so the starter notifying it again once the application accepts traffic does nothing.
 
-To wire the integration yourself instead, depend on the `jsystemd-spring-boot` module, which has the same status and health providers without the
-autoconfiguration, and configure the [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) instance as described above for regular Java applications.
+$h3 Manual wiring
+
+To wire the integration yourself instead, depend on the `jsystemd-spring-boot` module, which has the building blocks of the starter without its
+autoconfiguration:
+
+```xml
+  <dependencies>
+    <dependency>
+      <groupId>com.github.jpmsilva.jsystemd</groupId>
+      <artifactId>jsystemd-spring-boot</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+  </dependencies>
+```
+
+Nothing is then set up automatically: the application takes the [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) instance through the
+[lifecycle](#Lifecycle) described above for regular Java applications. The following example only covers the basics of that lifecycle, with the watchdog
+enabled, leaving out the other periodic tasks and the status and health providers:
+
+```java
+import com.github.jpmsilva.jsystemd.Systemd;
+import com.github.jpmsilva.jsystemd.spring.SystemdLifecycle;
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.annotation.Bean;
+
+@SpringBootApplication
+public class MyApplication {
+
+  public static void main(String[] args) {
+    Systemd systemd = Systemd.instance();
+    // only sends heartbeats when systemd expects them, that is, when the service unit sets WatchdogSec
+    systemd.enableWatchdog();
+    SpringApplication.run(MyApplication.class, args);
+    systemd.ready();
+  }
+
+  // tells systemd that the application is stopping, as soon as the application context starts closing
+  @Bean
+  SystemdLifecycle systemdLifecycle(ApplicationContext context) {
+    return new SystemdLifecycle(context);
+  }
+
+  // closes the instance, which stops the watchdog heartbeats, when the application context is closed
+  @Bean(destroyMethod = "close")
+  Systemd systemd() {
+    return Systemd.instance();
+  }
+}
+```
+
+systemd is told that the application is ready once `SpringApplication.run(...)` returns, that is, once the application has started and its runners have
+run. As with the starter, a runner that runs for long, or never ends, keeps the service starting up, until the startup times out: call
+[ready()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) earlier instead, from the runner, once it is ready to do work, or from a listener of
+[ApplicationStartedEvent](https://docs.spring.io/spring-boot/api/java/org/springframework/boot/context/event/ApplicationStartedEvent.html), which is
+published before the runners run.
+
+[SystemdLifecycle](apidocs/com/github/jpmsilva/jsystemd/spring/SystemdLifecycle.html) tells systemd that the application is stopping before the beans of
+the application context are stopped, such as the embedded web server.
 
 $h2 Systemd service unit
 

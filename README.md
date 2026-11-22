@@ -118,6 +118,8 @@ starter to configure the `Systemd` instance and wire the providers yourself:
 </dependency>
 ```
 
+The [How to](https://jpmsilva.github.io/jsystemd-site/versions/latest/howto.html#Manual_wiring) page has an example of the manual wiring.
+
 ## jsystemd-keycloak
 
 For Keycloak, the provider tells systemd that Keycloak is ready once it has completed its bootstrap and its HTTP server listens, and that it is stopping

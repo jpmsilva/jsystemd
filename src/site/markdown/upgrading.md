@@ -61,7 +61,8 @@ Showing the application health in the systemd status and reporting it to the wat
 * The building blocks no longer take a `Systemd` instance: create
   [SystemdLifecycle](apidocs/com/github/jpmsilva/jsystemd/spring/SystemdLifecycle.html) with the application context it is a bean of,
   [ApplicationRunStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ApplicationRunStatusProvider.html) without arguments, and
-  [ApplicationContextStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ApplicationContextStatusProvider.html) with the bean factory alone.
+  [ApplicationContextStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ApplicationContextStatusProvider.html) with the bean factory alone
+  (see [How to use](howto.html#Manual_wiring)).
 * Status and health providers are added and removed, instead of set: `setStatusProviders(...)` and `setHealthProvider(...)` were replaced by
   [addStatusProviders(...)](apidocs/com/github/jpmsilva/jsystemd/Systemd.html), [removeStatusProviders(...)](apidocs/com/github/jpmsilva/jsystemd/Systemd.html),
   [addHealthProviders(...)](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) and [removeHealthProviders(...)](apidocs/com/github/jpmsilva/jsystemd/Systemd.html),
@@ -109,7 +110,7 @@ Showing the application health in the systemd status and reporting it to the wat
 
 * New Keycloak provider, `jsystemd-keycloak` (see [Keycloak](keycloak.html)).
 * The Spring Boot building blocks moved to a new module, `jsystemd-spring-boot`: depend on it instead of the starter to use them without the
-  autoconfiguration.
+  autoconfiguration (see [How to use](howto.html#Manual_wiring)).
 * Status providers can be disabled and configured individually (see [Status providers](status-providers.html)).
 * Deadlocked threads can be detected, and reported to the watchdog (see [Health providers](health-providers.html)).
 * Under Java 25, the JNA dependency is no longer needed on 64-bit architectures, and can be excluded (see [How to use](howto.html)).
