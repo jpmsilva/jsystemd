@@ -84,8 +84,9 @@ The application is expected to go through the following steps, in this order:
    [DelayableHealthProvider](apidocs/com/github/jpmsilva/jsystemd/DelayableHealthProvider.html) instead, so that their unhealthy state is only reported once it
    lasts longer than the delay set with [setUnhealthyDelay(...)](apidocs/com/github/jpmsilva/jsystemd/DelayableHealthProvider.html), avoiding restarts on short outages.
    A health provider can also report a state the application cannot recover from, such as a deadlock, with
-   [Health.unrecoverable(...)](apidocs/com/github/jpmsilva/jsystemd/HealthProvider.Health.html), which also triggers the watchdog right away, rather than
-   once `WatchdogSec` elapses, as the [ThreadStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ThreadStatusProvider.html) does.
+   [Health.unrecoverable(...)](apidocs/com/github/jpmsilva/jsystemd/HealthProvider.Health.html), which also
+   [triggers the watchdog](https://www.freedesktop.org/software/systemd/man/sd_notify.html#WATCHDOG=trigger) right away, rather than once `WatchdogSec`
+   elapses, as the [ThreadStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ThreadStatusProvider.html) does.
    Health providers can also be removed, with [removeHealthProviders(...)](apidocs/com/github/jpmsilva/jsystemd/Systemd.html). Without health providers, the heartbeat only shows that the application is alive.
    See [Health providers](health-providers.html) for more information.
 4. **Start the application.** Optionally, during a long startup, the status can be updated with [updateStatus()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html), and the startup timeout extended

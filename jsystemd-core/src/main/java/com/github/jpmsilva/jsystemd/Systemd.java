@@ -777,6 +777,8 @@ public class Systemd {
    *
    * <p>Requires systemd 243 or later, which handles it even when the service unit does not set <code>WatchdogSec</code>; older versions ignore it. Only
    * the first call notifies systemd, later calls have no effect. Does nothing once the application is stopping, as it is then on its way out.
+   *
+   * @see <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html#WATCHDOG=trigger">watchdog trigger</a>
    */
   public void triggerWatchdog() {
     stateLock.lock();

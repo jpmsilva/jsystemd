@@ -5,10 +5,11 @@
 ### Changes in behaviour
 
 * A deadlock, with deadlock health opted into, and a broken liveness state under Spring Boot, with `systemd.status-providers.availability.health=true`,
-  now trigger the watchdog right away, instead of only suppressing the heartbeat until `WatchdogSec` elapses, as the application cannot recover from
-  either (see [Unrecoverable states](health-providers.html#Unrecoverable_states)). An application that reports a broken liveness state and then recovers
-  from it must set `systemd.status-providers.availability.unhealthy-delay`. Triggering the watchdog requires systemd 243 or later: older versions
-  restart the application once `WatchdogSec` elapses, as before.
+  now [trigger the watchdog](https://www.freedesktop.org/software/systemd/man/sd_notify.html#WATCHDOG=trigger) right away, instead of only suppressing
+  the heartbeat until `WatchdogSec` elapses, as the application cannot recover from either (see
+  [Unrecoverable states](health-providers.html#Unrecoverable_states)). An application that reports a broken liveness state and then recovers from it
+  must set `systemd.status-providers.availability.unhealthy-delay`. Triggering the watchdog requires systemd 243 or later: older versions restart the
+  application once `WatchdogSec` elapses, as before.
 * [HealthProvider.Health](apidocs/com/github/jpmsilva/jsystemd/HealthProvider.Health.html) has a third component, `unrecoverable`. Creating it with
   `new Health(healthy, details)` still works; code that takes it apart with a record pattern must add the component.
 * Under Spring Boot, the status has new parts by default when their libraries are used: the progress of the Flyway migrations, which also extend the
@@ -28,8 +29,9 @@
 
 ### Other changes
 
-* The watchdog can be triggered, with [Health.unrecoverable(...)](apidocs/com/github/jpmsilva/jsystemd/HealthProvider.Health.html) from a health
-  provider, or with [Systemd.triggerWatchdog()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html).
+* The watchdog can be [triggered](https://www.freedesktop.org/software/systemd/man/sd_notify.html#WATCHDOG=trigger), with
+  [Health.unrecoverable(...)](apidocs/com/github/jpmsilva/jsystemd/HealthProvider.Health.html) from a health provider, or with
+  [Systemd.triggerWatchdog()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html).
 * New status providers in the core library, for the virtual threads, and for the pressure and the tasks of the control group of the service, the latter
   with a health condition; the garbage collection one has a health condition as well (see [Status providers](status-providers.html) and
   [Health providers](health-providers.html)). Under Spring Boot, they are `virtual-threads`, `cgroup-pressure` and `cgroup-tasks`, all opted into.

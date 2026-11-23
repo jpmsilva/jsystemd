@@ -108,9 +108,10 @@ systemd.addHealthProviders(() -> consumer.isDead()
     : HealthProvider.Health.HEALTHY);
 ```
 
-The heartbeat is suppressed as for any other unhealthy state, and the watchdog is also triggered right away: systemd is told that the application
-detected an error it cannot recover from, which it handles as it does a watchdog timeout, without waiting for one. By default, systemd aborts the
-application, and then restarts it when the service unit says so, as with `Restart=on-watchdog` or `Restart=on-failure`.
+The heartbeat is suppressed as for any other unhealthy state, and the watchdog is also triggered right away, with
+[WATCHDOG=trigger](https://www.freedesktop.org/software/systemd/man/sd_notify.html#WATCHDOG=trigger): systemd is told that the application detected an
+error it cannot recover from, which it handles as it does a watchdog timeout, without waiting for one. By default, systemd aborts the application, and
+then restarts it when the service unit says so, as with `Restart=on-watchdog` or `Restart=on-failure`.
 
 Triggering the watchdog requires systemd 243 or later. Older versions ignore it, and restart the application once `WatchdogSec` elapses, as the heartbeat
 is suppressed all the same.
