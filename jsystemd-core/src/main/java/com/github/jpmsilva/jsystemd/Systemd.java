@@ -119,6 +119,9 @@ public class Systemd {
   // changed while holding the state lock, but read without it where nothing is sent
   private volatile State state = State.STARTING;
 
+  // whether systemd was told to trigger the watchdog, which it is only told once; guarded by the state lock
+  private boolean watchdogTriggered;
+
   // each type of periodic task runs on its own executor, so that none can delay another: in particular, the status updates call the status providers, some
   // of which may be slow (such as health checks), and must not delay the watchdog heartbeats nor the timeout extensions
 
@@ -711,7 +714,8 @@ public class Systemd {
    *
    * <p>The watchdog timestamp is only updated once {@link #ready()} is called, and until {@link #stopping()} is called: systemd only enforces the watchdog
    * once the startup is complete, and enforces <code>TimeoutStartSec</code> until then. If any health provider reports the application as unhealthy, the
-   * watchdog timestamp is not updated either.
+   * watchdog timestamp is not updated either, and if any reports a state the application cannot recover from, the watchdog is also triggered right away,
+   * with {@link #triggerWatchdog()}.
    */
   public void watchdog() {
     // systemd handles a heartbeat without checking the state of the service, so a heartbeat sent during startup could make it enforce the watchdog before
@@ -720,9 +724,15 @@ public class Systemd {
       logger.debug("Not triggering heartbeat to watchdog, as the application is not running (state={})", state);
       return;
     }
-    List<Map<String, Object>> details = unhealthyDetails();
-    if (!details.isEmpty()) {
-      logger.warn("Suppressing heartbeat to watchdog because application is unhealthy (details={})", details);
+    List<HealthProvider.Health> unhealthy = unhealthy();
+    if (!unhealthy.isEmpty()) {
+      logger.warn("Suppressing heartbeat to watchdog because application is unhealthy (details={})",
+          unhealthy.stream().map(HealthProvider.Health::details).toList());
+      // a state the application cannot recover from never resolves by itself, so systemd is told right away, rather than left to find out once
+      // WatchdogSec elapses; the heartbeat is suppressed all the same, which is what the versions of systemd that ignore the trigger go by
+      if (unhealthy.stream().anyMatch(HealthProvider.Health::unrecoverable)) {
+        triggerWatchdog();
+      }
       return;
     }
     boolean sent = false;
@@ -743,17 +753,41 @@ public class Systemd {
     }
   }
 
-  // the details of each unhealthy health provider, in the order of the providers, or none if the application is healthy: every provider is asked, so that
+  // the health of each unhealthy health provider, in the order of the providers, or none if the application is healthy: every provider is asked, so that
   // the details of all the unhealthy ones are logged, and they are kept apart, as different providers may use the same keys, such as livenessState
-  List<Map<String, Object>> unhealthyDetails() {
-    List<Map<String, Object>> details = new ArrayList<>();
+  List<HealthProvider.Health> unhealthy() {
+    List<HealthProvider.Health> unhealthy = new ArrayList<>();
     for (HealthProvider provider : healthProviders) {
       HealthProvider.Health health = health(provider);
       if (!health.healthy()) {
-        details.add(health.details());
+        unhealthy.add(health);
       }
     }
-    return details;
+    return unhealthy;
+  }
+
+  /**
+   * Tells systemd that the application detected an error it cannot recover from, so that systemd handles it as it does a watchdog timeout, right away,
+   * rather than once <code>WatchdogSec</code> elapses without a heartbeat: by default, it aborts the application, and then restarts it when the service
+   * unit says so, as with <code>Restart=on-watchdog</code> or <code>Restart=on-failure</code>.
+   *
+   * <p>{@link #watchdog()} calls this method when a health provider reports such a state (see {@link HealthProvider.Health#unrecoverable(Map)}), so
+   * applications that report their health through health providers do not need to. It is there for the applications that detect such an error by other
+   * means.
+   *
+   * <p>Requires systemd 243 or later, which handles it even when the service unit does not set <code>WatchdogSec</code>; older versions ignore it. Only
+   * the first call notifies systemd, later calls have no effect. Does nothing once the application is stopping, as it is then on its way out.
+   */
+  public void triggerWatchdog() {
+    stateLock.lock();
+    try {
+      if (state != State.STOPPING && !watchdogTriggered) {
+        watchdogTriggered = true;
+        SystemdNotify.watchdogTrigger();
+      }
+    } finally {
+      stateLock.unlock();
+    }
   }
 
   // a health provider that throws is unhealthy, as it cannot tell that the application is healthy, but the other providers are still asked

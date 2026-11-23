@@ -63,6 +63,18 @@ class DelayableHealthProviderTest {
   }
 
   @Test
+  void keepsAnUnrecoverableStateUnrecoverableOnceTheDelayElapses() {
+    HealthProvider.Health unrecoverable = HealthProvider.Health.unrecoverable(Map.of("livenessState", "BROKEN"));
+    provider.setUnhealthyDelay(Duration.ofSeconds(60));
+    provider.health = unrecoverable;
+
+    // the watchdog is not triggered while the unhealthy state is delayed
+    assertThat(provider.health()).isEqualTo(HealthProvider.Health.HEALTHY);
+    advance(Duration.ofSeconds(60));
+    assertThat(provider.health()).isEqualTo(unrecoverable);
+  }
+
+  @Test
   void reportsTheUnhealthyStateRightAwayWithAZeroDelay() {
     provider.setUnhealthyDelay(Duration.ZERO);
     provider.health = UNHEALTHY;

@@ -18,6 +18,7 @@ package com.github.jpmsilva.jsystemd.spring.autoconfigure;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.entry;
+import static org.awaitility.Awaitility.await;
 
 import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
@@ -25,6 +26,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.read.ListAppender;
 import com.github.jpmsilva.jsystemd.BufferPoolStatusProvider;
 import com.github.jpmsilva.jsystemd.CgroupMemoryStatusProvider;
+import com.github.jpmsilva.jsystemd.CgroupTasksStatusProvider;
 import com.github.jpmsilva.jsystemd.ClassLoaderStatusProvider;
 import com.github.jpmsilva.jsystemd.CpuStatusProvider;
 import com.github.jpmsilva.jsystemd.DelayableHealthProvider;
@@ -42,19 +44,33 @@ import com.github.jpmsilva.jsystemd.SystemdProcess;
 import com.github.jpmsilva.jsystemd.ThreadStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.ActuatorHealthStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.AvailabilityStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.BuildInfoStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.FlywayStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.HikariStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.JettyStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.JmsListenerStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.KafkaListenerStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.LiquibaseStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.MicrometerStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.NettyStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.R2dbcPoolStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.RabbitListenerStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.ScheduledTaskStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.ShutdownStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.SpringProviders;
 import com.github.jpmsilva.jsystemd.spring.SystemdLifecycle;
 import com.github.jpmsilva.jsystemd.spring.TaskExecutorStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.TomcatStatusProvider;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 import org.jspecify.annotations.NonNull;
@@ -69,6 +85,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.listener.ListenerContainerConsumerFailedEvent;
+import org.springframework.amqp.rabbit.listener.MessageListenerContainer;
+import org.springframework.amqp.rabbit.listener.SimpleMessageListenerContainer;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
@@ -77,6 +96,7 @@ import org.springframework.boot.availability.AvailabilityChangeEvent;
 import org.springframework.boot.availability.LivenessState;
 import org.springframework.boot.availability.ReadinessState;
 import org.springframework.boot.context.properties.source.InvalidConfigurationPropertyValueException;
+import org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration;
 import org.springframework.boot.health.autoconfigure.actuate.endpoint.AvailabilityProbesAutoConfiguration;
 import org.springframework.boot.health.autoconfigure.actuate.endpoint.HealthEndpointAutoConfiguration;
 import org.springframework.boot.health.autoconfigure.application.AvailabilityHealthContributorAutoConfiguration;
@@ -86,12 +106,21 @@ import org.springframework.boot.health.contributor.Health;
 import org.springframework.boot.health.contributor.HealthContributor;
 import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.boot.health.registry.ReactiveHealthContributorRegistry;
+import org.springframework.boot.info.BuildProperties;
+import org.springframework.boot.info.GitProperties;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
 import org.springframework.boot.liquibase.autoconfigure.LiquibaseAutoConfiguration;
+import org.springframework.boot.micrometer.metrics.autoconfigure.CompositeMeterRegistryAutoConfiguration;
+import org.springframework.boot.micrometer.metrics.autoconfigure.MetricsAutoConfiguration;
+import org.springframework.boot.micrometer.metrics.autoconfigure.export.simple.SimpleMetricsExportAutoConfiguration;
+import org.springframework.boot.r2dbc.autoconfigure.R2dbcAutoConfiguration;
 import org.springframework.boot.test.context.FilteredClassLoader;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.context.support.GenericApplicationContext;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
 
 /**
  * Tests for {@link SystemdAutoConfiguration}.
@@ -156,13 +185,15 @@ class SystemdAutoConfigurationTest {
   }
 
   /**
-   * The status providers enabled by default, in the order of the systemd status: the Liquibase one first, as it is registered as soon as it is created,
-   * to report the migrations run on startup, and then the beans, in their order.
+   * The status providers enabled by default, in the order of the systemd status: the Liquibase and Flyway ones first, as they are registered as soon as
+   * they are created, to report the migrations run on startup, and then the beans, in their order.
    */
-  private static final List<String> DEFAULT_STATUS_PROVIDERS = List.of("LiquibaseStatusProvider", "ShutdownStatusProvider", "PhaseStatusProvider",
+  private static final List<String> DEFAULT_STATUS_PROVIDERS = List.of("LiquibaseStatusProvider", "FlywayStatusProvider", "ShutdownStatusProvider",
+      "PhaseStatusProvider",
       "ActuatorHealthStatusProvider", "AvailabilityStatusProvider", "HeapStatusProvider", "OldGenerationStatusProvider", "CgroupMemoryStatusProvider",
       "HikariStatusProvider", "ThreadStatusProvider", "FileDescriptorStatusProvider", "TomcatStatusProvider", "JettyStatusProvider", "NettyStatusProvider",
-      "TaskExecutorStatusProvider", "NonHeapStatusProvider", "BufferPoolStatusProvider", "ClassLoaderStatusProvider");
+      "TaskExecutorStatusProvider", "KafkaListenerStatusProvider", "RabbitListenerStatusProvider", "JmsListenerStatusProvider", "NonHeapStatusProvider",
+      "BufferPoolStatusProvider", "ClassLoaderStatusProvider");
 
   @Test
   void allBuiltInStatusProvidersAreEnabledByDefaultExceptTheOptedIntoOnes() {
@@ -175,6 +206,9 @@ class SystemdAutoConfigurationTest {
       assertThat(context).hasBean("systemdActuatorHealthStatusProvider");
       assertThat(context).doesNotHaveBean("systemdGarbageCollectionStatusProvider");
       assertThat(context).doesNotHaveBean("systemdCpuStatusProvider");
+      assertThat(context).doesNotHaveBean("systemdCgroupPressureStatusProvider");
+      assertThat(context).doesNotHaveBean("systemdVirtualThreadStatusProvider");
+      assertThat(context).doesNotHaveBean("systemdCgroupTasksStatusProvider");
       assertThat(Systemd.instance().getStatusProviders()).extracting(p -> p.getClass().getSimpleName())
           .containsExactlyElementsOf(DEFAULT_STATUS_PROVIDERS);
     });
@@ -182,8 +216,12 @@ class SystemdAutoConfigurationTest {
 
   @ParameterizedTest
   @CsvSource({
-      "garbage-collection, systemdGarbageCollectionStatusProvider, GarbageCollectionStatusProvider, TaskExecutorStatusProvider",
-      "cpu, systemdCpuStatusProvider, CpuStatusProvider, TaskExecutorStatusProvider"
+      "garbage-collection, systemdGarbageCollectionStatusProvider, GarbageCollectionStatusProvider, JmsListenerStatusProvider",
+      "cpu, systemdCpuStatusProvider, CpuStatusProvider, JmsListenerStatusProvider",
+      "r2dbc, systemdR2dbcPoolStatusProvider, R2dbcPoolStatusProvider, HikariStatusProvider",
+      "cgroup-pressure, systemdCgroupPressureStatusProvider, CgroupPressureStatusProvider, CgroupMemoryStatusProvider",
+      "virtual-threads, systemdVirtualThreadStatusProvider, VirtualThreadStatusProvider, ThreadStatusProvider",
+      "cgroup-tasks, systemdCgroupTasksStatusProvider, CgroupTasksStatusProvider, FileDescriptorStatusProvider"
   })
   void optedIntoStatusProvidersCanBeEnabled(String property, String beanName, String providerClass, String previousProviderClass) {
     runner.withPropertyValues("systemd.status-providers." + property + ".enabled=true").run(context -> {
@@ -207,7 +245,7 @@ class SystemdAutoConfigurationTest {
           List<StatusProvider> providers = Systemd.instance().getStatusProviders();
           // the registered ones first, in their order, then the beans in their order, without adding a registered one again
           assertThat(providers).startsWith(registered, registeredBean, context.getBean(LiquibaseStatusProvider.class),
-              context.getBean(ShutdownStatusProvider.class), context.getBean(PhaseStatusProvider.class),
+              context.getBean(FlywayStatusProvider.class), context.getBean(ShutdownStatusProvider.class), context.getBean(PhaseStatusProvider.class),
               context.getBean(ActuatorHealthStatusProvider.class));
           assertThat(providers).endsWith(context.getBean("systemdClassLoaderStatusProvider", StatusProvider.class)).doesNotHaveDuplicates();
         });
@@ -240,6 +278,10 @@ class SystemdAutoConfigurationTest {
       "hikari, systemdHikariStatusProvider, HikariStatusProvider",
       "task-executors, systemdTaskExecutorStatusProvider, TaskExecutorStatusProvider",
       "liquibase, systemdLiquibaseStatusProvider, LiquibaseStatusProvider",
+      "flyway, systemdFlywayStatusProvider, FlywayStatusProvider",
+      "kafka-listeners, systemdKafkaListenerStatusProvider, KafkaListenerStatusProvider",
+      "rabbit-listeners, systemdRabbitListenerStatusProvider, RabbitListenerStatusProvider",
+      "jms-listeners, systemdJmsListenerStatusProvider, JmsListenerStatusProvider",
       "actuator-health, systemdActuatorHealthStatusProvider, ActuatorHealthStatusProvider"
   })
   void statusProviderCanBeDisabled(String property, String beanName, String providerClass) {
@@ -279,7 +321,15 @@ class SystemdAutoConfigurationTest {
         Arguments.of(JettyStatusProvider.class, (Supplier<StatusProvider>) JettyStatusProvider::new),
         Arguments.of(NettyStatusProvider.class, (Supplier<StatusProvider>) NettyStatusProvider::new),
         Arguments.of(HikariStatusProvider.class,
-            (Supplier<StatusProvider>) () -> new HikariStatusProvider(new DefaultListableBeanFactory(), true)));
+            (Supplier<StatusProvider>) () -> new HikariStatusProvider(new DefaultListableBeanFactory(), true)),
+        Arguments.of(R2dbcPoolStatusProvider.class,
+            (Supplier<StatusProvider>) () -> new R2dbcPoolStatusProvider(new DefaultListableBeanFactory(), true)),
+        Arguments.of(KafkaListenerStatusProvider.class,
+            (Supplier<StatusProvider>) () -> new KafkaListenerStatusProvider(new DefaultListableBeanFactory(), true)),
+        Arguments.of(RabbitListenerStatusProvider.class,
+            (Supplier<StatusProvider>) () -> new RabbitListenerStatusProvider(new DefaultListableBeanFactory(), true)),
+        Arguments.of(JmsListenerStatusProvider.class,
+            (Supplier<StatusProvider>) () -> new JmsListenerStatusProvider(new DefaultListableBeanFactory(), true)));
   }
 
   @ParameterizedTest
@@ -312,7 +362,9 @@ class SystemdAutoConfigurationTest {
   void enabledHealthStatusProvidersAreAlwaysHealthProviders() {
     runner.run(context -> assertThat(Systemd.instance().getHealthProviders()).containsExactlyInAnyOrder(
         context.getBean(ActuatorHealthStatusProvider.class), context.getBean(ThreadStatusProvider.class), context.getBean(FileDescriptorStatusProvider.class),
-        context.getBean(HikariStatusProvider.class), context.getBean(AvailabilityStatusProvider.class)));
+        context.getBean(HikariStatusProvider.class), context.getBean(KafkaListenerStatusProvider.class), context.getBean(RabbitListenerStatusProvider.class),
+        context.getBean(JmsListenerStatusProvider.class), context.getBean(AvailabilityStatusProvider.class), context.getBean(TomcatStatusProvider.class),
+        context.getBean(JettyStatusProvider.class)));
   }
 
   @Test
@@ -326,6 +378,8 @@ class SystemdAutoConfigurationTest {
       assertThat(SystemdProcess.healthEnabled(context.getBean(FileDescriptorStatusProvider.class))).isFalse();
       assertThat(SpringProviders.healthEnabled(context.getBean(HikariStatusProvider.class))).isFalse();
       assertThat(SpringProviders.healthEnabled(context.getBean(AvailabilityStatusProvider.class))).isFalse();
+      assertThat(SpringProviders.healthEnabled(context.getBean(TomcatStatusProvider.class))).isFalse();
+      assertThat(SpringProviders.healthEnabled(context.getBean(JettyStatusProvider.class))).isFalse();
     });
   }
 
@@ -511,7 +565,9 @@ class SystemdAutoConfigurationTest {
         assertThat(Systemd.instance().getHealthProviders()).containsExactlyInAnyOrder(custom,
             context.getBean(ActuatorHealthStatusProvider.class), context.getBean(ThreadStatusProvider.class),
             context.getBean(FileDescriptorStatusProvider.class), context.getBean(HikariStatusProvider.class),
-            context.getBean(AvailabilityStatusProvider.class)));
+            context.getBean(KafkaListenerStatusProvider.class), context.getBean(RabbitListenerStatusProvider.class),
+            context.getBean(JmsListenerStatusProvider.class), context.getBean(AvailabilityStatusProvider.class),
+            context.getBean(TomcatStatusProvider.class), context.getBean(JettyStatusProvider.class)));
   }
 
   @Test
@@ -526,7 +582,9 @@ class SystemdAutoConfigurationTest {
         .run(context -> assertThat(Systemd.instance().getHealthProviders()).startsWith(registered, registeredBean)
             .containsExactlyInAnyOrder(registered, registeredBean, context.getBean(ThreadStatusProvider.class),
                 context.getBean(FileDescriptorStatusProvider.class), context.getBean(HikariStatusProvider.class),
-                context.getBean(AvailabilityStatusProvider.class)));
+                context.getBean(KafkaListenerStatusProvider.class), context.getBean(RabbitListenerStatusProvider.class),
+                context.getBean(JmsListenerStatusProvider.class), context.getBean(AvailabilityStatusProvider.class),
+                context.getBean(TomcatStatusProvider.class), context.getBean(JettyStatusProvider.class)));
   }
 
   @Test
@@ -567,13 +625,13 @@ class SystemdAutoConfigurationTest {
   @Test
   void noThreadHealthProviderWhenThreadStatusProviderIsDisabled() {
     runner.withPropertyValues("systemd.status-providers.threads.enabled=false").run(context ->
-        assertThat(Systemd.instance().getHealthProviders()).doesNotHaveAnyElementsOfTypes(ThreadStatusProvider.class).hasSize(4));
+        assertThat(Systemd.instance().getHealthProviders()).doesNotHaveAnyElementsOfTypes(ThreadStatusProvider.class).hasSize(9));
   }
 
   @Test
   void noActuatorHealthProviderWhenActuatorStatusProviderIsDisabled() {
     runner.withPropertyValues("systemd.status-providers.actuator-health.enabled=false").run(context ->
-        assertThat(Systemd.instance().getHealthProviders()).doesNotHaveAnyElementsOfTypes(ActuatorHealthStatusProvider.class).hasSize(4));
+        assertThat(Systemd.instance().getHealthProviders()).doesNotHaveAnyElementsOfTypes(ActuatorHealthStatusProvider.class).hasSize(9));
   }
 
   @Test
@@ -581,7 +639,7 @@ class SystemdAutoConfigurationTest {
     runner.withClassLoader(new FilteredClassLoader(HealthIndicator.class)).run(context -> {
       assertThat(context).hasNotFailed();
       assertThat(context).doesNotHaveBean(ActuatorHealthStatusProvider.class);
-      assertThat(Systemd.instance().getHealthProviders()).doesNotHaveAnyElementsOfTypes(ActuatorHealthStatusProvider.class).hasSize(4);
+      assertThat(Systemd.instance().getHealthProviders()).doesNotHaveAnyElementsOfTypes(ActuatorHealthStatusProvider.class).hasSize(9);
     });
   }
 
@@ -663,8 +721,63 @@ class SystemdAutoConfigurationTest {
             .hasMessageContaining("systemd.status-providers.file-descriptors.threshold"));
   }
 
+  @Test
+  void cgroupTasksHealthIsConfiguredWithItsProperties() {
+    runner.withPropertyValues("systemd.status-providers.cgroup-tasks.enabled=true", "systemd.status-providers.cgroup-tasks.health=true",
+        "systemd.status-providers.cgroup-tasks.threshold=0.75", "systemd.status-providers.cgroup-tasks.unhealthy-delay=30s").run(context -> {
+          CgroupTasksStatusProvider provider = context.getBean(CgroupTasksStatusProvider.class);
+          assertThat(SystemdProcess.healthEnabled(provider)).isTrue();
+          assertThat(SystemdProcess.threshold(provider)).isEqualTo(0.75);
+          assertThat(provider.getUnhealthyDelay()).isEqualTo(Duration.ofSeconds(30));
+          assertThat(Systemd.instance().getHealthProviders()).contains(provider);
+        });
+  }
+
+  @Test
+  void cgroupTasksHealthIsOptedIntoWithAThresholdOf90PercentAndNoDelayByDefault() {
+    runner.withPropertyValues("systemd.status-providers.cgroup-tasks.enabled=true").run(context -> {
+      CgroupTasksStatusProvider provider = context.getBean(CgroupTasksStatusProvider.class);
+      assertThat(SystemdProcess.healthEnabled(provider)).isFalse();
+      assertThat(SystemdProcess.threshold(provider)).isEqualTo(0.9);
+      assertThat(provider.getUnhealthyDelay()).isNull();
+    });
+  }
+
+  @Test
+  void garbageCollectionHealthIsConfiguredWithItsProperties() {
+    runner.withPropertyValues("systemd.status-providers.garbage-collection.enabled=true", "systemd.status-providers.garbage-collection.health=true",
+        "systemd.status-providers.garbage-collection.threshold=0.8", "systemd.status-providers.garbage-collection.unhealthy-delay=5m").run(context -> {
+          GarbageCollectionStatusProvider provider = context.getBean(GarbageCollectionStatusProvider.class);
+          assertThat(SystemdProcess.healthEnabled(provider)).isTrue();
+          assertThat(SystemdProcess.threshold(provider)).isEqualTo(0.8);
+          assertThat(provider.getUnhealthyDelay()).isEqualTo(Duration.ofMinutes(5));
+          assertThat(Systemd.instance().getHealthProviders()).contains(provider);
+        });
+  }
+
+  @Test
+  void garbageCollectionHealthIsOptedIntoWithAThresholdOf50PercentAndADelayOfOneMinuteByDefault() {
+    runner.withPropertyValues("systemd.status-providers.garbage-collection.enabled=true").run(context -> {
+      GarbageCollectionStatusProvider provider = context.getBean(GarbageCollectionStatusProvider.class);
+      assertThat(SystemdProcess.healthEnabled(provider)).isFalse();
+      assertThat(SystemdProcess.threshold(provider)).isEqualTo(0.5);
+      assertThat(provider.getUnhealthyDelay()).isEqualTo(Duration.ofMinutes(1));
+    });
+  }
+
   @ParameterizedTest
-  @ValueSource(strings = {"availability", "file-descriptors", "hikari", "actuator-health"})
+  @CsvSource({"cgroup-tasks, 0", "cgroup-tasks, 1.5", "garbage-collection, 0", "garbage-collection, 1.5"})
+  void failsWithAThresholdOutOfRange(String key, String threshold) {
+    runner.withPropertyValues("systemd.status-providers." + key + ".threshold=" + threshold)
+        .run(context -> assertThat(context).hasFailed().getFailure()
+            .rootCause()
+            .isInstanceOf(InvalidConfigurationPropertyValueException.class)
+            .hasMessageContaining("systemd.status-providers." + key + ".threshold"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"availability", "file-descriptors", "cgroup-tasks", "garbage-collection", "hikari", "kafka-listeners", "rabbit-listeners",
+      "jms-listeners", "r2dbc", "actuator-health"})
   void failsWithANegativeUnhealthyDelay(String key) {
     runner.withPropertyValues("systemd.status-providers." + key + ".unhealthy-delay=-1s")
         .run(context -> assertThat(context).hasFailed().getFailure()
@@ -714,12 +827,94 @@ class SystemdAutoConfigurationTest {
     });
   }
 
+  @Test
+  void r2dbcPoolsAreOnlyReportedOnceOptedInto() {
+    runner.run(context -> assertThat(context).doesNotHaveBean(R2dbcPoolStatusProvider.class));
+  }
+
+  @Test
+  void r2dbcHealthIsDelayedByOneMinuteByDefault() {
+    runner.withPropertyValues("systemd.status-providers.r2dbc.enabled=true").run(context -> {
+      R2dbcPoolStatusProvider provider = context.getBean(R2dbcPoolStatusProvider.class);
+      assertThat(SpringProviders.healthEnabled(provider)).isFalse();
+      assertThat(provider.getUnhealthyDelay()).isEqualTo(Duration.ofMinutes(1));
+    });
+  }
+
+  @Test
+  void r2dbcHealthIsConfiguredWithItsProperties() {
+    runner.withPropertyValues("systemd.status-providers.r2dbc.enabled=true", "systemd.status-providers.r2dbc.health=true",
+        "systemd.status-providers.r2dbc.unhealthy-delay=0").run(context -> {
+          R2dbcPoolStatusProvider provider = context.getBean(R2dbcPoolStatusProvider.class);
+          assertThat(SpringProviders.healthEnabled(provider)).isTrue();
+          assertThat(provider.getUnhealthyDelay()).isZero();
+        });
+  }
+
+  @Test
+  void r2dbcStatusProviderRequiresTheLibrary() {
+    runner.withPropertyValues("systemd.status-providers.r2dbc.enabled=true").withClassLoader(new FilteredClassLoader("io.r2dbc.pool.ConnectionPool"))
+        .run(context -> assertThat(context).hasNotFailed().doesNotHaveBean("systemdR2dbcPoolStatusProvider"));
+  }
+
+  @Test
+  void listenerHealthIsNeitherSignalledNorDelayedByDefault() {
+    runner.run(context -> {
+      KafkaListenerStatusProvider kafka = context.getBean(KafkaListenerStatusProvider.class);
+      assertThat(SpringProviders.healthEnabled(kafka)).isFalse();
+      assertThat(kafka.getUnhealthyDelay()).isNull();
+      RabbitListenerStatusProvider rabbit = context.getBean(RabbitListenerStatusProvider.class);
+      assertThat(SpringProviders.healthEnabled(rabbit)).isFalse();
+      assertThat(rabbit.getUnhealthyDelay()).isNull();
+      JmsListenerStatusProvider jms = context.getBean(JmsListenerStatusProvider.class);
+      assertThat(SpringProviders.healthEnabled(jms)).isFalse();
+      assertThat(jms.getUnhealthyDelay()).isNull();
+    });
+  }
+
+  @Test
+  void listenerHealthIsConfiguredWithThePropertiesOfEachLibrary() {
+    runner.withPropertyValues("systemd.status-providers.kafka-listeners.health=true", "systemd.status-providers.kafka-listeners.unhealthy-delay=30s",
+        "systemd.status-providers.rabbit-listeners.unhealthy-delay=1m", "systemd.status-providers.jms-listeners.health=true").run(context -> {
+          KafkaListenerStatusProvider kafka = context.getBean(KafkaListenerStatusProvider.class);
+          assertThat(SpringProviders.healthEnabled(kafka)).isTrue();
+          assertThat(kafka.getUnhealthyDelay()).isEqualTo(Duration.ofSeconds(30));
+          RabbitListenerStatusProvider rabbit = context.getBean(RabbitListenerStatusProvider.class);
+          assertThat(SpringProviders.healthEnabled(rabbit)).isFalse();
+          assertThat(rabbit.getUnhealthyDelay()).isEqualTo(Duration.ofMinutes(1));
+          JmsListenerStatusProvider jms = context.getBean(JmsListenerStatusProvider.class);
+          assertThat(SpringProviders.healthEnabled(jms)).isTrue();
+          assertThat(jms.getUnhealthyDelay()).isNull();
+        });
+  }
+
+  @Test
+  void rabbitListenerFailuresAreLearnedFromTheEventsOfTheApplicationContext() {
+    // one that is stopped
+    SimpleMessageListenerContainer container = Mockito.mock(SimpleMessageListenerContainer.class);
+
+    runner.withPropertyValues("systemd.status-providers.rabbit-listeners.health=true")
+        .withBean("ordersContainer", MessageListenerContainer.class, () -> container).run(context -> {
+          RabbitListenerStatusProvider provider = context.getBean(RabbitListenerStatusProvider.class);
+          assertThat(provider.health()).isEqualTo(HealthProvider.Health.HEALTHY);
+
+          // as the container does once it stops by itself
+          context.publishEvent(new ListenerContainerConsumerFailedEvent(container, "fatal", new IllegalStateException("fatal"), true));
+
+          assertThat(provider.health().details()).containsExactly(entry("failedListenerContainers", List.of("ordersContainer")));
+        });
+  }
+
   @ParameterizedTest
   @CsvSource({
       "org.eclipse.jetty.server.Server, JettyStatusProvider",
       "reactor.netty.http.server.HttpServer, NettyStatusProvider",
       "com.zaxxer.hikari.HikariDataSource, HikariStatusProvider",
       "liquibase.integration.spring.SpringLiquibase, LiquibaseStatusProvider",
+      "org.flywaydb.core.Flyway, FlywayStatusProvider",
+      "org.springframework.kafka.config.KafkaListenerEndpointRegistry, KafkaListenerStatusProvider",
+      "org.springframework.amqp.rabbit.listener.RabbitListenerEndpointRegistry, RabbitListenerStatusProvider",
+      "jakarta.jms.Message, JmsListenerStatusProvider",
       "org.apache.catalina.startup.Tomcat, TomcatStatusProvider"
   })
   void statusProvidersOfLibrariesRequireTheLibrary(String libraryClass, String providerClass) {
@@ -746,6 +941,32 @@ class SystemdAutoConfigurationTest {
     }
   }
 
+  @Test
+  void reportsTheFlywayMigrationsOfSpringBoot() {
+    try (MockedStatic<SystemdNotify> notify = Mockito.mockStatic(SystemdNotify.class)) {
+      runner.withConfiguration(AutoConfigurations.of(DataSourceAutoConfiguration.class, FlywayAutoConfiguration.class))
+          .withPropertyValues("spring.datasource.url=jdbc:h2:mem:" + UUID.randomUUID(), "spring.flyway.locations=classpath:db/flyway")
+          .run(context -> {
+            assertThat(context).hasNotFailed();
+            // the migrations ran while the context started, and were reported as they did
+            notify.verify(SystemdProcess.status(() -> Mockito.contains("Flyway: applying migration 1 create users (0 applied)")));
+            notify.verify(SystemdProcess.status(() -> Mockito.contains("Flyway: applying migration 3 index orders (2 applied)")));
+            assertThat(context.getBean(FlywayStatusProvider.class).status()).isEmpty();
+          });
+    }
+  }
+
+  @Test
+  void reportsTheR2dbcConnectionPoolOfSpringBootOnceOptedInto() {
+    runner.withConfiguration(AutoConfigurations.of(R2dbcAutoConfiguration.class))
+        .withPropertyValues("spring.r2dbc.url=r2dbc:h2:mem:///" + UUID.randomUUID(), "systemd.status-providers.r2dbc.enabled=true")
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          // the connection factory of Spring Boot wraps the pool
+          assertThat(context.getBean(R2dbcPoolStatusProvider.class).status()).isEqualTo("connectionFactory: 0/10 connections, 0 waiting");
+        });
+  }
+
   private static List<String> warnings(ApplicationContextRunner runner) {
     return logged(runner).stream().filter(event -> event.getLevel() == Level.WARN).map(ILoggingEvent::getFormattedMessage).toList();
   }
@@ -761,5 +982,180 @@ class SystemdAutoConfigurationTest {
       logger.detachAppender(appender);
     }
     return appender.list;
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "scheduled-tasks, systemdScheduledTaskStatusProvider, ScheduledTaskStatusProvider, TaskExecutorStatusProvider",
+      "micrometer, systemdMicrometerStatusProvider, MicrometerStatusProvider, ClassLoaderStatusProvider",
+      "version, systemdBuildInfoStatusProvider, BuildInfoStatusProvider, ClassLoaderStatusProvider"
+  })
+  void scheduledTasksMicrometerAndVersionAreOptedInto(String property, String beanName, String providerClass, String previousProviderClass) {
+    runner.run(context -> assertThat(context).doesNotHaveBean(beanName));
+
+    optedIntoStatusProvidersCanBeEnabled(property, beanName, providerClass, previousProviderClass);
+  }
+
+  @Test
+  void theMetersComeAfterTheOtherStatusProvidersAndTheVersionLast() {
+    runner.withPropertyValues("systemd.status-providers.micrometer.enabled=true", "systemd.status-providers.version.enabled=true")
+        .run(context -> assertThat(Systemd.instance().getStatusProviders()).extracting(p -> p.getClass().getSimpleName())
+            .endsWith("ClassLoaderStatusProvider", "MicrometerStatusProvider", "BuildInfoStatusProvider"));
+  }
+
+  @Test
+  void reportsTheScheduledMethodsOfTheApplication() {
+    runner.withUserConfiguration(ScheduledConfiguration.class).withPropertyValues("systemd.status-providers.scheduled-tasks.enabled=true")
+        .run(context -> {
+          ScheduledTaskStatusProvider provider = context.getBean(ScheduledTaskStatusProvider.class);
+          // both methods ran once the context was refreshed, and one of them failed
+          await().untilAsserted(() -> assertThat(provider.status()).isEqualTo("Scheduled tasks: 2 (1 failing)"));
+        });
+  }
+
+  @Configuration(proxyBeanMethods = false)
+  @EnableScheduling
+  static class ScheduledConfiguration {
+
+    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.HOURS)
+    void succeeding() {
+      // only its outcome matters
+    }
+
+    @Scheduled(fixedDelay = 1, timeUnit = TimeUnit.HOURS)
+    void failing() {
+      throw new IllegalStateException("failure");
+    }
+  }
+
+  @Test
+  void reportsTheVersionFromTheBuildInformationOfSpringBoot() {
+    // as Spring Boot sets them up from META-INF/build-info.properties and git.properties
+    Properties build = new Properties();
+    build.setProperty("version", "1.4.2");
+    Properties git = new Properties();
+    git.setProperty("commit.id", "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678");
+
+    runner.withPropertyValues("systemd.status-providers.version.enabled=true")
+        .withBean(BuildProperties.class, () -> new BuildProperties(build))
+        .withBean(GitProperties.class, () -> new GitProperties(git))
+        .run(context -> assertThat(context.getBean(BuildInfoStatusProvider.class).status()).isEqualTo("Version: 1.4.2 (a1b2c3d)"));
+  }
+
+  @Test
+  void reportsNoVersionWithoutBuildInformation() {
+    runner.withPropertyValues("systemd.status-providers.version.enabled=true").run(context -> {
+      assertThat(context).hasNotFailed();
+      assertThat(context.getBean(BuildInfoStatusProvider.class).status()).isEmpty();
+    });
+  }
+
+  @Test
+  void webServerHealthIsDelayedByOneMinuteByDefault() {
+    runner.run(context -> {
+      assertThat(context.getBean(TomcatStatusProvider.class).getUnhealthyDelay()).isEqualTo(Duration.ofMinutes(1));
+      assertThat(context.getBean(JettyStatusProvider.class).getUnhealthyDelay()).isEqualTo(Duration.ofMinutes(1));
+    });
+  }
+
+  @Test
+  void webServerHealthIsConfiguredWithItsProperties() {
+    runner.withPropertyValues("systemd.status-providers.tomcat.health=true", "systemd.status-providers.tomcat.unhealthy-delay=30s",
+        "systemd.status-providers.jetty.health=true", "systemd.status-providers.jetty.unhealthy-delay=0").run(context -> {
+          TomcatStatusProvider tomcat = context.getBean(TomcatStatusProvider.class);
+          assertThat(SpringProviders.healthEnabled(tomcat)).isTrue();
+          assertThat(tomcat.getUnhealthyDelay()).isEqualTo(Duration.ofSeconds(30));
+          JettyStatusProvider jetty = context.getBean(JettyStatusProvider.class);
+          assertThat(SpringProviders.healthEnabled(jetty)).isTrue();
+          assertThat(jetty.getUnhealthyDelay()).isZero();
+        });
+  }
+
+  @Test
+  void theHealthOfEachWebServerIsEnabledOnItsOwn() {
+    runner.withPropertyValues("systemd.status-providers.jetty.health=true").run(context -> {
+      assertThat(SpringProviders.healthEnabled(context.getBean(TomcatStatusProvider.class))).isFalse();
+      assertThat(SpringProviders.healthEnabled(context.getBean(JettyStatusProvider.class))).isTrue();
+    });
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"tomcat", "jetty"})
+  void failsWithANegativeUnhealthyDelayOfAWebServer(String key) {
+    failsWithANegativeUnhealthyDelay(key);
+  }
+
+  @ParameterizedTest
+  @CsvSource({
+      "tomcat, TomcatStatusProvider",
+      "jetty, JettyStatusProvider"
+  })
+  void noWebServerHealthProviderWhenItsStatusProviderIsDisabled(String key, String providerClass) {
+    runner.withPropertyValues("systemd.status-providers." + key + ".enabled=false").run(context ->
+        assertThat(Systemd.instance().getHealthProviders()).extracting(p -> p.getClass().getSimpleName()).doesNotContain(providerClass).hasSize(9));
+  }
+
+  private static final String MICROMETER = "systemd.status-providers.micrometer";
+
+  @Test
+  void showsTheConfiguredMetersOfTheMeterRegistry() {
+    SimpleMeterRegistry registry = new SimpleMeterRegistry();
+    Gauge.builder("hikaricp.connections.active", () -> 7).tag("pool", "primary").register(registry);
+    Gauge.builder("hikaricp.connections.active", () -> 2).tag("pool", "secondary").register(registry);
+    Counter.builder("orders.placed").register(registry).increment(3);
+
+    runner.withBean(MeterRegistry.class, () -> registry)
+        .withPropertyValues(MICROMETER + ".enabled=true",
+            MICROMETER + ".meters[0].name=hikaricp.connections.active",
+            MICROMETER + ".meters[0].tags.pool=primary",
+            MICROMETER + ".meters[0].label=Database connections",
+            MICROMETER + ".meters[1].name=orders.placed",
+            // not registered, so left out
+            MICROMETER + ".meters[2].name=orders.failed")
+        .run(context -> assertThat(context.getBean(MicrometerStatusProvider.class).status()).isEqualTo("Database connections: 7, orders.placed: 3"));
+  }
+
+  @Test
+  void findsTheMeterRegistryOfSpringBootAlthoughItsAutoconfigurationsComeAfterThisOne() {
+    runner.withConfiguration(AutoConfigurations.of(MetricsAutoConfiguration.class, CompositeMeterRegistryAutoConfiguration.class,
+            SimpleMetricsExportAutoConfiguration.class))
+        // the global registry is shared by all the tests
+        .withPropertyValues(MICROMETER + ".enabled=true", MICROMETER + ".meters[0].name=orders.placed", "management.metrics.use-global-registry=false")
+        .run(context -> {
+          assertThat(context).hasNotFailed();
+          Counter.builder("orders.placed").register(context.getBean(MeterRegistry.class)).increment(3);
+
+          assertThat(context.getBean(MicrometerStatusProvider.class).status()).isEqualTo("orders.placed: 3");
+        });
+  }
+
+  @Test
+  void warnsAndLooksUpTheMetersInTheGlobalRegistryWithoutAMeterRegistry() {
+    List<String> warnings = warnings(runner.withPropertyValues(MICROMETER + ".enabled=true", MICROMETER + ".meters[0].name=orders.placed"));
+
+    assertThat(warnings).singleElement().asString().contains("no meter registry").contains("global registry of Micrometer");
+  }
+
+  @Test
+  void doesNotLookForAMeterRegistryUnlessTheMetersAreEnabled() {
+    assertThat(warnings(runner)).isEmpty();
+  }
+
+  @Test
+  void theMetersRequireMicrometer() {
+    runner.withClassLoader(new FilteredClassLoader(MeterRegistry.class))
+        .withPropertyValues(MICROMETER + ".enabled=true", MICROMETER + ".meters[0].name=orders.placed").run(context -> {
+          assertThat(context).hasNotFailed();
+          assertThat(context).doesNotHaveBean("systemdMicrometerStatusProvider");
+        });
+  }
+
+  @Test
+  void failsWithAMeterWithoutAName() {
+    runner.withPropertyValues(MICROMETER + ".enabled=true", MICROMETER + ".meters[0].name=orders.placed", MICROMETER + ".meters[1].label=Failed orders")
+        .run(context -> assertThat(context).hasFailed().getFailure()
+            .rootCause()
+            .isInstanceOf(InvalidConfigurationPropertyValueException.class)
+            .hasMessageContaining("systemd.status-providers.micrometer.meters[1].name"));
   }
 }

@@ -111,6 +111,8 @@ class ThreadStatusProviderTest {
 
     assertThat(health.healthy()).isFalse();
     assertThat(health.details()).containsExactly(entry("deadlockedThreads", List.of("worker-1", "worker-2")));
+    // a deadlock never resolves by itself, so the watchdog is triggered right away
+    assertThat(health.unrecoverable()).isTrue();
   }
 
   @Test

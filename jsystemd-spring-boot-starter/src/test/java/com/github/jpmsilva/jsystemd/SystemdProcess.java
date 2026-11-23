@@ -124,6 +124,46 @@ public final class SystemdProcess {
   }
 
   /**
+   * Returns if the tasks about to run out report the application as unhealthy.
+   *
+   * @param provider the provider
+   * @return {@code true} if the tasks about to run out report the application as unhealthy
+   */
+  public static boolean healthEnabled(@NonNull CgroupTasksStatusProvider provider) {
+    return provider.healthEnabled();
+  }
+
+  /**
+   * Returns the share of the limit of tasks from which the application is unhealthy.
+   *
+   * @param provider the provider
+   * @return the share of the limit
+   */
+  public static double threshold(@NonNull CgroupTasksStatusProvider provider) {
+    return provider.threshold();
+  }
+
+  /**
+   * Returns if the time taken by the garbage collection pauses reports the application as unhealthy.
+   *
+   * @param provider the provider
+   * @return {@code true} if the time taken by the garbage collection pauses reports the application as unhealthy
+   */
+  public static boolean healthEnabled(@NonNull GarbageCollectionStatusProvider provider) {
+    return provider.healthEnabled();
+  }
+
+  /**
+   * Returns the share of the time taken by the garbage collection pauses from which the application is unhealthy.
+   *
+   * @param provider the provider
+   * @return the share of the time
+   */
+  public static double threshold(@NonNull GarbageCollectionStatusProvider provider) {
+    return provider.threshold();
+  }
+
+  /**
    * Mocks the environment set by systemd, calling the real methods unless stubbed with {@link #isUnderSystemd()} or {@link #watchdogUsec()}.
    *
    * @return the static mock, to close once done

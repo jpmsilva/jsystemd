@@ -32,4 +32,13 @@ public final class SystemdProcess {
   public static void reset() {
     Systemd.resetProcess();
   }
+
+  /**
+   * Replaces the instance of this process, such as with a mock.
+   *
+   * @param systemd the instance to use from now on
+   */
+  public static void replace(Systemd systemd) {
+    Systemd.replaceInstance(systemd);
+  }
 }

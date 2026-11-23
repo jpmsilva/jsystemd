@@ -20,7 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -105,9 +107,58 @@ class KeycloakIT {
     assertRunning();
   }
 
-  // the status of the JVM, without a stage once ready, the watchdog heartbeats, and a clean stop
+  @Test
+  void followsTheDatabaseMigration() {
+    // Keycloak only migrates its database when it has changesets to apply, as the first time it starts, which creates it
+    container.removeKeycloakDatabase();
+    container.buildKeycloak();
+    // systemd then logs the notifications it receives
+    container.logLevel("debug");
+    try {
+      container.runKeycloak(unit, PROPERTIES);
+      List<String> statuses = new ArrayList<>();
+      await().untilAsserted(() -> {
+        Map<String, String> properties = container.show(unit);
+        statuses.add(properties.get("StatusText"));
+        assertThat(properties).containsEntry("ActiveState", "active");
+      });
+
+      // the provider is the Liquibase connection provider of Keycloak, without any option, and each changeset extends the startup timeout
+      String journal = container.journal(unit);
+      assertThat(journal).contains("Following the database migration of Keycloak");
+      assertThat(journal).contains("EXTEND_TIMEOUT_USEC=");
+      assertThat(statuses).anyMatch(status -> status.startsWith("Startup: migrating the database (changeset "));
+    } finally {
+      container.logLevel("info");
+    }
+  }
+
+  @Test
+  void showsTheDatasourceAndTakesTheHealthIntoAccount() {
+    // the connection pool of the datasource only counts its connections with the metrics of Keycloak, and so do its readiness health checks check it
+    container.buildKeycloak("--health-enabled=true", "--metrics-enabled=true");
+    container.runKeycloak(unit, PROPERTIES, "--spi-systemd--default--threads-deadlock-detection=true",
+        "--spi-systemd--default--threads-deadlock-health=true", "--spi-systemd--default--file-descriptors-health=true",
+        "--spi-systemd--default--datasource-health=true", "--spi-systemd--default--readiness-health=true",
+        "--spi-systemd--default--status-providers=cluster,datasource,heap,version");
+    await().untilAsserted(() -> assertThat(container.show(unit)).containsEntry("ActiveState", "active"));
+
+    await().untilAsserted(() -> assertThat(container.show(unit).get("StatusText"))
+        .matches("Cluster: 1 node, Heap: .*, Datasource: \\d+/100 connections, 0 waiting, Keycloak \\d+\\.\\d+\\.\\d+"));
+
+    // none of the health conditions holds, so the heartbeats keep coming, long enough for each health provider to be asked a few times
+    String firstHeartbeat = container.show(unit).get("WatchdogTimestampMonotonic");
+    await().pollDelay(Duration.ofSeconds(8)).untilAsserted(() -> {
+      Map<String, String> properties = container.show(unit);
+      assertThat(properties).containsEntry("ActiveState", "active");
+      assertThat(properties.get("WatchdogTimestampMonotonic")).isNotEqualTo(firstHeartbeat);
+    });
+    assertThat(container.journal(unit)).doesNotContain("Suppressing heartbeat");
+  }
+
+  // the status of Keycloak and of the JVM, without a stage once ready, the watchdog heartbeats, and a clean stop
   private void assertRunning() {
-    await().untilAsserted(() -> assertThat(container.show(unit).get("StatusText")).startsWith("Heap: "));
+    await().untilAsserted(() -> assertThat(container.show(unit).get("StatusText")).startsWith("Cluster: 1 node, Heap: "));
 
     String firstHeartbeat = container.show(unit).get("WatchdogTimestampMonotonic");
     await().untilAsserted(() -> assertThat(container.show(unit).get("WatchdogTimestampMonotonic")).isNotEqualTo(firstHeartbeat));

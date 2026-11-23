@@ -1215,19 +1215,83 @@ class SystemdTest {
   }
 
   @Test
+  void triggersWatchdogWhenAHealthProviderIsUnrecoverable() {
+    systemd.ready();
+    systemd.addHealthProviders(() -> HealthProvider.Health.HEALTHY,
+        () -> HealthProvider.Health.unrecoverable(Map.of("deadlockedThreads", List.of("worker-1", "worker-2"))));
+
+    systemd.watchdog();
+
+    // the heartbeat is suppressed as well, which is what the versions of systemd that ignore the trigger go by
+    notify.verify(SystemdNotify::watchdog, never());
+    notify.verify(SystemdNotify::watchdogTrigger);
+  }
+
+  @Test
+  void doesNotTriggerWatchdogWhenUnhealthyButRecoverable() {
+    systemd.ready();
+    systemd.addHealthProviders(() -> new HealthProvider.Health(false, Map.of("db", "down")));
+
+    systemd.watchdog();
+
+    notify.verify(SystemdNotify::watchdog, never());
+    notify.verify(SystemdNotify::watchdogTrigger, never());
+  }
+
+  @Test
+  void triggersWatchdogOnlyOnce() {
+    systemd.ready();
+    systemd.addHealthProviders(() -> HealthProvider.Health.unrecoverable(Map.of()));
+
+    systemd.watchdog();
+    systemd.watchdog();
+    systemd.triggerWatchdog();
+
+    notify.verify(SystemdNotify::watchdogTrigger, Mockito.times(1));
+  }
+
+  @Test
+  void triggersWatchdogWhenToldByTheApplication() {
+    // systemd handles the trigger at any time, even when the service unit does not set WatchdogSec, so it is sent while starting up as well
+    systemd.triggerWatchdog();
+
+    notify.verify(SystemdNotify::watchdogTrigger);
+  }
+
+  @Test
+  void doesNotTriggerWatchdogOnceStopping() {
+    systemd.ready();
+    systemd.stopping();
+
+    systemd.triggerWatchdog();
+
+    notify.verify(SystemdNotify::watchdogTrigger, never());
+  }
+
+  @Test
+  void doesNotAskHealthProvidersNorTriggerWatchdogWhileStartingUp() {
+    systemd.addHealthProviders(() -> HealthProvider.Health.unrecoverable(Map.of()));
+
+    systemd.watchdog();
+
+    notify.verify(SystemdNotify::watchdogTrigger, never());
+  }
+
+  @Test
   void keepsTheDetailsOfEachUnhealthyHealthProviderApart() {
     // the same key from two providers, as the broken liveness state is reported both by the availability and by the Actuator health
     systemd.addHealthProviders(() -> new HealthProvider.Health(false, Map.of("livenessState", "BROKEN")), () -> HealthProvider.Health.HEALTHY,
         () -> new HealthProvider.Health(false, Map.of("livenessState", "DOWN", "db", "down")));
 
-    assertThat(systemd.unhealthyDetails()).containsExactly(Map.of("livenessState", "BROKEN"), Map.of("livenessState", "DOWN", "db", "down"));
+    assertThat(systemd.unhealthy()).extracting(HealthProvider.Health::details)
+        .containsExactly(Map.of("livenessState", "BROKEN"), Map.of("livenessState", "DOWN", "db", "down"));
   }
 
   @Test
   void hasNoUnhealthyDetailsWhenHealthy() {
     systemd.addHealthProviders(() -> HealthProvider.Health.HEALTHY, () -> HealthProvider.Health.HEALTHY);
 
-    assertThat(systemd.unhealthyDetails()).isEmpty();
+    assertThat(systemd.unhealthy()).isEmpty();
   }
 
   @Test

@@ -32,17 +32,20 @@ Check your version of systemd using `systemctl --version`.
 ## Startup
 
 With the Spring Boot starter, the startup timeout is extended at each step of the startup sequence, at most once a second while beans are being created,
-and for each changeset the Liquibase database migrations apply, as a single bean runs all of them. This means that as long as the application context is
-making progress in creating beans, the startup will not time out, however long it takes in total. A single step that takes longer than both
-`TimeoutStartSec=` and 29 seconds, such as a bean whose initialization takes that long, or a single changeset, still times out.
+and for each changeset the Liquibase database migrations apply, or each migration the Flyway ones apply, as a single bean runs all of them. This means
+that as long as the application context is making progress in creating beans, the startup will not time out, however long it takes in total. A single
+step that takes longer than both `TimeoutStartSec=` and 29 seconds, such as a bean whose initialization takes that long, or a single changeset or
+migration, still times out.
 
-This behavior is provided by the `application-run`, `application-context` and `liquibase` status providers. If you disable them, the timeout is no longer
-extended and it is up to you to ensure the startup completes in time. See [Status providers](status-providers.html) for more information. Anything that
-runs before the starter sets up the integration with systemd, such as a Spring Cloud bootstrap application, does not extend it either (see
+This behavior is provided by the `application-run`, `application-context`, `liquibase` and `flyway` status providers. If you disable them, the timeout is
+no longer extended and it is up to you to ensure the startup completes in time. See [Status providers](status-providers.html) for more information.
+Anything that runs before the starter sets up the integration with systemd, such as a Spring Cloud bootstrap application, does not extend it either (see
 [Application hierarchies](application-hierarchies.html)).
 
-The [Keycloak provider](keycloak.html) cannot follow the progress of the startup, and never extends the startup timeout.
-Set `TimeoutStartSec=` long enough for the slowest startup expected, such as the first one, which may migrate the database.
+The [Keycloak provider](keycloak.html) extends the startup timeout on the steps of the bootstrap of Keycloak that it can follow: each changeset of the
+database migration, each realm that is imported, and at most once a second on the smaller steps. The rest of the startup does not extend it, so set
+`TimeoutStartSec=` long enough for it, and for the slowest single step expected, such as the longest changeset of a migration (see
+[Startup progress](keycloak.html#Startup_progress)).
 
 Under Spring Boot, the startup also includes the `ApplicationRunner` and `CommandLineRunner` beans, as the application is only ready once they have
 run, and the timeout is not extended while they run. For runners that run for long, or never end, notify systemd before they run, with

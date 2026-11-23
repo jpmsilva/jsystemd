@@ -43,20 +43,23 @@ See [How to](howto.html) for the full lifecycle, with a complete example.
 
 ### Built-in status providers
 
-| Class                                                                                                        | Purpose                                                                        | Sample                                                       |
-|--------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|--------------------------------------------------------------|
-| [HeapStatusProvider](apidocs/com/github/jpmsilva/jsystemd/HeapStatusProvider.html)                           | Provides the heap memory used, out of the committed size (not a limit)         | `Heap: 139.5 MiB/256.0 MiB`                                  |
-| [OldGenerationStatusProvider](apidocs/com/github/jpmsilva/jsystemd/OldGenerationStatusProvider.html)         | Provides the old generation of the heap after the last garbage collection      | `Old gen after GC: 120.0 MiB/512.0 MiB`                      |
-| [NonHeapStatusProvider](apidocs/com/github/jpmsilva/jsystemd/NonHeapStatusProvider.html)                     | Provides the non-heap memory used, out of the committed size                   | `Non-heap: 62.7 MiB/64.1 MiB`                                |
-| [BufferPoolStatusProvider](apidocs/com/github/jpmsilva/jsystemd/BufferPoolStatusProvider.html)               | Provides the memory used by direct and mapped buffers                          | `Buffers: 64.0 MiB/1.0 GiB direct (412); 2.0 GiB mapped (3)` |
-| [GarbageCollectionStatusProvider](apidocs/com/github/jpmsilva/jsystemd/GarbageCollectionStatusProvider.html) | Provides the garbage collection pauses since the status was last read          | `GC: 12 pauses, 0.4% of time`                                |
-| [ClassLoaderStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ClassLoaderStatusProvider.html)             | Provides information regarding the number of loaded classes                    | `Classes: 7915`                                              |
-| [CpuStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CpuStatusProvider.html)                             | Provides the CPU usage of the process and of the system, and the load average  | `CPU: 12.5% process; 40.1% system; load 1.20`                |
-| [ThreadStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ThreadStatusProvider.html)                       | Provides the number of threads by state, and of deadlocked threads, if any     | `Threads: 31 (9 runnable; 14 waiting; 8 timed waiting)`      |
-| [FileDescriptorStatusProvider](apidocs/com/github/jpmsilva/jsystemd/FileDescriptorStatusProvider.html)       | Provides the open file descriptors, and their health                           | `File descriptors: 812/65536`                                |
-| [CgroupMemoryStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CgroupMemoryStatusProvider.html)           | Provides the memory used by the control group of the process, out of its limit | `Cgroup memory: 700.0 MiB/1.0 GiB`                           |
-| [ExecutorStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ExecutorStatusProvider.html)                   | Provides the busy threads and the waiting tasks of a thread pool               | `workers: 3/10 threads, 5 queued`                            |
-| [PhaseStatusProvider](apidocs/com/github/jpmsilva/jsystemd/PhaseStatusProvider.html)                         | Provides what the application says it is doing                                 | `Reindexing 40%`                                             |
+| Class                                                                                                        | Purpose                                                                                    | Sample                                                              |
+|--------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| [HeapStatusProvider](apidocs/com/github/jpmsilva/jsystemd/HeapStatusProvider.html)                           | Provides the heap memory used, out of the committed size (not a limit)                     | `Heap: 139.5 MiB/256.0 MiB`                                         |
+| [OldGenerationStatusProvider](apidocs/com/github/jpmsilva/jsystemd/OldGenerationStatusProvider.html)         | Provides the old generation of the heap after the last garbage collection                  | `Old gen after GC: 120.0 MiB/512.0 MiB`                             |
+| [NonHeapStatusProvider](apidocs/com/github/jpmsilva/jsystemd/NonHeapStatusProvider.html)                     | Provides the non-heap memory used, out of the committed size                               | `Non-heap: 62.7 MiB/64.1 MiB`                                       |
+| [BufferPoolStatusProvider](apidocs/com/github/jpmsilva/jsystemd/BufferPoolStatusProvider.html)               | Provides the memory used by direct and mapped buffers                                      | `Buffers: 64.0 MiB/1.0 GiB direct (412); 2.0 GiB mapped (3)`        |
+| [GarbageCollectionStatusProvider](apidocs/com/github/jpmsilva/jsystemd/GarbageCollectionStatusProvider.html) | Provides the garbage collection pauses since the status was last read, and their health    | `GC: 12 pauses, 0.4% of time`                                       |
+| [ClassLoaderStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ClassLoaderStatusProvider.html)             | Provides information regarding the number of loaded classes                                | `Classes: 7915`                                                     |
+| [CpuStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CpuStatusProvider.html)                             | Provides the CPU usage of the process and of the system, and the load average              | `CPU: 12.5% process; 40.1% system; load 1.20`                       |
+| [ThreadStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ThreadStatusProvider.html)                       | Provides the number of threads by state, and of deadlocked threads, if any                 | `Threads: 31 (9 runnable; 14 waiting; 8 timed waiting)`             |
+| [VirtualThreadStatusProvider](apidocs/com/github/jpmsilva/jsystemd/VirtualThreadStatusProvider.html)         | Provides the virtual threads that are running, and those waiting to run                    | `Virtual threads: 8 mounted; 340 queued; 8 carrier threads`         |
+| [FileDescriptorStatusProvider](apidocs/com/github/jpmsilva/jsystemd/FileDescriptorStatusProvider.html)       | Provides the open file descriptors, and their health                                       | `File descriptors: 812/65536`                                       |
+| [CgroupMemoryStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CgroupMemoryStatusProvider.html)           | Provides the memory used by the control group of the process, out of its limit             | `Cgroup memory: 700.0 MiB/1.0 GiB`                                  |
+| [CgroupPressureStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CgroupPressureStatusProvider.html)       | Provides the pressure the control group of the process is under, and its throttling        | `Cgroup pressure: 2.1% cpu; 0.0% memory; 12.3% io; 40.0% throttled` |
+| [CgroupTasksStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CgroupTasksStatusProvider.html)             | Provides the tasks of the control group of the process, out of its limit, and their health | `Cgroup tasks: 312/4915`                                            |
+| [ExecutorStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ExecutorStatusProvider.html)                   | Provides the busy threads and the waiting tasks of a thread pool                           | `workers: 3/10 threads, 5 queued`                                   |
+| [PhaseStatusProvider](apidocs/com/github/jpmsilva/jsystemd/PhaseStatusProvider.html)                         | Provides what the application says it is doing                                             | `Reindexing 40%`                                                    |
 
 Most of them are created without arguments. The others are configured when created:
 
@@ -65,15 +68,47 @@ Most of them are created without arguments. The others are configured when creat
 * the [FileDescriptorStatusProvider](apidocs/com/github/jpmsilva/jsystemd/FileDescriptorStatusProvider.html) shows the open file descriptors out of the
   most the process can open, the `LimitNOFILE` of the service unit, and is created with the share of that limit from which it reports the application
   as unhealthy, such as `new FileDescriptorStatusProvider(false, 0.9)`;
+* the [CgroupTasksStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CgroupTasksStatusProvider.html) shows the tasks of the service, its processes
+  and their threads, out of the most it can have, the `TasksMax` of the service unit, and is created with the share of that limit from which it reports
+  the application as unhealthy, such as `new CgroupTasksStatusProvider(false, 0.9)`;
+* the [GarbageCollectionStatusProvider](apidocs/com/github/jpmsilva/jsystemd/GarbageCollectionStatusProvider.html) can also be created with the share of
+  the time taken by the pauses from which it reports the application as unhealthy, such as `new GarbageCollectionStatusProvider(true, 0.5)`;
 * the [ExecutorStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ExecutorStatusProvider.html) is created with the name to show and the
   `ThreadPoolExecutor` to report, or a supplier of it, for a pool created later;
 * the [PhaseStatusProvider](apidocs/com/github/jpmsilva/jsystemd/PhaseStatusProvider.html) shows nothing until the application sets a phase. When created
   with `new PhaseStatusProvider(true)`, every change of phase is sent to systemd right away, rather than with the next status update.
 
-The [ThreadStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ThreadStatusProvider.html) and the
-[FileDescriptorStatusProvider](apidocs/com/github/jpmsilva/jsystemd/FileDescriptorStatusProvider.html) can also report the application health, to restart
-it on deadlocks or when its file descriptors are about to run out. Registering them as status providers only adds them to the status: see
-[Health providers](health-providers.html) to have their health taken into account.
+The [ThreadStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ThreadStatusProvider.html), the
+[FileDescriptorStatusProvider](apidocs/com/github/jpmsilva/jsystemd/FileDescriptorStatusProvider.html), the
+[CgroupTasksStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CgroupTasksStatusProvider.html) and the
+[GarbageCollectionStatusProvider](apidocs/com/github/jpmsilva/jsystemd/GarbageCollectionStatusProvider.html) can also report the application health, to
+restart it on deadlocks, when its file descriptors or its tasks are about to run out, or while it spends most of its time collecting garbage. Registering
+them as status providers only adds them to the status: see [Health providers](health-providers.html) to have their health taken into account.
+
+Some of them only have something to report in some environments, and report nothing elsewhere:
+
+* the [VirtualThreadStatusProvider](apidocs/com/github/jpmsilva/jsystemd/VirtualThreadStatusProvider.html) shows the virtual threads that are running,
+  each mounted on a platform thread of their scheduler, and those that are ready to run but wait for one. It complements the
+  [ThreadStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ThreadStatusProvider.html), which only sees platform threads: virtual threads that keep
+  waiting while every platform thread of the scheduler has one mounted are held back, by more work than the CPUs can take, or by virtual threads that
+  block without giving up their platform thread. The scheduler can only be observed on Java 24 and later;
+* the [CgroupMemoryStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CgroupMemoryStatusProvider.html), the
+  [CgroupPressureStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CgroupPressureStatusProvider.html) and the
+  [CgroupTasksStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CgroupTasksStatusProvider.html) read the control group of the service, in the unified
+  hierarchy (cgroup v2), which systemd uses on current Linux distributions.
+
+The [CgroupPressureStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CgroupPressureStatusProvider.html) shows how much the service is held back by a
+lack of resources, which neither its CPU usage nor its memory usage tell:
+
+* the pressure of the CPU, the memory and the I/O is the share of the last 10 seconds in which at least one task of the service was stalled waiting for
+  it, as the kernel measures it ([pressure stall information](https://docs.kernel.org/accounting/psi.html)): runnable but waiting for a CPU, reclaiming
+  memory, or waiting for I/O. Memory pressure that keeps growing means the service is about to reach its `MemoryHigh` or `MemoryMax`, even though its
+  heap may still have room;
+* the throttling is the share of the enforcement periods of the CPU quota of the service, since the status was last read, in which the service used up
+  its quota, and was kept from running until the next one. It is only shown when the service has a quota, the `CPUQuota` of the service unit: a throttled
+  service is slow while the system has idle CPUs.
+
+Each part is left out when the kernel does not report it.
 
 ### Reporting what the application is doing
 
@@ -147,12 +182,15 @@ with `systemd.status-update-period`, such as `30s`, to call the status providers
 
 Out of the box this module will show memory (heap, old generation, non-heap, buffers and the memory of the control group of the service), classloader
 information, threads, file descriptors, the availability of the application, application startup sequence state and bean creation progress, the stage of
-the shutdown, as well as the application health when using Spring Boot Actuator. The garbage collection pauses and the CPU usage can be shown as well, once
-enabled.
+the shutdown, as well as the application health when using Spring Boot Actuator. The garbage collection pauses, the CPU usage, the virtual threads, and
+the pressure and the tasks of the control group of the service can be shown as well, once enabled.
 
 Additionally, the status of the libraries the application uses is shown when they are available: the connections of the embedded web server (Tomcat, Jetty
-or Reactor Netty), the HikariCP connection pools, the thread pools of the task executors and schedulers, and the progress of the Liquibase database
-migrations run on startup.
+or Reactor Netty), the HikariCP connection pools, the thread pools of the task executors and schedulers, the message listener containers (Kafka,
+RabbitMQ and JMS), and the progress of the Liquibase and Flyway database migrations run on startup. The R2DBC connection pools, the scheduled tasks,
+chosen Micrometer meters and the version of the application can be shown as well, once enabled.
+
+The scheduled tasks of the application, the values of chosen Micrometer meters and the version of the application can be shown as well, once enabled.
 
 ```
 [root@machine ~]# systemctl status myservice.service
@@ -169,26 +207,35 @@ migrations run on startup.
 
 On top of the ones of the core library, the Spring Boot module provides the following status providers:
 
-| Class                                                                                                                 | Purpose                                                                            | Sample                                                     | Details                                                     |
-|-----------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------|------------------------------------------------------------|-------------------------------------------------------------|
-| [ApplicationRunStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ApplicationRunStatusProvider.html)         | Provides information regarding the application startup sequence state              | `State: context prepared`                                  | [Startup progress](startup-progress.html#Under_Spring_Boot) |
-| [ApplicationContextStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ApplicationContextStatusProvider.html) | Provides information regarding the bean creation status of the application context | `Creating bean 94 of 472`                                  | [Startup progress](startup-progress.html#Under_Spring_Boot) |
-| [TomcatStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/TomcatStatusProvider.html)                         | Provides information regarding Tomcat's connectors                                 | `http-nio-8080: 8/8192 connections, 3/10 threads`          | [tomcat](#tomcat)                                           |
-| [JettyStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/JettyStatusProvider.html)                           | Provides the connections and threads of the embedded Jetty servers                 | `jetty-8080: 12/1000 connections, 3/10 threads`            | [jetty](#jetty)                                             |
-| [NettyStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/NettyStatusProvider.html)                           | Provides the connections and requests of the embedded Reactor Netty servers        | `netty-8080: 12 connections, 3 requests`                   | [netty](#netty)                                             |
-| [HikariStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/HikariStatusProvider.html)                         | Provides the HikariCP connection pools, and their health                           | `dataSource: 7/10 connections, 3 waiting`                  | [hikari](#hikari)                                           |
-| [TaskExecutorStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/TaskExecutorStatusProvider.html)             | Provides the thread pools of the task executors and schedulers                     | `applicationTaskExecutor: 2/8 threads, 5 queued`           | [task-executors](#task-executors)                           |
-| [LiquibaseStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/LiquibaseStatusProvider.html)                   | Provides the progress of the Liquibase database migrations run on startup          | `Liquibase: applying changeset 042-add-index (41 applied)` | [liquibase](#liquibase)                                     |
-| [AvailabilityStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/AvailabilityStatusProvider.html)             | Provides the liveness and readiness of the application                             | `Liveness: correct; readiness: accepting traffic`          | [availability](#availability)                               |
-| [ShutdownStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ShutdownStatusProvider.html)                     | Provides the stage the application is at while it shuts down                       | `Shutdown: waiting for active requests`                    | [shutdown](#shutdown)                                       |
-| [ActuatorHealthStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ActuatorHealthStatusProvider.html)         | Provides the application health, based on Spring Boot Actuator health contributors | `health status: unhealthy (db)`                            | [actuator-health](#actuator-health)                         |
+| Class                                                                                                                 | Purpose                                                                              | Sample                                                     | Details                                                     |
+|-----------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------|------------------------------------------------------------|-------------------------------------------------------------|
+| [ApplicationRunStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ApplicationRunStatusProvider.html)         | Provides information regarding the application startup sequence state                | `State: context prepared`                                  | [Startup progress](startup-progress.html#Under_Spring_Boot) |
+| [ApplicationContextStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ApplicationContextStatusProvider.html) | Provides information regarding the bean creation status of the application context   | `Creating bean 94 of 472`                                  | [Startup progress](startup-progress.html#Under_Spring_Boot) |
+| [TomcatStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/TomcatStatusProvider.html)                         | Provides information regarding Tomcat's connectors, and their health                 | `http-nio-8080: 8/8192 connections, 3/10 threads`          | [tomcat](#tomcat)                                           |
+| [JettyStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/JettyStatusProvider.html)                           | Provides the connections and threads of the embedded Jetty servers, and their health | `jetty-8080: 12/1000 connections, 3/10 threads`            | [jetty](#jetty)                                             |
+| [NettyStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/NettyStatusProvider.html)                           | Provides the connections and requests of the embedded Reactor Netty servers          | `netty-8080: 12 connections, 3 requests`                   | [netty](#netty)                                             |
+| [HikariStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/HikariStatusProvider.html)                         | Provides the HikariCP connection pools, and their health                             | `dataSource: 7/10 connections, 3 waiting`                  | [hikari](#hikari)                                           |
+| [R2dbcPoolStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/R2dbcPoolStatusProvider.html)                   | Provides the R2DBC connection pools, and their health                                | `connectionFactory: 7/10 connections, 3 waiting`           | [r2dbc](#r2dbc)                                             |
+| [TaskExecutorStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/TaskExecutorStatusProvider.html)             | Provides the thread pools of the task executors and schedulers                       | `applicationTaskExecutor: 2/8 threads, 5 queued`           | [task-executors](#task-executors)                           |
+| [ScheduledTaskStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ScheduledTaskStatusProvider.html)           | Provides the scheduled tasks, and those running and failing                          | `Scheduled tasks: 5 (1 running; 1 failing)`                | [scheduled-tasks](#scheduled-tasks)                         |
+| [MicrometerStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/MicrometerStatusProvider.html)                 | Provides the values of chosen Micrometer meters                                      | `hikaricp.connections.active: 7, Requests: 15234`          | [micrometer](#micrometer)                                   |
+| [BuildInfoStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/BuildInfoStatusProvider.html)                   | Provides the version of the application that is running                              | `Version: 1.4.2 (a1b2c3d)`                                 | [version](#version)                                         |
+| [LiquibaseStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/LiquibaseStatusProvider.html)                   | Provides the progress of the Liquibase database migrations run on startup            | `Liquibase: applying changeset 042-add-index (41 applied)` | [liquibase](#liquibase)                                     |
+| [FlywayStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/FlywayStatusProvider.html)                         | Provides the progress of the Flyway database migrations run on startup               | `Flyway: applying migration 42 add index (41 applied)`     | [flyway](#flyway)                                           |
+| [KafkaListenerStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/KafkaListenerStatusProvider.html)           | Provides the Kafka listener containers, and their health                             | `Kafka listeners: 3/3 running, 12 partitions`              | [kafka-listeners](#kafka-listeners)                         |
+| [RabbitListenerStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/RabbitListenerStatusProvider.html)         | Provides the RabbitMQ listener containers, and their health                          | `RabbitMQ listeners: 2/2 running, 4 consumers`             | [rabbit-listeners](#rabbit-listeners)                       |
+| [JmsListenerStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/JmsListenerStatusProvider.html)               | Provides the JMS listener containers, and their health                               | `JMS listeners: 2/2 running`                               | [jms-listeners](#jms-listeners)                             |
+| [AvailabilityStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/AvailabilityStatusProvider.html)             | Provides the liveness and readiness of the application                               | `Liveness: correct; readiness: accepting traffic`          | [availability](#availability)                               |
+| [ShutdownStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ShutdownStatusProvider.html)                     | Provides the stage the application is at while it shuts down                         | `Shutdown: waiting for active requests`                    | [shutdown](#shutdown)                                       |
+| [ActuatorHealthStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ActuatorHealthStatusProvider.html)         | Provides the application health, based on Spring Boot Actuator health contributors   | `health status: unhealthy (db)`                            | [actuator-health](#actuator-health)                         |
 
 See the [Startup progress](startup-progress.html#Under_Spring_Boot) page for more information
 regarding [ApplicationRunStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ApplicationRunStatusProvider.html) and [ApplicationContextStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ApplicationContextStatusProvider.html).
 
 ### Enabling and disabling status providers
 
-All built-in status providers are enabled by default, except for `garbage-collection` and `cpu`, which are opted into, to keep the status short. Use the
+Most built-in status providers are enabled by default. The others are opted into, to keep the status short: `garbage-collection`, `cpu`,
+`cgroup-pressure`, `cgroup-tasks`, `virtual-threads`, `r2dbc`, `scheduled-tasks`, `micrometer` and `version`. Use the
 `systemd.status-providers.*.enabled` properties to enable or disable them:
 
 | Property                                       | Status provider                                                                                                       | Details                                                     |
@@ -198,11 +245,14 @@ All built-in status providers are enabled by default, except for `garbage-collec
 | `systemd.status-providers.old-generation`      | [OldGenerationStatusProvider](apidocs/com/github/jpmsilva/jsystemd/OldGenerationStatusProvider.html)                  |                                                             |
 | `systemd.status-providers.non-heap`            | [NonHeapStatusProvider](apidocs/com/github/jpmsilva/jsystemd/NonHeapStatusProvider.html)                              |                                                             |
 | `systemd.status-providers.buffer-pools`        | [BufferPoolStatusProvider](apidocs/com/github/jpmsilva/jsystemd/BufferPoolStatusProvider.html)                        |                                                             |
-| `systemd.status-providers.garbage-collection`  | [GarbageCollectionStatusProvider](apidocs/com/github/jpmsilva/jsystemd/GarbageCollectionStatusProvider.html)          |                                                             |
+| `systemd.status-providers.garbage-collection`  | [GarbageCollectionStatusProvider](apidocs/com/github/jpmsilva/jsystemd/GarbageCollectionStatusProvider.html)          | [garbage-collection](#garbage-collection)                   |
 | `systemd.status-providers.class-loader`        | [ClassLoaderStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ClassLoaderStatusProvider.html)                      |                                                             |
 | `systemd.status-providers.cpu`                 | [CpuStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CpuStatusProvider.html)                                      |                                                             |
 | `systemd.status-providers.threads`             | [ThreadStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ThreadStatusProvider.html)                                | [threads](#threads)                                         |
 | `systemd.status-providers.file-descriptors`    | [FileDescriptorStatusProvider](apidocs/com/github/jpmsilva/jsystemd/FileDescriptorStatusProvider.html)                | [file-descriptors](#file-descriptors)                       |
+| `systemd.status-providers.virtual-threads`     | [VirtualThreadStatusProvider](apidocs/com/github/jpmsilva/jsystemd/VirtualThreadStatusProvider.html)                  | [virtual-threads](#virtual-threads)                         |
+| `systemd.status-providers.cgroup-tasks`        | [CgroupTasksStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CgroupTasksStatusProvider.html)                      | [cgroup-tasks](#cgroup-tasks)                               |
+| `systemd.status-providers.cgroup-pressure`     | [CgroupPressureStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CgroupPressureStatusProvider.html)                | [cgroup-pressure](#cgroup-pressure)                         |
 | `systemd.status-providers.cgroup-memory`       | [CgroupMemoryStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CgroupMemoryStatusProvider.html)                    |                                                             |
 | `systemd.status-providers.availability`        | [AvailabilityStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/AvailabilityStatusProvider.html)             | [availability](#availability)                               |
 | `systemd.status-providers.application-run`     | [ApplicationRunStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ApplicationRunStatusProvider.html)         | [Startup progress](startup-progress.html#Under_Spring_Boot) |
@@ -211,8 +261,16 @@ All built-in status providers are enabled by default, except for `garbage-collec
 | `systemd.status-providers.jetty`               | [JettyStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/JettyStatusProvider.html)                           | [jetty](#jetty)                                             |
 | `systemd.status-providers.netty`               | [NettyStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/NettyStatusProvider.html)                           | [netty](#netty)                                             |
 | `systemd.status-providers.hikari`              | [HikariStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/HikariStatusProvider.html)                         | [hikari](#hikari)                                           |
+| `systemd.status-providers.r2dbc`               | [R2dbcPoolStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/R2dbcPoolStatusProvider.html)                   | [r2dbc](#r2dbc)                                             |
 | `systemd.status-providers.task-executors`      | [TaskExecutorStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/TaskExecutorStatusProvider.html)             | [task-executors](#task-executors)                           |
+| `systemd.status-providers.scheduled-tasks`     | [ScheduledTaskStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ScheduledTaskStatusProvider.html)           | [scheduled-tasks](#scheduled-tasks)                         |
+| `systemd.status-providers.micrometer`          | [MicrometerStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/MicrometerStatusProvider.html)                 | [micrometer](#micrometer)                                   |
+| `systemd.status-providers.version`             | [BuildInfoStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/BuildInfoStatusProvider.html)                   | [version](#version)                                         |
 | `systemd.status-providers.liquibase`           | [LiquibaseStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/LiquibaseStatusProvider.html)                   | [liquibase](#liquibase)                                     |
+| `systemd.status-providers.flyway`              | [FlywayStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/FlywayStatusProvider.html)                         | [flyway](#flyway)                                           |
+| `systemd.status-providers.kafka-listeners`     | [KafkaListenerStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/KafkaListenerStatusProvider.html)           | [kafka-listeners](#kafka-listeners)                         |
+| `systemd.status-providers.rabbit-listeners`    | [RabbitListenerStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/RabbitListenerStatusProvider.html)         | [rabbit-listeners](#rabbit-listeners)                       |
+| `systemd.status-providers.jms-listeners`       | [JmsListenerStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/JmsListenerStatusProvider.html)               | [jms-listeners](#jms-listeners)                             |
 | `systemd.status-providers.actuator-health`     | [ActuatorHealthStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ActuatorHealthStatusProvider.html)         | [actuator-health](#actuator-health)                         |
 
 The status providers of a library, such as `jetty` or `hikari`, are only set up when the library is available. For example, to stop reacting to bean
@@ -241,10 +299,41 @@ application on deadlocks (see [Health providers](health-providers.html)).
 |-------------------------------------------------------|---------|-----------------------------------------------------------|
 | `systemd.status-providers.threads.deadlock-detection` | `false` | Detect deadlocked threads, and report them in the status. |
 
+#### virtual-threads
+
+The `virtual-threads` status provider is opted into, with `systemd.status-providers.virtual-threads.enabled=true`. It shows the virtual threads that are
+running, each mounted on a platform thread of their scheduler, those that are ready to run but wait for one, and the platform threads the scheduler has,
+such as `Virtual threads: 8 mounted; 340 queued; 8 carrier threads`. Virtual threads that are blocked, waiting or sleeping are not counted.
+
+With virtual threads (`spring.threads.virtual.enabled=true`), the requests and the tasks of the application are not handled by thread pools, so the
+`tomcat`, `jetty` and `task-executors` status providers show no threads, and the `threads` one only sees platform threads. Virtual threads that keep
+waiting while every platform thread of the scheduler has one mounted are held back, by more work than the CPUs can take, or by virtual threads that
+block without giving up their platform thread. The scheduler can only be observed on Java 24 and later: nothing is shown on earlier versions.
+
 #### file-descriptors
 
 The `file-descriptors` status provider shows the open file descriptors out of the most the process can open, the `LimitNOFILE` of the service unit, such
 as `File descriptors: 812/65536`. It is also a health provider, which can restart the application when the file descriptors are about to run out (see
+[Health providers](health-providers.html)).
+
+#### cgroup-tasks
+
+The `cgroup-tasks` status provider is opted into, with `systemd.status-providers.cgroup-tasks.enabled=true`. It shows the tasks of the service, its
+processes and their threads, out of the most it can have, the `TasksMax` of the service unit, such as `Cgroup tasks: 312/4915`. It is also a health
+provider, which can restart the application when the tasks are about to run out, as the JVM can then no longer create threads (see
+[Health providers](health-providers.html)).
+
+#### cgroup-pressure
+
+The `cgroup-pressure` status provider is opted into, with `systemd.status-providers.cgroup-pressure.enabled=true`. It shows how much the service is held
+back by a lack of CPU, memory or I/O, and how often it runs out of its `CPUQuota`, such as
+`Cgroup pressure: 2.1% cpu; 0.0% memory; 12.3% io; 40.0% throttled` (see [Built-in status providers](#Built-in_status_providers)).
+
+#### garbage-collection
+
+The `garbage-collection` status provider is opted into, with `systemd.status-providers.garbage-collection.enabled=true`. It shows the garbage collection
+pauses since the status was last sent, and the share of the time they took, such as `GC: 12 pauses, 0.4% of time`. It is also a health provider, which
+can restart the application while it spends most of its time collecting garbage, as it does when it is about to run out of heap (see
 [Health providers](health-providers.html)).
 
 #### tomcat
@@ -265,6 +354,9 @@ so only the threads are shown, such as `http-nio-8080: 3/10 threads`.
 When the management endpoints use a port of their own (`management.server.port`), the connector of their server is shown as well. The connectors are
 read directly from the embedded Tomcat, so the Tomcat MBeans do not need to be enabled (`server.tomcat.mbeanregistry.enabled`).
 
+It is also a health provider, which can restart the application while a connector is saturated, with all its threads busy and requests waiting for one,
+which usually means that its requests hang (see [Health providers](health-providers.html)).
+
 #### jetty
 
 The `jetty` status provider shows the usage of each embedded Jetty server, named after the ports it listens on, such as `jetty-8080`, or `jetty-8080+8443`
@@ -281,6 +373,9 @@ With virtual threads (`spring.threads.virtual.enabled=true`), the requests are n
 
 When the management endpoints use a port of their own (`management.server.port`), their server is shown as well. A server is only shown once it
 listens.
+
+It is also a health provider, which can restart the application while a server is saturated, with all its threads taken and requests waiting for one,
+which usually means that its requests hang (see [Health providers](health-providers.html)).
 
 #### netty
 
@@ -315,6 +410,76 @@ The threads in the pool are those it has created so far, not its maximum: a pool
 To show the thread pool of an executor that is not one of these beans, register an
 [ExecutorStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ExecutorStatusProvider.html) for it (see [Built-in status providers](#Built-in_status_providers)).
 
+#### scheduled-tasks
+
+The `scheduled-tasks` status provider shows the scheduled tasks of the application, such as its `@Scheduled` methods: how many there are, how many are
+running, and how many failed the last time they ran, such as `Scheduled tasks: 5 (1 running; 1 failing)`. It is disabled by default:
+
+```properties
+systemd.status-providers.scheduled-tasks.enabled=true
+```
+
+A scheduled task that fails only logs its failure, and runs again when it is next due, so a task that fails every time is easily missed. A task is shown
+as failing from its failure until it next runs, and again if that run fails too; while it runs, it is shown as running, whatever the outcome of its
+previous run. While no task is running nor failing, only their number is shown, such as `Scheduled tasks: 5`, and nothing is shown for an application
+without scheduled tasks.
+
+The tasks are those that Spring schedules for the application, the same as the `scheduledtasks` endpoint of Spring Boot Actuator shows, including those
+registered with a `SchedulingConfigurer`. Tasks that the application schedules itself, directly on a `TaskScheduler`, are not known to Spring, and are
+left out. The tasks are only shown while the application runs, as they are cancelled once it stops.
+
+#### micrometer
+
+The `micrometer` status provider requires [Micrometer](https://micrometer.io/), which Spring Boot Actuator sets up. It shows the values of the meters
+it is configured with, so that the application can show what its libraries measure, such as its caches, its message listeners or its HTTP clients,
+without writing a status provider for each of them. It is disabled by default, and shows nothing until it is given the meters to show:
+
+```properties
+systemd.status-providers.micrometer.enabled=true
+systemd.status-providers.micrometer.meters[0].name=hikaricp.connections.active
+systemd.status-providers.micrometer.meters[1].name=http.server.requests
+systemd.status-providers.micrometer.meters[1].tags.outcome=SERVER_ERROR
+systemd.status-providers.micrometer.meters[1].label=Failed requests
+```
+
+This shows `hikaricp.connections.active: 7, Failed requests: 12`. Each meter to show has:
+
+| Property | Default | Description                                                                                                                                |
+|----------|---------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| `name`   |         | The name of the meter, as the `metrics` endpoint of Spring Boot Actuator lists them. Required: without it, the application fails to start. |
+| `tags`   | not set | The tags the meter must have, by key, to narrow the meters with the name. Without tags, all of them are taken into account.                |
+| `label`  | not set | The label the value is shown under, instead of the name of the meter.                                                                      |
+
+The value is the one the `metrics` endpoint shows for the same name and tags (`/actuator/metrics/<name>?tag=<key>:<value>`), whether or not the
+endpoint is exposed: a name usually has a meter for each combination of its tags, and the measurements of all those that match are added together.
+What is shown depends on the type of the meter:
+
+* gauges show their value;
+* counters show their count;
+* timers and distribution summaries show how many times they recorded, such as the requests handled, not the times or the amounts recorded;
+* long task timers show the tasks that are running.
+
+A meter that does not exist is left out, rather than being an error, as most meters are only registered once what they measure is first used. The meters
+are shown in the order they are configured in. Whole numbers are shown as they are, and the others rounded to two decimal places; from a million on, numbers
+are shortened, such as `1.5M`, `2.3G` or `4T`, and values measured in bytes are shown as the memory status providers show them, such as `133.2 MiB`.
+
+The meters are read from the meter registry of the application, the primary one when there are several, as the one Spring Boot sets up. Without one, a
+warning is logged, and the meters are looked up in the global registry of Micrometer, which only has the meters that libraries register there themselves.
+
+#### version
+
+The `version` status provider shows the version of the application that is running, from the build information that Spring Boot exposes: the version of
+the build, followed by the short id of the commit it was built from, such as `Version: 1.4.2 (a1b2c3d)`. It is disabled by default:
+
+```properties
+systemd.status-providers.version.enabled=true
+```
+
+The version comes from `META-INF/build-info.properties`, which the `build-info` goal of the Spring Boot Maven plugin generates, as does the `buildInfo()`
+task of its Gradle plugin, and the commit from `git.properties`, which the Git commit id plugins of Maven and Gradle generate. These are the same as the
+`info` endpoint of Spring Boot Actuator shows, which is not needed. With only one of them, only the version, or only the commit, is shown, and nothing is
+shown for an application built without both.
+
 #### availability
 
 The `availability` status provider shows the liveness and readiness of the application, as Spring Boot reports them, such as
@@ -334,6 +499,67 @@ migration.
 The changesets are reported through the customizer of the `SpringLiquibase` beans, which keeps the customizer they already have, such as a
 `Customizer<Liquibase>` bean of the application. A customizer that sets a `ChangeExecListener` of its own replaces the one of this provider, in which case
 only the start of the migrations is shown.
+
+#### flyway
+
+The `flyway` status provider requires Flyway, and the support of Spring Boot for it (`spring-boot-flyway`). It shows the progress of the database
+migrations run on startup by the `Flyway` that Spring Boot sets up, as each migration is applied, such as
+`Flyway: applying migration 42 add index (41 applied)`, with the version and the description of the migration, as in the name of its script, or the
+description alone for a repeatable migration. It is cleared once the migrations complete, and when they fail, the migration that failed is still shown
+while the application fails to start.
+
+Each migration also extends the startup timeout (see [Startup and shutdown timeouts](timeouts.html)), so that many migrations do not exceed the
+`TimeoutStartSec` of the service unit. A single migration that takes longer than the extension still exceeds it: raise `TimeoutStartSec` for such a
+migration.
+
+The migrations are reported by a `Callback` that a `FlywayConfigurationCustomizer` adds to the configuration of Flyway, next to the callbacks it already
+has, such as the `Callback` beans of the application. It is the last of the customizers to run, unless they are ordered otherwise: a customizer that runs
+after it and sets the callbacks replaces the one of this provider, in which case the migrations are not shown. Neither are those of a `Flyway` that
+the application creates itself, which Spring Boot does not customize.
+
+#### kafka-listeners
+
+The `kafka-listeners` status provider requires Spring for Apache Kafka. It shows the Kafka listener containers of the application, those of its
+`@KafkaListener` methods and the `MessageListenerContainer` beans: how many of them run, out of those there are, the partitions assigned to those that run,
+and how many are paused, if any, such as `Kafka listeners: 3/3 running, 12 partitions, 1 paused`. Nothing is shown while there are none.
+
+Only what the containers already know is shown, without asking the brokers, so the lag of the consumers is not. Containers that are never started, such
+as those of listeners with `autoStartup = "false"`, are counted among those there are.
+
+It is also a health provider, which can restart the application while a container stopped by itself, such as when it is not authorized (see
+[Health providers](health-providers.html)).
+
+#### rabbit-listeners
+
+The `rabbit-listeners` status provider requires Spring AMQP. It shows the RabbitMQ listener containers of the application, those of its
+`@RabbitListener` methods and the `MessageListenerContainer` beans: how many of them run, out of those there are, and the active consumers of the simple
+containers (`spring.rabbitmq.listener.type=simple`, the default), such as `RabbitMQ listeners: 2/2 running, 4 consumers`. Nothing is shown while there
+are none.
+
+The consumers drop to none while the broker cannot be reached, as the containers keep running, trying to start their consumers again. The direct
+containers do not tell how many consumers they have: without simple containers, only the containers are shown, such as `RabbitMQ listeners: 2/2 running`.
+
+It is also a health provider, which can restart the application while a container stopped by itself, such as when its queues are missing (see
+[Health providers](health-providers.html)).
+
+#### jms-listeners
+
+The `jms-listeners` status provider requires the JMS support of Spring (`spring-jms`). It shows the JMS listener containers of the application, those of
+its `@JmsListener` methods and the `MessageListenerContainer` beans: how many of them run, out of those there are, and how many are recovering their
+connection to the broker, if any, such as `JMS listeners: 2/2 running, 1 recovering`. A container keeps running while its broker cannot be reached,
+trying to connect again. Nothing is shown while there are none.
+
+It is also a health provider, which can restart the application while a container stopped by itself, once it gives up connecting to the broker (see
+[Health providers](health-providers.html)).
+
+#### r2dbc
+
+The `r2dbc` status provider requires `r2dbc-pool`, the connection pool Spring Boot uses for R2DBC, and is opted into, with
+`systemd.status-providers.r2dbc.enabled=true`. For each pool, named after its connection factory bean, it shows the connections in use out of the most the
+pool opens, and the subscribers waiting for a connection, such as `connectionFactory: 7/10 connections, 3 waiting`. A pool that is closed is left out.
+
+It is also a health provider, which can restart the application while a pool is starved, which usually means that connections leak (see
+[Health providers](health-providers.html)).
 
 #### actuator-health
 
@@ -368,32 +594,43 @@ the shutdown take.
 
 #### Effects of disabling each status provider
 
-| Key                   | Effect of disabling                                                                                                                                                                                                 |
-|-----------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `shutdown`            | The stage of the shutdown is no longer part of the status message. Nothing else is affected.                                                                                                                        |
-| `heap`                | The heap memory usage is no longer part of the status message. Nothing else is affected.                                                                                                                            |
-| `old-generation`      | The old generation after garbage collection is no longer part of the status message. Nothing else is affected.                                                                                                      |
-| `non-heap`            | The non-heap memory usage is no longer part of the status message. Nothing else is affected.                                                                                                                        |
-| `buffer-pools`        | The direct and mapped buffers are no longer part of the status message. Nothing else is affected.                                                                                                                   |
-| `garbage-collection`  | The garbage collection pauses are no longer part of the status message (the default). Nothing else is affected.                                                                                                     |
-| `class-loader`        | The loaded class count is no longer part of the status message. Nothing else is affected.                                                                                                                           |
-| `cpu`                 | The CPU usage is no longer part of the status message (the default). Nothing else is affected.                                                                                                                      |
-| `threads`             | The thread count is no longer part of the status message, **and deadlocks are no longer detected, nor restart the application, even if opted into**.                                                                |
-| `file-descriptors`    | The open file descriptors are no longer part of the status message, **and running out of them no longer restarts the application, even if opted into**.                                                            |
-| `cgroup-memory`       | The memory of the control group is no longer part of the status message. Nothing else is affected.                                                                                                                  |
-| `availability`        | The liveness and readiness of the application are no longer part of the status message, **and a broken liveness state no longer restarts the application, even if opted into**.                                    |
-| `tomcat`              | Tomcat's connectors are no longer part of the status message. Nothing else is affected.                                                                                                                             |
-| `jetty`               | Jetty's connections and threads are no longer part of the status message. Nothing else is affected.                                                                                                                 |
-| `netty`               | Reactor Netty's connections and requests are no longer part of the status message, and they are no longer counted. Nothing else is affected.                                                                        |
-| `hikari`              | The connection pools are no longer part of the status message, **and a starved pool no longer restarts the application, even if opted into**.                                                                       |
-| `task-executors`      | The thread pools of the task executors and schedulers are no longer part of the status message. Nothing else is affected.                                                                                           |
-| `liquibase`           | The progress of the database migrations is no longer shown, **and the startup timeout is no longer extended as changesets are applied**.                                                                            |
-| `application-run`     | The startup sequence state is no longer shown, **and the startup timeout is no longer extended when the startup sequence changes state**.                                                                           |
-| `application-context` | The bean creation progress is no longer shown, **and the startup timeout is no longer extended while beans are being created**. No notification is sent to systemd when beans are created during startup.           |
-| `actuator-health`     | The application health is no longer part of the status message, **and is no longer signalled to the watchdog, even if opted into**.                                                                                 |
+| Key                   | Effect of disabling                                                                                                                                                                                       |
+|-----------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `shutdown`            | The stage of the shutdown is no longer part of the status message. Nothing else is affected.                                                                                                              |
+| `heap`                | The heap memory usage is no longer part of the status message. Nothing else is affected.                                                                                                                  |
+| `old-generation`      | The old generation after garbage collection is no longer part of the status message. Nothing else is affected.                                                                                            |
+| `non-heap`            | The non-heap memory usage is no longer part of the status message. Nothing else is affected.                                                                                                              |
+| `buffer-pools`        | The direct and mapped buffers are no longer part of the status message. Nothing else is affected.                                                                                                         |
+| `garbage-collection`  | The garbage collection pauses are no longer part of the status message (the default), **and the time they take no longer restarts the application, even if opted into**.                                  |
+| `class-loader`        | The loaded class count is no longer part of the status message. Nothing else is affected.                                                                                                                 |
+| `cpu`                 | The CPU usage is no longer part of the status message (the default). Nothing else is affected.                                                                                                            |
+| `threads`             | The thread count is no longer part of the status message, **and deadlocks are no longer detected, nor restart the application, even if opted into**.                                                      |
+| `file-descriptors`    | The open file descriptors are no longer part of the status message, **and running out of them no longer restarts the application, even if opted into**.                                                   |
+| `virtual-threads`     | The virtual threads are no longer part of the status message (the default). Nothing else is affected.                                                                                                     |
+| `cgroup-tasks`        | The tasks of the control group are no longer part of the status message (the default), **and running out of them no longer restarts the application, even if opted into**.                                |
+| `cgroup-pressure`     | The pressure of the control group is no longer part of the status message (the default). Nothing else is affected.                                                                                        |
+| `cgroup-memory`       | The memory of the control group is no longer part of the status message. Nothing else is affected.                                                                                                        |
+| `availability`        | The liveness and readiness of the application are no longer part of the status message, **and a broken liveness state no longer restarts the application, even if opted into**.                           |
+| `tomcat`              | Tomcat's connectors are no longer part of the status message, **and a saturated connector no longer restarts the application, even if opted into**.                                                       |
+| `jetty`               | Jetty's connections and threads are no longer part of the status message, **and a saturated server no longer restarts the application, even if opted into**.                                              |
+| `netty`               | Reactor Netty's connections and requests are no longer part of the status message, and they are no longer counted. Nothing else is affected.                                                              |
+| `hikari`              | The connection pools are no longer part of the status message, **and a starved pool no longer restarts the application, even if opted into**.                                                             |
+| `r2dbc`               | The R2DBC connection pools are no longer part of the status message (the default), **and a starved pool no longer restarts the application, even if opted into**.                                         |
+| `task-executors`      | The thread pools of the task executors and schedulers are no longer part of the status message. Nothing else is affected.                                                                                 |
+| `scheduled-tasks`     | The scheduled tasks are no longer part of the status message (the default). Nothing else is affected.                                                                                                     |
+| `micrometer`          | The meters are no longer part of the status message (the default). Nothing else is affected.                                                                                                              |
+| `version`             | The version of the application is no longer part of the status message (the default). Nothing else is affected.                                                                                           |
+| `liquibase`           | The progress of the database migrations is no longer shown, **and the startup timeout is no longer extended as changesets are applied**.                                                                  |
+| `flyway`              | The progress of the database migrations is no longer shown, **and the startup timeout is no longer extended as migrations are applied**.                                                                  |
+| `kafka-listeners`     | The Kafka listener containers are no longer part of the status message, **and a container that stopped by itself no longer restarts the application, even if opted into**.                                |
+| `rabbit-listeners`    | The RabbitMQ listener containers are no longer part of the status message, **and a container that stopped by itself no longer restarts the application, even if opted into**.                             |
+| `jms-listeners`       | The JMS listener containers are no longer part of the status message, **and a container that stopped by itself no longer restarts the application, even if opted into**.                                  |
+| `application-run`     | The startup sequence state is no longer shown, **and the startup timeout is no longer extended when the startup sequence changes state**.                                                                 |
+| `application-context` | The bean creation progress is no longer shown, **and the startup timeout is no longer extended while beans are being created**. No notification is sent to systemd when beans are created during startup. |
+| `actuator-health`     | The application health is no longer part of the status message, **and is no longer signalled to the watchdog, even if opted into**.                                                                       |
 
-The `application-run` and `application-context` providers, along with `liquibase` while migrations run, are the only mechanism this library uses to
-extend the startup timeout (see
+The `application-run` and `application-context` providers, along with `liquibase` and `flyway` while migrations run, are the only mechanism this
+library uses to extend the startup timeout (see
 [Startup and shutdown timeouts](timeouts.html)). Disabling them means a slow startup can exceed the `TimeoutStartSec` of the service unit and be killed by
 systemd, even if it is making progress. If you disable them, it is your responsibility to ensure that startup completes within the timeout, by increasing
 `TimeoutStartSec` in the unit or by extending the timeout yourself, for instance by calling [Systemd.extendTimeout()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) periodically, or
@@ -425,8 +662,8 @@ as any other status provider registered directly in the [Systemd](apidocs/com/gi
 context is refreshed, in the order they were registered. Then come the [StatusProvider](apidocs/com/github/jpmsilva/jsystemd/StatusProvider.html) beans of the application context, in the order given by the
 `@Order` annotation of their bean methods or classes.
 
-The built-in status provider beans are ordered by how useful their information is when operating a service in production, 1000 apart, so that custom
-status providers can be placed between them. The critical ones, which tell whether the application is in trouble, use negative orders, and the others
+The built-in status provider beans are ordered by how useful their information is when operating a service in production, at least 200 apart, so that
+custom status providers can be placed between them. The critical ones, which tell whether the application is in trouble, use negative orders, and the others
 positive ones; 0 is left unused:
 
 | Order  | Status provider                                                                                               |
@@ -438,21 +675,33 @@ positive ones; 0 is left unused:
 | -6000  | [HeapStatusProvider](apidocs/com/github/jpmsilva/jsystemd/HeapStatusProvider.html)                            |
 | -5000  | [OldGenerationStatusProvider](apidocs/com/github/jpmsilva/jsystemd/OldGenerationStatusProvider.html)          |
 | -4000  | [CgroupMemoryStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CgroupMemoryStatusProvider.html)            |
+| -3500  | [CgroupPressureStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CgroupPressureStatusProvider.html)        |
 | -3000  | [HikariStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/HikariStatusProvider.html)                 |
+| -2500  | [R2dbcPoolStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/R2dbcPoolStatusProvider.html)           |
 | -2000  | [ThreadStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ThreadStatusProvider.html)                        |
+| -1500  | [VirtualThreadStatusProvider](apidocs/com/github/jpmsilva/jsystemd/VirtualThreadStatusProvider.html)          |
 | -1000  | [FileDescriptorStatusProvider](apidocs/com/github/jpmsilva/jsystemd/FileDescriptorStatusProvider.html)        |
+| -500   | [CgroupTasksStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CgroupTasksStatusProvider.html)              |
 | 1000   | [TomcatStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/TomcatStatusProvider.html)                 |
 | 2000   | [JettyStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/JettyStatusProvider.html)                   |
 | 3000   | [NettyStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/NettyStatusProvider.html)                   |
 | 4000   | [TaskExecutorStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/TaskExecutorStatusProvider.html)     |
+| 4200   | [ScheduledTaskStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ScheduledTaskStatusProvider.html)   |
+| 4400   | [KafkaListenerStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/KafkaListenerStatusProvider.html)   |
+| 4600   | [RabbitListenerStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/RabbitListenerStatusProvider.html) |
+| 4800   | [JmsListenerStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/JmsListenerStatusProvider.html)       |
 | 5000   | [CpuStatusProvider](apidocs/com/github/jpmsilva/jsystemd/CpuStatusProvider.html)                              |
 | 6000   | [GarbageCollectionStatusProvider](apidocs/com/github/jpmsilva/jsystemd/GarbageCollectionStatusProvider.html)  |
 | 7000   | [NonHeapStatusProvider](apidocs/com/github/jpmsilva/jsystemd/NonHeapStatusProvider.html)                      |
 | 8000   | [BufferPoolStatusProvider](apidocs/com/github/jpmsilva/jsystemd/BufferPoolStatusProvider.html)                |
 | 9000   | [ClassLoaderStatusProvider](apidocs/com/github/jpmsilva/jsystemd/ClassLoaderStatusProvider.html)              |
+| 10000  | [MicrometerStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/MicrometerStatusProvider.html)         |
+| 11000  | [BuildInfoStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/BuildInfoStatusProvider.html)           |
 
-The [LiquibaseStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/LiquibaseStatusProvider.html) is the exception: as it reports the migrations run while the beans are created, it is registered directly in the [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html)
-instance as soon as it is created, right after the startup status providers.
+The [LiquibaseStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/LiquibaseStatusProvider.html) and the
+[FlywayStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/FlywayStatusProvider.html) are the exceptions: as they report the migrations run while
+the beans are created, they are registered directly in the [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) instance as soon as they are
+created, right after the startup status providers.
 
 To replace a built-in status provider, such as to configure it in a way its properties do not allow, declare a bean of its type: the built-in one is
 then left out, so that the status does not show the same information twice. Give it the order of the built-in one, from the table above, to keep its
@@ -466,8 +715,9 @@ ThreadStatusProvider myThreadStatusProvider() {
 }
 ```
 
-The [LiquibaseStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/LiquibaseStatusProvider.html) cannot be replaced this way, as a bean of the
-application would not be registered as soon as it is created; disable it instead.
+The [LiquibaseStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/LiquibaseStatusProvider.html) and the
+[FlywayStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/FlywayStatusProvider.html) cannot be replaced this way, as a bean of the application
+would not be registered as soon as it is created; disable them instead.
 
 To report what the application is doing without writing a status provider, inject the [PhaseStatusProvider](apidocs/com/github/jpmsilva/jsystemd/PhaseStatusProvider.html) bean and set its phase, which is sent to
 systemd right away. The bean only exists when running under systemd, so inject it as optional:
@@ -499,4 +749,13 @@ The [Systemd](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) instance can st
 ## Under Keycloak
 
 The [Keycloak provider](keycloak.html) registers the status providers of the JVM from the core library, with the same keys and in the same order as under
-Spring Boot, along with the stage of the startup and of the shutdown. See its page for how to choose which ones are shown.
+Spring Boot, along with status providers of its own:
+
+| Key          | Purpose                                                                                 | Sample                                                                  | Details                                            |
+|--------------|-----------------------------------------------------------------------------------------|-------------------------------------------------------------------------|----------------------------------------------------|
+|              | Provides the stage of the startup, with the steps of the bootstrap, and of the shutdown | `Startup: migrating the database (changeset 26.2.0-36750, 117 applied)` | [Startup progress](keycloak.html#Startup_progress) |
+| `cluster`    | Provides the nodes of the cluster of Keycloak, and its health when not healthy          | `Cluster: 3 nodes`                                                      | [cluster](keycloak.html#cluster)                   |
+| `datasource` | Provides the connection pool of the datasource of Keycloak, and its health              | `Datasource: 7/100 connections, 3 waiting`                              | [datasource](keycloak.html#datasource)             |
+| `version`    | Provides the version of Keycloak that runs                                              | `Keycloak 26.8.2`                                                       | [Status providers](keycloak.html#Status_providers) |
+
+See its page for how to choose which ones are shown: unlike under Spring Boot, a single option lists them all.

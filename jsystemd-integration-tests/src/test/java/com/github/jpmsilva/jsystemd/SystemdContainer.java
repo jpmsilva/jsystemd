@@ -102,11 +102,30 @@ class SystemdContainer extends GenericContainer<SystemdContainer> {
    * @param unit the name of the service unit, without the {@code .service} suffix
    * @param properties the properties of the service unit, in the form {@code name=value}, besides <code>Type=notify</code> and
    *     <code>NotifyAccess=all</code>, as Keycloak runs as a child process of {@code kc.sh}
+   * @param options the options Keycloak starts with, such as those of its provider for systemd
    */
-  void runKeycloak(String unit, List<String> properties) {
+  void runKeycloak(String unit, List<String> properties, String... options) {
     List<String> all = new ArrayList<>(List.of("NotifyAccess=all"));
     all.addAll(properties);
-    run(unit, all, List.of("/opt/keycloak/bin/kc.sh", "start", "--optimized", "--http-enabled=true", "--hostname-strict=false"));
+    run(unit, all, List.of("/opt/keycloak/bin/kc.sh", "start", "--optimized", "--http-enabled=true", "--hostname-strict=false"), options);
+  }
+
+  /**
+   * Removes the database of Keycloak, which then creates it again the next time it starts, migrating it from scratch.
+   */
+  void removeKeycloakDatabase() {
+    ExecResult result = exec("rm", "-rf", "/opt/keycloak/data/h2");
+    assertThat(result.getExitCode()).as("removing the database of Keycloak failed: %s", result.getStderr()).isZero();
+  }
+
+  /**
+   * Sets how much systemd logs: at the {@code debug} level, it logs every notification it receives from a service, in the journal of the service.
+   *
+   * @param level the log level, such as {@code debug} or {@code info}
+   */
+  void logLevel(String level) {
+    ExecResult result = exec("systemctl", "log-level", level);
+    assertThat(result.getExitCode()).as("systemctl log-level failed: %s", result.getStderr()).isZero();
   }
 
   /**

@@ -20,9 +20,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.boot.context.properties.source.InvalidConfigurationPropertyValueException;
 
 /**
@@ -58,6 +60,60 @@ class SystemdPropertiesTest {
           assertThat(e.getReason())
               .contains("systemd.status-providers.threads.deadlock-detection=true")
               .contains("remove 'systemd.status-providers.threads.deadlock-health'");
+        });
+  }
+
+  private static SystemdProperties.WebServer webServer(SystemdProperties properties, String key) {
+    return "tomcat".equals(key) ? properties.getStatusProviders().getTomcat() : properties.getStatusProviders().getJetty();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"tomcat", "jetty"})
+  void rejectsANegativeUnhealthyDelayOfAWebServerNamingItsProperty(String key) {
+    SystemdProperties properties = new SystemdProperties();
+    webServer(properties, key).setUnhealthyDelay(Duration.ofSeconds(-1));
+
+    assertThatThrownBy(properties::afterPropertiesSet)
+        .isInstanceOfSatisfying(InvalidConfigurationPropertyValueException.class,
+            e -> assertThat(e.getName()).isEqualTo("systemd.status-providers." + key + ".unhealthy-delay"));
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"tomcat", "jetty"})
+  void acceptsNoUnhealthyDelayOfAWebServer(String key) {
+    SystemdProperties properties = new SystemdProperties();
+    webServer(properties, key).setUnhealthyDelay(null);
+
+    assertThatCode(properties::afterPropertiesSet).doesNotThrowAnyException();
+  }
+
+  private static SystemdProperties.Micrometer.Meter meter(String name) {
+    SystemdProperties.Micrometer.Meter meter = new SystemdProperties.Micrometer.Meter();
+    meter.setName(name);
+    return meter;
+  }
+
+  @Test
+  void acceptsMetersWithAName() {
+    SystemdProperties properties = new SystemdProperties();
+    properties.getStatusProviders().getMicrometer().getMeters().add(meter("orders.placed"));
+
+    assertThatCode(properties::afterPropertiesSet).doesNotThrowAnyException();
+  }
+
+  @ParameterizedTest
+  @ValueSource(strings = {"", " "})
+  void rejectsAMeterWithoutANameNamingItsProperty(String name) {
+    SystemdProperties properties = new SystemdProperties();
+    properties.getStatusProviders().getMicrometer().getMeters().add(meter("orders.placed"));
+    properties.getStatusProviders().getMicrometer().getMeters().add(meter(name));
+    // not set at all
+    properties.getStatusProviders().getMicrometer().getMeters().add(new SystemdProperties.Micrometer.Meter());
+
+    assertThatThrownBy(properties::afterPropertiesSet)
+        .isInstanceOfSatisfying(InvalidConfigurationPropertyValueException.class, e -> {
+          assertThat(e.getName()).isEqualTo("systemd.status-providers.micrometer.meters[1].name");
+          assertThat(e.getValue()).isEqualTo(name);
         });
   }
 }

@@ -95,8 +95,8 @@ that the service is ready.
 The stages and the bean creation progress are reported by the
 [ApplicationRunStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ApplicationRunStatusProvider.html) and the
 [ApplicationContextStatusProvider](apidocs/com/github/jpmsilva/jsystemd/spring/ApplicationContextStatusProvider.html), the `application-run` and
-`application-context` status providers, which also extend the startup timeout as the startup makes progress, along with the `liquibase` status provider
-while the database migrations run. See [Status providers](status-providers.html) for how to disable them, and what is lost when doing so.
+`application-context` status providers, which also extend the startup timeout as the startup makes progress, along with the `liquibase` and `flyway`
+status providers while the database migrations run. See [Status providers](status-providers.html) for how to disable them, and what is lost when doing so.
 
 ## Under Keycloak
 

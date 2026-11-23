@@ -40,7 +40,8 @@ import org.jspecify.annotations.Nullable;
  * <ul>
  *   <li>deadlock health: unhealthy while any thread is deadlocked, naming the deadlocked threads in the health details, under
  *   {@code deadlockedThreads}. Requires deadlock detection. As a deadlock never resolves by itself, the unhealthy state is not delayed, unlike the
- *   {@link DelayableHealthProvider} ones: delaying the restart would only delay the recovery.</li>
+ *   {@link DelayableHealthProvider} ones, and is reported as unrecoverable, which triggers the watchdog right away, rather than once
+ *   {@code WatchdogSec} elapses: delaying the restart would only delay the recovery.</li>
  * </ul>
  *
  * <p>Both reading the thread states and detecting deadlocks pause the JVM briefly at a safepoint, for a time that grows with the number of threads.
@@ -134,7 +135,7 @@ public class ThreadStatusProvider implements StatusProvider, HealthProvider {
     }
     // threads may terminate between finding them and reading their names, in which case their information is null
     List<String> names = Arrays.stream(threads.getThreadInfo(ids)).filter(Objects::nonNull).map(ThreadInfo::getThreadName).toList();
-    return new Health(false, Map.of("deadlockedThreads", names));
+    return Health.unrecoverable(Map.of("deadlockedThreads", names));
   }
 
   private static long [] deadlockedThreads(ThreadMXBean threads) {

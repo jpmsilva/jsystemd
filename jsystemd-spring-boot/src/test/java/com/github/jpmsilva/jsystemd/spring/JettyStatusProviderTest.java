@@ -18,12 +18,15 @@ package com.github.jpmsilva.jsystemd.spring;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.github.jpmsilva.jsystemd.HealthProvider;
 import java.io.IOException;
 import java.net.Socket;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -106,12 +109,20 @@ class JettyStatusProviderTest {
    * Tells the provider that the server started, as Spring Boot does.
    */
   private void started(Server server) {
+    started(provider, server);
+  }
+
+  private static void started(JettyStatusProvider provider, Server server) {
     JettyWebServer webServer = mock(JettyWebServer.class);
     when(webServer.getServer()).thenReturn(server);
-    started(webServer);
+    started(provider, webServer);
   }
 
   private void started(WebServer webServer) {
+    started(provider, webServer);
+  }
+
+  private static void started(JettyStatusProvider provider, WebServer webServer) {
     WebServerInitializedEvent event = mock(WebServerInitializedEvent.class);
     when(event.getWebServer()).thenReturn(webServer);
     provider.onApplicationEvent(event);
@@ -215,5 +226,108 @@ class JettyStatusProviderTest {
     server.stop();
 
     assertThat(provider.status()).isEmpty();
+  }
+
+  /**
+   * Sends as many requests as the pool has threads, so that some of them wait for a thread: at most 8 of its 10 threads run requests, as Jetty keeps the
+   * others to accept connections and wait for their data, and it may keep one more in reserve.
+   */
+  private void saturate(Server server) throws IOException {
+    for (int i = 0; i < 10; i++) {
+      request(server);
+    }
+    await().until(() -> ((QueuedThreadPool) server.getThreadPool()).getQueueSize() > 0);
+  }
+
+  @Test
+  void isUnhealthyWhileAllTheThreadsOfAServerAreTakenAndRequestsWait() throws Exception {
+    Server server = server();
+    JettyStatusProvider provider = new JettyStatusProvider(true);
+    started(provider, server);
+
+    request(server);
+
+    await().untilAsserted(() -> assertThat(provider.status()).endsWith("1/8 threads"));
+    assertThat(provider.health()).isEqualTo(HealthProvider.Health.HEALTHY);
+
+    saturate(server);
+
+    await().untilAsserted(() -> {
+      HealthProvider.Health health = provider.health();
+      assertThat(health.healthy()).isFalse();
+      assertThat(health.details()).containsExactly(entry("saturatedServers", List.of("jetty-" + port(server))));
+    });
+
+    release.countDown();
+
+    await().untilAsserted(() -> assertThat(provider.health()).isEqualTo(HealthProvider.Health.HEALTHY));
+  }
+
+  @Test
+  void isHealthyWhileThePoolCanStillGrow() throws Exception {
+    // a pool that starts with 4 threads, and has at most 10
+    Server server = server(configured -> ((QueuedThreadPool) configured.getThreadPool()).setMinThreads(4));
+    JettyStatusProvider provider = new JettyStatusProvider(true);
+    started(provider, server);
+
+    request(server);
+    request(server);
+    request(server);
+
+    // more requests than the pool had threads for at first, 2 of its 4, but fewer than the 8 it can have
+    await().untilAsserted(() -> assertThat(provider.status()).matches(".*, 3/\\d threads"));
+    assertThat(provider.health()).isEqualTo(HealthProvider.Health.HEALTHY);
+  }
+
+  @Test
+  void isAlwaysHealthyWhenHealthIsDisabled() throws Exception {
+    Server server = server();
+    started(server);
+    saturate(server);
+
+    // created without arguments
+    assertThat(provider.healthEnabled()).isFalse();
+    assertThat(provider.health()).isEqualTo(HealthProvider.Health.HEALTHY);
+  }
+
+  @Test
+  void delaysTheUnhealthyStateWhenDelayIsSet() throws Exception {
+    Server server = server();
+    JettyStatusProvider provider = new JettyStatusProvider(true);
+    provider.setUnhealthyDelay(Duration.ofMinutes(1));
+    started(provider, server);
+    saturate(server);
+
+    assertThat(provider.health()).isEqualTo(HealthProvider.Health.HEALTHY);
+  }
+
+  @Test
+  @EnabledForJreRange(min = JRE.JAVA_21)
+  void isNeverUnhealthyUnderVirtualThreads() throws Exception {
+    // there is no thread pool to exhaust: every request gets a thread of its own
+    Server server = new Server(new VirtualThreadPool());
+    ServerConnector connector = new ServerConnector(server);
+    connector.setPort(0);
+    server.addConnector(connector);
+    servers.add(server);
+    server.start();
+    JettyStatusProvider provider = new JettyStatusProvider(true);
+    started(provider, server);
+
+    assertThat(provider.health()).isEqualTo(HealthProvider.Health.HEALTHY);
+  }
+
+  @Test
+  void isHealthyOnceTheServerIsStopped() throws Exception {
+    Server server = server();
+    JettyStatusProvider provider = new JettyStatusProvider(true);
+    started(provider, server);
+    saturate(server);
+    await().untilAsserted(() -> assertThat(provider.health().healthy()).isFalse());
+
+    release.countDown();
+    server.stop();
+
+    assertThat(provider.health()).isEqualTo(HealthProvider.Health.HEALTHY);
   }
 }

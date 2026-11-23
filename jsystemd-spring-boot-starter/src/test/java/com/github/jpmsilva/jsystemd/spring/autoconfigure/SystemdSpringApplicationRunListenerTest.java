@@ -40,10 +40,14 @@ import com.github.jpmsilva.jsystemd.spring.ActuatorHealthStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.ApplicationContextStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.ApplicationRunStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.AvailabilityStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.FlywayStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.HikariStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.JettyStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.JmsListenerStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.KafkaListenerStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.LiquibaseStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.NettyStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.RabbitListenerStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.ShutdownStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.SystemdLifecycle;
 import com.github.jpmsilva.jsystemd.spring.TaskExecutorStatusProvider;
@@ -298,9 +302,11 @@ class SystemdSpringApplicationRunListenerTest {
 
     // the startup status providers, registered by the run listener, then the status provider beans in order, each once
     assertThat(providers()).containsExactly(ApplicationRunStatusProvider.class, ApplicationContextStatusProvider.class, LiquibaseStatusProvider.class,
-        ShutdownStatusProvider.class, PhaseStatusProvider.class, ActuatorHealthStatusProvider.class, AvailabilityStatusProvider.class, HeapStatusProvider.class,
+        FlywayStatusProvider.class, ShutdownStatusProvider.class, PhaseStatusProvider.class, ActuatorHealthStatusProvider.class,
+        AvailabilityStatusProvider.class, HeapStatusProvider.class,
         OldGenerationStatusProvider.class, CgroupMemoryStatusProvider.class, HikariStatusProvider.class, ThreadStatusProvider.class,
         FileDescriptorStatusProvider.class, TomcatStatusProvider.class, JettyStatusProvider.class, NettyStatusProvider.class, TaskExecutorStatusProvider.class,
+        KafkaListenerStatusProvider.class, RabbitListenerStatusProvider.class, JmsListenerStatusProvider.class,
         NonHeapStatusProvider.class, BufferPoolStatusProvider.class, ClassLoaderStatusProvider.class);
     context.close();
   }

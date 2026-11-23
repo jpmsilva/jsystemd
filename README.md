@@ -8,9 +8,11 @@ It implements the [sd_notify](https://www.freedesktop.org/software/systemd/man/s
 
 * tell systemd when it has finished starting up (`Type=notify`) and when it is stopping;
 * show its status in `systemctl status`, using the built-in status providers (heap, old generation, non-heap, buffers, garbage collection, class loading,
-  CPU, threads, file descriptors, control group memory, thread pools) or your own, and report what the application is doing with a phase;
-* send watchdog heartbeats (`WatchdogSec`), and stop sending them while the application is unhealthy, so that systemd restarts it. Health can be reported by
-  your own health providers (built-in health providers are included that detect deadlocked threads, and file descriptors about to run out);
+  CPU, threads, virtual threads, file descriptors, the memory, the pressure and the tasks of the control group, thread pools) or your own, and report
+  what the application is doing with a phase;
+* send watchdog heartbeats (`WatchdogSec`), and stop sending them while the application is unhealthy, so that systemd restarts it, right away when the
+  application cannot recover. Health can be reported by your own health providers (built-in health providers are included that detect deadlocked threads,
+  file descriptors or tasks about to run out, and an application that spends most of its time collecting garbage);
 * extend the startup and shutdown timeouts (`TimeoutStartSec`, `TimeoutStopSec`) during long startups and shutdowns.
 
 When the application is not running under systemd, nothing is sent, so the same code runs unchanged anywhere else: on a developer machine, in tests, or
@@ -101,9 +103,12 @@ notifies systemd once it is ready to accept traffic.
 
 On top of the core, it reports the startup progress of the application context, the availability of the application and the stage of its shutdown,
 as well as, when the libraries are used, the status of the embedded web server (Tomcat, Jetty or Reactor Netty), the HikariCP connection pools, the
-thread pools of the task executors and schedulers, the progress of the Liquibase migrations, and the Actuator health. Once opted into, it also lets the
-systemd watchdog restart the application when its threads deadlock, when its file descriptors are about to run out, when a connection pool is starved,
-when its liveness state is broken, or when Actuator reports it, or the members of one of its health groups, as unhealthy.
+thread pools of the task executors and schedulers, the message listener containers (Kafka, RabbitMQ, JMS), the progress of the Liquibase and Flyway
+migrations, and the Actuator health. The R2DBC connection pools, the scheduled tasks and those failing, chosen Micrometer meters and the version of the
+build can be shown as well, once enabled. Once opted into, it also lets the systemd watchdog restart the application when its threads deadlock, when
+its file descriptors or its tasks are about to run out, while it spends most of its time collecting garbage, when a connection pool is starved, when
+the embedded Tomcat or Jetty stays saturated, when a message listener container stops by itself, when its liveness state is broken, or when Actuator
+reports it, or the members of one of its health groups, as unhealthy.
 
 ## jsystemd-spring-boot
 
@@ -123,8 +128,9 @@ The [How to](https://jpmsilva.github.io/jsystemd-site/versions/latest/howto.html
 ## jsystemd-keycloak
 
 For Keycloak, the provider tells systemd that Keycloak is ready once it has completed its bootstrap and its HTTP server listens, and that it is stopping
-as soon as it is told to stop, sends the watchdog heartbeats, and reports the status of the JVM. It is a single jar, to copy to the `providers` directory
-of Keycloak: see [Keycloak](https://jpmsilva.github.io/jsystemd-site/versions/latest/keycloak.html).
+as soon as it is told to stop, extends the startup timeout while the bootstrap makes progress, such as on each changeset of a database migration, sends
+the watchdog heartbeats, which can take the health of Keycloak into account once opted into, and reports the status of Keycloak (its cluster and its
+database connection pool) and of the JVM. It is a single jar, to copy to the `providers` directory of Keycloak: see [Keycloak](https://jpmsilva.github.io/jsystemd-site/versions/latest/keycloak.html).
 
 ## Documentation
 

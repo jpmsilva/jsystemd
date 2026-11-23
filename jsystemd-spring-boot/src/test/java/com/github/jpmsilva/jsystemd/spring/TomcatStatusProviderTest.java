@@ -18,10 +18,12 @@ package com.github.jpmsilva.jsystemd.spring;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.entry;
 import static org.awaitility.Awaitility.await;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.github.jpmsilva.jsystemd.HealthProvider;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,6 +31,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -119,15 +122,42 @@ class TomcatStatusProviderTest {
    * Tells the provider that the server started, as Spring Boot does.
    */
   private void started(Tomcat server) {
+    started(provider, server);
+  }
+
+  private static void started(TomcatStatusProvider provider, Tomcat server) {
     TomcatWebServer webServer = mock(TomcatWebServer.class);
     when(webServer.getTomcat()).thenReturn(server);
-    started(webServer);
+    started(provider, webServer);
   }
 
   private void started(WebServer webServer) {
+    started(provider, webServer);
+  }
+
+  private static void started(TomcatStatusProvider provider, WebServer webServer) {
     WebServerInitializedEvent event = mock(WebServerInitializedEvent.class);
     when(event.getWebServer()).thenReturn(webServer);
     provider.onApplicationEvent(event);
+  }
+
+  /**
+   * Sends more requests than the pool of a small server has threads for, so that one of them waits for a thread.
+   */
+  private void saturate(Tomcat server) throws IOException {
+    for (int i = 0; i < 3; i++) {
+      request(server);
+    }
+  }
+
+  /**
+   * Starts a Tomcat server whose pool starts with a single thread, and has at most 2.
+   */
+  private Tomcat smallServer() throws IOException, LifecycleException {
+    return server(protocol -> {
+      protocol.setMinSpareThreads(1);
+      protocol.setMaxThreads(2);
+    });
   }
 
   /**
@@ -244,5 +274,104 @@ class TomcatStatusProviderTest {
     } finally {
       Locale.setDefault(defaultLocale);
     }
+  }
+
+  @Test
+  void isUnhealthyWhileAllTheThreadsOfAConnectorAreBusyAndRequestsWait() throws IOException, LifecycleException {
+    Tomcat server = smallServer();
+    TomcatStatusProvider provider = new TomcatStatusProvider(true);
+    started(provider, server);
+
+    request(server);
+
+    // the single thread of the pool is busy, but the pool can still grow
+    await().untilAsserted(() -> assertThat(provider.status()).endsWith("1/1 threads"));
+    assertThat(provider.health()).isEqualTo(HealthProvider.Health.HEALTHY);
+
+    request(server);
+
+    // all the threads the pool can have are busy, but no request waits for one
+    await().untilAsserted(() -> assertThat(provider.status()).endsWith("2/2 threads"));
+    assertThat(provider.health()).isEqualTo(HealthProvider.Health.HEALTHY);
+
+    request(server);
+
+    await().untilAsserted(() -> {
+      HealthProvider.Health health = provider.health();
+      assertThat(health.healthy()).isFalse();
+      assertThat(health.details()).containsExactly(entry("saturatedConnectors", List.of("http-nio-" + port(server))));
+    });
+
+    release.countDown();
+
+    await().untilAsserted(() -> assertThat(provider.health()).isEqualTo(HealthProvider.Health.HEALTHY));
+  }
+
+  @Test
+  void namesOnlyTheSaturatedConnectors() throws IOException, LifecycleException {
+    // as the server of the application and the one of the management endpoints, on a port of their own
+    Tomcat application = smallServer();
+    Tomcat management = smallServer();
+    TomcatStatusProvider provider = new TomcatStatusProvider(true);
+    started(provider, application);
+    started(provider, management);
+    saturate(application);
+    request(management);
+    request(management);
+
+    await().untilAsserted(() -> assertThat(provider.health().details())
+        .containsExactly(entry("saturatedConnectors", List.of("http-nio-" + port(application)))));
+  }
+
+  @Test
+  void isAlwaysHealthyWhenHealthIsDisabled() throws IOException, LifecycleException {
+    Tomcat server = smallServer();
+    started(server);
+    saturate(server);
+
+    // created without arguments
+    assertThat(provider.healthEnabled()).isFalse();
+    await().untilAsserted(() -> assertThat(provider.status()).endsWith("3/8192 connections, 2/2 threads"));
+    assertThat(provider.health()).isEqualTo(HealthProvider.Health.HEALTHY);
+  }
+
+  @Test
+  void delaysTheUnhealthyStateWhenDelayIsSet() throws IOException, LifecycleException {
+    Tomcat server = smallServer();
+    TomcatStatusProvider provider = new TomcatStatusProvider(true);
+    provider.setUnhealthyDelay(Duration.ofMinutes(1));
+    started(provider, server);
+    saturate(server);
+
+    await().untilAsserted(() -> assertThat(provider.status()).endsWith("3/8192 connections, 2/2 threads"));
+    assertThat(provider.health()).isEqualTo(HealthProvider.Health.HEALTHY);
+  }
+
+  @Test
+  @EnabledForJreRange(min = JRE.JAVA_21)
+  void isNeverUnhealthyUnderVirtualThreads() throws IOException, LifecycleException {
+    // there is no thread pool to exhaust: every request gets a thread of its own
+    Tomcat server = server(protocol -> protocol.setExecutor(new VirtualThreadExecutor("tomcat-handler-")));
+    TomcatStatusProvider provider = new TomcatStatusProvider(true);
+    started(provider, server);
+    request(server);
+    request(server);
+
+    await().untilAsserted(() -> assertThat(provider.status()).isEqualTo("http-nio-" + port(server) + ": 2/8192 connections"));
+    assertThat(provider.health()).isEqualTo(HealthProvider.Health.HEALTHY);
+  }
+
+  @Test
+  void isHealthyOnceTheServerIsStopped() throws IOException, LifecycleException {
+    Tomcat server = smallServer();
+    TomcatStatusProvider provider = new TomcatStatusProvider(true);
+    started(provider, server);
+    saturate(server);
+    await().untilAsserted(() -> assertThat(provider.health().healthy()).isFalse());
+
+    release.countDown();
+    server.stop();
+
+    assertThat(provider.health()).isEqualTo(HealthProvider.Health.HEALTHY);
   }
 }

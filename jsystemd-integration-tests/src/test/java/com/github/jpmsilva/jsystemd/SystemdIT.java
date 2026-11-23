@@ -185,6 +185,18 @@ class SystemdIT {
   }
 
   @Test
+  void watchdogTriggeredWhenUnrecoverable() {
+    // heartbeats are sent, and the health evaluated, every 15 seconds: an unhealthy state only suppresses the heartbeats, so that the watchdog would
+    // expire 30 seconds after the last one, the one sent once ready, while an unrecoverable one triggers it as soon as it is found, 15 seconds in
+    container.runFixture(unit, List.of("WatchdogSec=30", "WatchdogSignal=SIGKILL"), "unhealthy-after=PT1S", "unrecoverable=true");
+    await().untilAsserted(() -> assertThat(container.show(unit)).containsEntry("ActiveState", "active"));
+
+    await().atMost(Duration.ofSeconds(24)).untilAsserted(() -> assertThat(container.show(unit))
+        .containsEntry("ActiveState", "failed")
+        .containsEntry("Result", "watchdog"));
+  }
+
+  @Test
   void slowShutdownAfterStopping() {
     // killed with SIGKILL, as above; the JVM exits with 143 after SIGTERM, which is a clean exit
     container.runFixture(unit, List.of("WatchdogSec=2", "WatchdogSignal=SIGKILL", "SuccessExitStatus=143"), "shutdown=PT12S");

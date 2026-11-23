@@ -33,6 +33,8 @@ import org.slf4j.Logger;
  *   <li>{@code startup}: how long the startup takes, as an ISO-8601 duration (default {@code PT0S});</li>
  *   <li>{@code extend-timeout}: {@code true} to periodically extend the startup timeout while starting up (default {@code false});</li>
  *   <li>{@code unhealthy-after}: how long after being ready the application reports itself as unhealthy, as an ISO-8601 duration (default never);</li>
+ *   <li>{@code unrecoverable}: {@code true} to report the unhealthy state as one the application cannot recover from, which triggers the watchdog right
+ *   away (default {@code false});</li>
  *   <li>{@code unhealthy-during-startup-after}: how long after starting the application reports itself as unhealthy until it is ready, as an ISO-8601
  *   duration (default never);</li>
  *   <li>{@code heartbeats-during-startup}: for how long after starting the application sends watchdog heartbeats itself, every half second, bypassing
@@ -86,6 +88,7 @@ public final class FixtureApplication {
     final Duration startup = Duration.parse(options.getOrDefault("startup", "PT0S"));
     final boolean extendTimeout = Boolean.parseBoolean(options.getOrDefault("extend-timeout", "false"));
     final String unhealthyAfter = options.get("unhealthy-after");
+    final boolean unrecoverable = Boolean.parseBoolean(options.getOrDefault("unrecoverable", "false"));
     final Duration shutdown = Duration.parse(options.getOrDefault("shutdown", "PT0S"));
     final String onShutdown = options.getOrDefault("on-shutdown", "stopping");
     final boolean extendTimeoutOnShutdown = Boolean.parseBoolean(options.getOrDefault("extend-timeout-on-shutdown", "false"));
@@ -123,7 +126,7 @@ public final class FixtureApplication {
     }
     systemd.addHealthProviders(() -> {
       Instant at = "starting".equals(phase) ? unhealthyDuringStartupAt : unhealthyAt;
-      return at != null && Instant.now().isAfter(at) ? new Health(false, Map.of("fixture", "unhealthy on purpose")) : Health.HEALTHY;
+      return at != null && Instant.now().isAfter(at) ? new Health(false, Map.of("fixture", "unhealthy on purpose"), unrecoverable) : Health.HEALTHY;
     });
     Runtime.getRuntime().addShutdownHook(new Thread(() -> {
       switch (onShutdown) {

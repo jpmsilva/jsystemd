@@ -91,6 +91,8 @@ class AvailabilityStatusProviderTest {
     health.onApplicationEvent(new AvailabilityChangeEvent<>(this, LivenessState.BROKEN));
     assertThat(health.health().healthy()).isFalse();
     assertThat(health.health().details()).containsExactly(entry("livenessState", "BROKEN"));
+    // Spring Boot defines the broken state as one the application cannot recover from, so the watchdog is triggered right away
+    assertThat(health.health().unrecoverable()).isTrue();
 
     health.onApplicationEvent(new AvailabilityChangeEvent<>(this, LivenessState.CORRECT));
     assertThat(health.health()).isEqualTo(HealthProvider.Health.HEALTHY);

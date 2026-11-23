@@ -143,6 +143,93 @@ limitations under the License.
       </exclusions>
     </dependency>
     <dependency>
+      <!-- only to follow the database migrations of the bootstrap, through the Liquibase instances Keycloak runs them with -->
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-model-jpa</artifactId>
+      <version>${org.keycloak.version}</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <!-- the changesets of those migrations, as they are applied -->
+      <groupId>org.liquibase</groupId>
+      <artifactId>liquibase-core</artifactId>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <!-- only to read the connection pool of the datasource -->
+      <groupId>io.agroal</groupId>
+      <artifactId>agroal-api</artifactId>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <!-- only to reach the cache manager, for the members of the cluster -->
+      <groupId>org.keycloak</groupId>
+      <artifactId>keycloak-model-infinispan</artifactId>
+      <version>${org.keycloak.version}</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <!-- the cache manager, and the health of its cluster -->
+      <groupId>org.infinispan</groupId>
+      <artifactId>infinispan-core</artifactId>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <!-- the types that the caches and their manager, above, extend -->
+      <groupId>org.infinispan</groupId>
+      <artifactId>infinispan-commons</artifactId>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <!-- the annotations of the cache manager, which Infinispan only uses to compile, and so does not ship: compiling against the cache manager
+      otherwise warns of an unknown enum constant Scopes.GLOBAL -->
+      <groupId>org.infinispan</groupId>
+      <artifactId>infinispan-component-annotations</artifactId>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
       <groupId>net.java.dev.jna</groupId>
       <artifactId>jna</artifactId>
       <scope>provided</scope>
@@ -181,6 +268,18 @@ limitations under the License.
       <!-- an implementation of the JSON API, to build the reports of the readiness health checks -->
       <groupId>org.eclipse.parsson</groupId>
       <artifactId>parsson</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- which the representations of Keycloak log with, such as the one of a realm that is imported -->
+      <groupId>org.jboss.logging</groupId>
+      <artifactId>jboss-logging</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- which Liquibase needs to be mocked -->
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>

@@ -20,6 +20,8 @@ import static java.util.Objects.requireNonNull;
 
 import com.github.jpmsilva.jsystemd.BufferPoolStatusProvider;
 import com.github.jpmsilva.jsystemd.CgroupMemoryStatusProvider;
+import com.github.jpmsilva.jsystemd.CgroupPressureStatusProvider;
+import com.github.jpmsilva.jsystemd.CgroupTasksStatusProvider;
 import com.github.jpmsilva.jsystemd.ClassLoaderStatusProvider;
 import com.github.jpmsilva.jsystemd.CpuStatusProvider;
 import com.github.jpmsilva.jsystemd.FileDescriptorStatusProvider;
@@ -32,18 +34,31 @@ import com.github.jpmsilva.jsystemd.PhaseStatusProvider;
 import com.github.jpmsilva.jsystemd.StatusProvider;
 import com.github.jpmsilva.jsystemd.Systemd;
 import com.github.jpmsilva.jsystemd.ThreadStatusProvider;
+import com.github.jpmsilva.jsystemd.VirtualThreadStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.ActuatorHealthStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.AvailabilityStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.BuildInfoStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.ConditionalOnSystemd;
+import com.github.jpmsilva.jsystemd.spring.FlywayStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.HikariStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.JettyStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.JmsListenerStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.KafkaListenerStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.LiquibaseStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.MicrometerStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.NettyStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.R2dbcPoolStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.RabbitListenerStatusProvider;
+import com.github.jpmsilva.jsystemd.spring.ScheduledTaskStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.ShutdownStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.SystemdLifecycle;
 import com.github.jpmsilva.jsystemd.spring.TaskExecutorStatusProvider;
 import com.github.jpmsilva.jsystemd.spring.TomcatStatusProvider;
 import com.zaxxer.hikari.HikariDataSource;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
+import io.r2dbc.pool.ConnectionPool;
+import jakarta.jms.Message;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -52,9 +67,11 @@ import java.util.stream.Collectors;
 import liquibase.integration.spring.SpringLiquibase;
 import org.apache.catalina.startup.Tomcat;
 import org.eclipse.jetty.server.Server;
+import org.flywaydb.core.Flyway;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.amqp.rabbit.listener.RabbitListenerEndpointRegistry;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
@@ -66,6 +83,7 @@ import org.springframework.boot.availability.AvailabilityChangeEvent;
 import org.springframework.boot.availability.ReadinessState;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.context.properties.source.InvalidConfigurationPropertyValueException;
+import org.springframework.boot.flyway.autoconfigure.FlywayConfigurationCustomizer;
 import org.springframework.boot.health.actuate.endpoint.HealthEndpointGroup;
 import org.springframework.boot.health.actuate.endpoint.HealthEndpointGroups;
 import org.springframework.boot.health.contributor.HealthContributors;
@@ -73,6 +91,8 @@ import org.springframework.boot.health.contributor.HealthIndicator;
 import org.springframework.boot.health.contributor.Status;
 import org.springframework.boot.health.registry.HealthContributorRegistry;
 import org.springframework.boot.health.registry.ReactiveHealthContributorRegistry;
+import org.springframework.boot.info.BuildProperties;
+import org.springframework.boot.info.GitProperties;
 import org.springframework.boot.jdbc.DataSourceUnwrapper;
 import org.springframework.boot.jetty.JettyWebServer;
 import org.springframework.boot.reactor.netty.NettyServerCustomizer;
@@ -83,6 +103,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.event.EventListener;
 import org.springframework.core.annotation.Order;
+import org.springframework.jms.config.JmsListenerEndpointRegistry;
+import org.springframework.kafka.config.KafkaListenerEndpointRegistry;
 import reactor.netty.http.server.HttpServer;
 
 /**
@@ -195,8 +217,11 @@ public class SystemdAutoConfiguration {
   @Order(6000)
   @ConditionalOnProperty(prefix = SystemdProperties.STATUS_PROVIDERS_PREFIX, name = "garbage-collection.enabled")
   @ConditionalOnMissingBean
-  GarbageCollectionStatusProvider systemdGarbageCollectionStatusProvider() {
-    return new GarbageCollectionStatusProvider();
+  GarbageCollectionStatusProvider systemdGarbageCollectionStatusProvider(SystemdProperties properties) {
+    SystemdProperties.GarbageCollection garbageCollection = properties.getStatusProviders().getGarbageCollection();
+    GarbageCollectionStatusProvider provider = new GarbageCollectionStatusProvider(garbageCollection.isHealth(), garbageCollection.getThreshold());
+    provider.setUnhealthyDelay(garbageCollection.getUnhealthyDelay());
+    return provider;
   }
 
   @Bean
@@ -217,11 +242,38 @@ public class SystemdAutoConfiguration {
   }
 
   @Bean
+  @Order(-1500)
+  @ConditionalOnProperty(prefix = SystemdProperties.STATUS_PROVIDERS_PREFIX, name = "virtual-threads.enabled")
+  @ConditionalOnMissingBean
+  VirtualThreadStatusProvider systemdVirtualThreadStatusProvider() {
+    return new VirtualThreadStatusProvider();
+  }
+
+  @Bean
   @Order(-4000)
   @ConditionalOnProperty(prefix = SystemdProperties.STATUS_PROVIDERS_PREFIX, name = "cgroup-memory.enabled", matchIfMissing = true)
   @ConditionalOnMissingBean
   CgroupMemoryStatusProvider systemdCgroupMemoryStatusProvider() {
     return new CgroupMemoryStatusProvider();
+  }
+
+  @Bean
+  @Order(-3500)
+  @ConditionalOnProperty(prefix = SystemdProperties.STATUS_PROVIDERS_PREFIX, name = "cgroup-pressure.enabled")
+  @ConditionalOnMissingBean
+  CgroupPressureStatusProvider systemdCgroupPressureStatusProvider() {
+    return new CgroupPressureStatusProvider();
+  }
+
+  @Bean
+  @Order(-500)
+  @ConditionalOnProperty(prefix = SystemdProperties.STATUS_PROVIDERS_PREFIX, name = "cgroup-tasks.enabled")
+  @ConditionalOnMissingBean
+  CgroupTasksStatusProvider systemdCgroupTasksStatusProvider(SystemdProperties properties) {
+    SystemdProperties.CgroupTasks cgroupTasks = properties.getStatusProviders().getCgroupTasks();
+    CgroupTasksStatusProvider provider = new CgroupTasksStatusProvider(cgroupTasks.isHealth(), cgroupTasks.getThreshold());
+    provider.setUnhealthyDelay(cgroupTasks.getUnhealthyDelay());
+    return provider;
   }
 
   @Bean
@@ -241,6 +293,30 @@ public class SystemdAutoConfiguration {
   @ConditionalOnMissingBean
   TaskExecutorStatusProvider systemdTaskExecutorStatusProvider(ConfigurableListableBeanFactory beanFactory) {
     return new TaskExecutorStatusProvider(beanFactory);
+  }
+
+  @Bean
+  @Order(4200)
+  @ConditionalOnProperty(prefix = SystemdProperties.STATUS_PROVIDERS_PREFIX, name = "scheduled-tasks.enabled")
+  @ConditionalOnMissingBean
+  ScheduledTaskStatusProvider systemdScheduledTaskStatusProvider(ConfigurableListableBeanFactory beanFactory) {
+    return new ScheduledTaskStatusProvider(beanFactory);
+  }
+
+  /**
+   * The status provider of the version of the application, from the build information that Spring Boot exposes, when the application has it: without
+   * it, nothing is shown.
+   *
+   * @param build the build information of the application, if any
+   * @param git the information of the commit the application was built from, if any
+   * @return the status provider of the version of the application
+   */
+  @Bean
+  @Order(11000)
+  @ConditionalOnProperty(prefix = SystemdProperties.STATUS_PROVIDERS_PREFIX, name = "version.enabled")
+  @ConditionalOnMissingBean
+  BuildInfoStatusProvider systemdBuildInfoStatusProvider(ObjectProvider<BuildProperties> build, ObjectProvider<GitProperties> git) {
+    return new BuildInfoStatusProvider(build.getIfUnique(), git.getIfUnique());
   }
 
   /**
@@ -291,8 +367,11 @@ public class SystemdAutoConfiguration {
     @Order(1000)
     @ConditionalOnProperty(prefix = SystemdProperties.STATUS_PROVIDERS_PREFIX, name = "tomcat.enabled", matchIfMissing = true)
     @ConditionalOnMissingBean
-    TomcatStatusProvider systemdTomcatStatusProvider() {
-      return new TomcatStatusProvider();
+    TomcatStatusProvider systemdTomcatStatusProvider(SystemdProperties properties) {
+      SystemdProperties.WebServer tomcat = properties.getStatusProviders().getTomcat();
+      TomcatStatusProvider provider = new TomcatStatusProvider(tomcat.isHealth());
+      provider.setUnhealthyDelay(tomcat.getUnhealthyDelay());
+      return provider;
     }
   }
 
@@ -311,8 +390,49 @@ public class SystemdAutoConfiguration {
     @Order(2000)
     @ConditionalOnProperty(prefix = SystemdProperties.STATUS_PROVIDERS_PREFIX, name = "jetty.enabled", matchIfMissing = true)
     @ConditionalOnMissingBean
-    JettyStatusProvider systemdJettyStatusProvider() {
-      return new JettyStatusProvider();
+    JettyStatusProvider systemdJettyStatusProvider(SystemdProperties properties) {
+      SystemdProperties.WebServer jetty = properties.getStatusProviders().getJetty();
+      JettyStatusProvider provider = new JettyStatusProvider(jetty.isHealth());
+      provider.setUnhealthyDelay(jetty.getUnhealthyDelay());
+      return provider;
+    }
+  }
+
+  /**
+   * Configuration class for systemd integration when using Micrometer, showing the values of chosen meters in the status.
+   */
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnSystemd
+  @ConditionalOnClass(MeterRegistry.class)
+  @ConditionalOnProperty(prefix = SystemdProperties.STATUS_PROVIDERS_PREFIX, name = "micrometer.enabled")
+  public static class SystemdMicrometerConfiguration {
+
+    SystemdMicrometerConfiguration() {
+    }
+
+    /**
+     * The status provider of the meters, which finds them in the meter registry of the application: the primary one when there are several, as Spring Boot
+     * sets up, which measures with all the others. The registry is looked up when the bean is created, rather than required for it to be, so that the
+     * registry is found whatever the order of the autoconfigurations.
+     *
+     * @param registryProvider the meter registry of the application, if any
+     * @param properties the properties of the integration
+     * @return the status provider of the meters
+     */
+    @Bean
+    @Order(10000)
+    @ConditionalOnMissingBean
+    MicrometerStatusProvider systemdMicrometerStatusProvider(ObjectProvider<MeterRegistry> registryProvider, SystemdProperties properties) {
+      MeterRegistry registry = registryProvider.getIfUnique();
+      if (registry == null) {
+        logger.warn("There is no meter registry, or there are several and none is the primary one, so the meters are looked up in the global registry of "
+            + "Micrometer; check that the metrics autoconfiguration of Spring Boot is not excluded");
+        registry = Metrics.globalRegistry;
+      }
+      List<MicrometerStatusProvider.ShownMeter> meters = properties.getStatusProviders().getMicrometer().getMeters().stream()
+          .map(meter -> new MicrometerStatusProvider.ShownMeter(requireNonNull(meter.getName(), "Name must not be null"), meter.getTags(), meter.getLabel()))
+          .toList();
+      return new MicrometerStatusProvider(registry, meters);
     }
   }
 
@@ -382,6 +502,125 @@ public class SystemdAutoConfiguration {
     static LiquibaseStatusProvider systemdLiquibaseStatusProvider() {
       LiquibaseStatusProvider provider = new LiquibaseStatusProvider();
       Systemd.instance().addStatusProviders(provider);
+      return provider;
+    }
+  }
+
+  /**
+   * Configuration class for systemd integration when using Flyway, reporting the progress of the database migrations run on startup.
+   */
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnSystemd
+  @ConditionalOnClass({Flyway.class, FlywayConfigurationCustomizer.class})
+  @ConditionalOnProperty(prefix = SystemdProperties.STATUS_PROVIDERS_PREFIX, name = "flyway.enabled", matchIfMissing = true)
+  public static class SystemdFlywayConfiguration {
+
+    SystemdFlywayConfiguration() {
+    }
+
+    /**
+     * The status provider of the Flyway migrations, which is also a customizer of the configuration of Flyway, so it is created before Flyway is, and
+     * runs the migrations: it is added to the status providers of systemd right away, rather than once all beans are created, so that the migrations are
+     * reported while they run on startup.
+     *
+     * @return the status provider of the Flyway migrations
+     */
+    @Bean
+    FlywayStatusProvider systemdFlywayStatusProvider() {
+      FlywayStatusProvider provider = new FlywayStatusProvider();
+      Systemd.instance().addStatusProviders(provider);
+      return provider;
+    }
+  }
+
+  /**
+   * Configuration class for systemd integration when using the Kafka listener containers of Spring for Apache Kafka.
+   */
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnSystemd
+  @ConditionalOnClass(KafkaListenerEndpointRegistry.class)
+  @ConditionalOnProperty(prefix = SystemdProperties.STATUS_PROVIDERS_PREFIX, name = "kafka-listeners.enabled", matchIfMissing = true)
+  public static class SystemdKafkaListenerConfiguration {
+
+    SystemdKafkaListenerConfiguration() {
+    }
+
+    @Bean
+    @Order(4400)
+    @ConditionalOnMissingBean
+    KafkaListenerStatusProvider systemdKafkaListenerStatusProvider(ConfigurableListableBeanFactory beanFactory, SystemdProperties properties) {
+      SystemdProperties.Listeners listeners = properties.getStatusProviders().getKafkaListeners();
+      KafkaListenerStatusProvider provider = new KafkaListenerStatusProvider(beanFactory, listeners.isHealth());
+      provider.setUnhealthyDelay(listeners.getUnhealthyDelay());
+      return provider;
+    }
+  }
+
+  /**
+   * Configuration class for systemd integration when using the RabbitMQ listener containers of Spring AMQP.
+   */
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnSystemd
+  @ConditionalOnClass(RabbitListenerEndpointRegistry.class)
+  @ConditionalOnProperty(prefix = SystemdProperties.STATUS_PROVIDERS_PREFIX, name = "rabbit-listeners.enabled", matchIfMissing = true)
+  public static class SystemdRabbitListenerConfiguration {
+
+    SystemdRabbitListenerConfiguration() {
+    }
+
+    @Bean
+    @Order(4600)
+    @ConditionalOnMissingBean
+    RabbitListenerStatusProvider systemdRabbitListenerStatusProvider(ConfigurableListableBeanFactory beanFactory, SystemdProperties properties) {
+      SystemdProperties.Listeners listeners = properties.getStatusProviders().getRabbitListeners();
+      RabbitListenerStatusProvider provider = new RabbitListenerStatusProvider(beanFactory, listeners.isHealth());
+      provider.setUnhealthyDelay(listeners.getUnhealthyDelay());
+      return provider;
+    }
+  }
+
+  /**
+   * Configuration class for systemd integration when using the JMS listener containers of Spring.
+   */
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnSystemd
+  @ConditionalOnClass({Message.class, JmsListenerEndpointRegistry.class})
+  @ConditionalOnProperty(prefix = SystemdProperties.STATUS_PROVIDERS_PREFIX, name = "jms-listeners.enabled", matchIfMissing = true)
+  public static class SystemdJmsListenerConfiguration {
+
+    SystemdJmsListenerConfiguration() {
+    }
+
+    @Bean
+    @Order(4800)
+    @ConditionalOnMissingBean
+    JmsListenerStatusProvider systemdJmsListenerStatusProvider(ConfigurableListableBeanFactory beanFactory, SystemdProperties properties) {
+      SystemdProperties.Listeners listeners = properties.getStatusProviders().getJmsListeners();
+      JmsListenerStatusProvider provider = new JmsListenerStatusProvider(beanFactory, listeners.isHealth());
+      provider.setUnhealthyDelay(listeners.getUnhealthyDelay());
+      return provider;
+    }
+  }
+
+  /**
+   * Configuration class for systemd integration when using R2DBC connection pools, once opted into.
+   */
+  @Configuration(proxyBeanMethods = false)
+  @ConditionalOnSystemd
+  @ConditionalOnClass(ConnectionPool.class)
+  @ConditionalOnProperty(prefix = SystemdProperties.STATUS_PROVIDERS_PREFIX, name = "r2dbc.enabled")
+  public static class SystemdR2dbcConfiguration {
+
+    SystemdR2dbcConfiguration() {
+    }
+
+    @Bean
+    @Order(-2500)
+    @ConditionalOnMissingBean
+    R2dbcPoolStatusProvider systemdR2dbcPoolStatusProvider(ConfigurableListableBeanFactory beanFactory, SystemdProperties properties) {
+      SystemdProperties.R2dbc r2dbc = properties.getStatusProviders().getR2dbc();
+      R2dbcPoolStatusProvider provider = new R2dbcPoolStatusProvider(beanFactory, r2dbc.isHealth());
+      provider.setUnhealthyDelay(r2dbc.getUnhealthyDelay());
       return provider;
     }
   }
@@ -463,8 +702,8 @@ public class SystemdAutoConfiguration {
    * is no status provider, no status is sent.
    *
    * <p>The built-in status providers, such as the {@link HeapStatusProvider}, are added while enabled, with the
-   * <code>systemd.status-providers.&lt;key&gt;.enabled</code> properties, all enabled by default except for the {@link GarbageCollectionStatusProvider}
-   * and the {@link CpuStatusProvider}, which are opted into.
+   * <code>systemd.status-providers.&lt;key&gt;.enabled</code> properties: most of them are enabled by default, and the others, such as the
+   * {@link GarbageCollectionStatusProvider} and the {@link CpuStatusProvider}, are opted into.
    *
    * @param statuses the status providers of the application
    * @return the callback that adds the status providers to the systemd status
@@ -487,8 +726,10 @@ public class SystemdAutoConfiguration {
    * heartbeat is always sent.
    *
    * <p>The built-in status providers that are also health providers, such as the {@link ThreadStatusProvider}, the {@link FileDescriptorStatusProvider},
-   * the {@link HikariStatusProvider}, the {@link AvailabilityStatusProvider} and the {@link ActuatorHealthStatusProvider}, are added while enabled. Their
-   * health conditions are controlled by their own properties, all disabled by default, so that they are always healthy unless opted into.
+   * the {@link CgroupTasksStatusProvider}, the {@link GarbageCollectionStatusProvider}, the {@link HikariStatusProvider}, the
+   * {@link TomcatStatusProvider}, the {@link JettyStatusProvider}, the {@link AvailabilityStatusProvider} and the
+   * {@link ActuatorHealthStatusProvider}, are added while enabled. Their health conditions are controlled by their own properties, all disabled by
+   * default, so that they are always healthy unless opted into.
    *
    * @param healthProviders the health providers of the application
    * @return the callback that adds the health providers to the watchdog

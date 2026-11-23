@@ -43,9 +43,10 @@ import org.springframework.context.ApplicationListener;
  *
  * <p>The health is enabled on its own, as it lets systemd restart the application: while disabled, the application is always healthy. When enabled, it is
  * unhealthy while the liveness state is {@link LivenessState#BROKEN}, which Spring Boot defines as a state the application cannot recover from, so that
- * restarting it is the way out; the state is reported in the health details, under {@code livenessState}. Unlike the health indicators of Spring Boot
- * Actuator, the liveness state does not depend on external systems. The unhealthy state can still be delayed, with
- * {@link #setUnhealthyDelay(java.time.Duration)}, for applications that may report a broken liveness state and then recover from it.
+ * restarting it is the way out: it is reported as unrecoverable, which triggers the watchdog right away, rather than once {@code WatchdogSec} elapses.
+ * The state is reported in the health details, under {@code livenessState}. Unlike the health indicators of Spring Boot Actuator, the liveness state does
+ * not depend on external systems. The unhealthy state can still be delayed, with {@link #setUnhealthyDelay(java.time.Duration)}, for applications that
+ * may report a broken liveness state and then recover from it: the watchdog is then only triggered once the delay elapses.
  *
  * @author Joao Silva
  */
@@ -104,13 +105,13 @@ public class AvailabilityStatusProvider extends DelayableHealthProvider implemen
   }
 
   /**
-   * Provides the health of the application, without the delay: unhealthy while the liveness state is broken, if enabled.
+   * Provides the health of the application, without the delay: unhealthy, and unrecoverable, while the liveness state is broken, if enabled.
    *
    * @return the health of the application
    */
   @Override
   protected Health evaluateHealth() {
-    return health && liveness == LivenessState.BROKEN ? new Health(false, Map.of("livenessState", LivenessState.BROKEN.name())) : Health.HEALTHY;
+    return health && liveness == LivenessState.BROKEN ? Health.unrecoverable(Map.of("livenessState", LivenessState.BROKEN.name())) : Health.HEALTHY;
   }
 
   // the root locale keeps the text the same everywhere: under a Turkish locale, for instance, the "I" in "ACCEPTING" would become a dotless "ı"

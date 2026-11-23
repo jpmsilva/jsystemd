@@ -39,12 +39,72 @@ public final class SpringProviders {
   }
 
   /**
+   * Returns if a starved connection pool reports the application as unhealthy.
+   *
+   * @param provider the provider
+   * @return {@code true} if a starved connection pool reports the application as unhealthy
+   */
+  public static boolean healthEnabled(@NonNull R2dbcPoolStatusProvider provider) {
+    return provider.healthEnabled();
+  }
+
+  /**
+   * Returns if a listener container that stopped by itself reports the application as unhealthy.
+   *
+   * @param provider the provider
+   * @return {@code true} if a listener container that stopped by itself reports the application as unhealthy
+   */
+  public static boolean healthEnabled(@NonNull KafkaListenerStatusProvider provider) {
+    return provider.healthEnabled();
+  }
+
+  /**
+   * Returns if a listener container that stopped by itself reports the application as unhealthy.
+   *
+   * @param provider the provider
+   * @return {@code true} if a listener container that stopped by itself reports the application as unhealthy
+   */
+  public static boolean healthEnabled(@NonNull RabbitListenerStatusProvider provider) {
+    return provider.healthEnabled();
+  }
+
+  /**
+   * Returns if a listener container that stopped by itself reports the application as unhealthy.
+   *
+   * @param provider the provider
+   * @return {@code true} if a listener container that stopped by itself reports the application as unhealthy
+   */
+  public static boolean healthEnabled(@NonNull JmsListenerStatusProvider provider) {
+    return provider.healthEnabled();
+  }
+
+  /**
    * Returns if a broken liveness state reports the application as unhealthy.
    *
    * @param provider the provider
    * @return {@code true} if a broken liveness state reports the application as unhealthy
    */
   public static boolean healthEnabled(@NonNull AvailabilityStatusProvider provider) {
+    return provider.healthEnabled();
+  }
+
+  /**
+   * Returns if a saturated connector reports the application as unhealthy.
+   *
+   * @param provider the provider
+   * @return {@code true} if a saturated connector reports the application as unhealthy
+   */
+  public static boolean healthEnabled(@NonNull TomcatStatusProvider provider) {
+    return provider.healthEnabled();
+  }
+
+  /**
+   * Returns if a saturated server reports the application as unhealthy.
+   *
+   * @param provider the provider
+   * @return {@code true} if a saturated server reports the application as unhealthy
+   */
+  public static boolean healthEnabled(@NonNull JettyStatusProvider provider) {
     return provider.healthEnabled();
   }
 }

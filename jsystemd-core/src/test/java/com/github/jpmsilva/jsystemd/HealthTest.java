@@ -40,6 +40,27 @@ class HealthTest {
   }
 
   @Test
+  void unhealthyIsRecoverableUnlessToldOtherwise() {
+    assertThat(Health.HEALTHY.unrecoverable()).isFalse();
+    assertThat(new Health(false, Map.of("db", "down")).unrecoverable()).isFalse();
+  }
+
+  @Test
+  void unrecoverableIsUnhealthy() {
+    Health health = Health.unrecoverable(Map.of("deadlockedThreads", "worker-1"));
+
+    assertThat(health.healthy()).isFalse();
+    assertThat(health.unrecoverable()).isTrue();
+    assertThat(health.details()).containsOnly(entry("deadlockedThreads", "worker-1"));
+  }
+
+  @Test
+  void rejectsHealthyAndUnrecoverable() {
+    assertThatThrownBy(() -> new Health(true, Map.of(), true)).isInstanceOf(IllegalArgumentException.class)
+        .hasMessage("A healthy state cannot be unrecoverable");
+  }
+
+  @Test
   void detailsCannotBeModified() {
     // a modifiable map, so that it is the health that prevents the modifications
     Map<String, Object> details = new HashMap<>();

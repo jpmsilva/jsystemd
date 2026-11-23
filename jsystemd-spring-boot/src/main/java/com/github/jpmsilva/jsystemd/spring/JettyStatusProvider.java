@@ -16,12 +16,16 @@
 
 package com.github.jpmsilva.jsystemd.spring;
 
+import com.github.jpmsilva.jsystemd.DelayableHealthProvider;
+import com.github.jpmsilva.jsystemd.HealthProvider;
 import com.github.jpmsilva.jsystemd.StatusProvider;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.eclipse.jetty.server.AbstractConnector;
 import org.eclipse.jetty.server.Connector;
@@ -35,7 +39,9 @@ import org.springframework.boot.web.server.context.WebServerInitializedEvent;
 import org.springframework.context.ApplicationListener;
 
 /**
- * Implementation of {@link StatusProvider} that provides information regarding the embedded Jetty servers of the application.
+ * Provides information regarding the embedded Jetty servers of the application: as a {@link StatusProvider}, their connections and threads, and as a
+ * {@link HealthProvider}, for the systemd watchdog, reporting the application as unhealthy while all the threads of a server are taken and requests
+ * wait for one, if enabled.
  *
  * <p>For each server, named after the port it listens on, it reports the open connections, out of the maximum the server accepts when limited, and, when
  * the requests are handled by a thread pool rather than by virtual threads, the threads running requests out of the threads in the pool, such as
@@ -45,17 +51,46 @@ import org.springframework.context.ApplicationListener;
  * <p>The servers are found as they start, from their {@link WebServerInitializedEvent}: the server of the application, as well as the server of the
  * management endpoints when they use a port of their own. Nothing is reported until then.
  *
+ * <p>The health is enabled on its own, as it lets systemd restart the application: while disabled, the application is always healthy. When enabled, it is
+ * unhealthy while any server is saturated: its pool has all the threads it can have, the most it grows to rather than those it has so far, none of them
+ * is idle, and requests are waiting for one, naming the saturated servers in the health details, under {@code saturatedServers}. A server that stays
+ * saturated usually means that its requests hang, on something that never answers, which only a restart recovers from. As a burst of requests can also
+ * saturate a server for a while, the unhealthy state should be delayed, with {@link #setUnhealthyDelay(java.time.Duration)}: a server must then stay
+ * saturated, every time the health is evaluated, for that long.
+ *
+ * <p>The threads running requests, as shown in the status, do not tell if a server is saturated: Jetty may keep one of its threads in reserve, to wait
+ * for the data of the connections, rather than run a request with it, so that requests can be waiting while the status shows a thread to spare.
+ *
+ * <p>A server whose requests are handled by virtual threads has no thread pool to exhaust, and is never saturated.
+ *
  * @author Joao Silva
  */
-public class JettyStatusProvider implements StatusProvider, ApplicationListener<WebServerInitializedEvent> {
+public class JettyStatusProvider extends DelayableHealthProvider implements StatusProvider, ApplicationListener<WebServerInitializedEvent> {
 
-  // added by the event listener, read by the status updates
+  private final boolean health;
+
+  // added by the event listener, read by the status updates and the health evaluations
   private final CopyOnWriteArrayList<Server> servers = new CopyOnWriteArrayList<>();
 
   /**
-   * Create a new JettyStatusProvider.
+   * Create a new JettyStatusProvider, which always reports the application as healthy.
    */
   public JettyStatusProvider() {
+    this(false);
+  }
+
+  /**
+   * Create a new JettyStatusProvider.
+   *
+   * @param health <code>true</code> to report the application as unhealthy while all the threads of a server are taken and requests wait for one
+   */
+  public JettyStatusProvider(boolean health) {
+    this.health = health;
+  }
+
+  // for tests: whether a saturated server reports the application as unhealthy
+  boolean healthEnabled() {
+    return health;
   }
 
   /**
@@ -114,5 +149,34 @@ public class JettyStatusProvider implements StatusProvider, ApplicationListener<
       details.add(String.format(Locale.ROOT, "%d/%d threads", pool.getUtilizedThreads(), pool.getThreads() - pool.getLeasedThreads()));
     }
     return details;
+  }
+
+  /**
+   * Provides the health of the application, without the delay: unhealthy while all the threads of any server are taken and requests wait for one, if
+   * enabled.
+   *
+   * @return the health of the application
+   */
+  @Override
+  protected Health evaluateHealth() {
+    if (!health) {
+      return Health.HEALTHY;
+    }
+    // sorted by name, as the status
+    Set<String> saturated = new TreeSet<>();
+    for (Server server : servers) {
+      String name = name(server);
+      // the same thread pool as the status; virtual threads are not pooled, so a server that uses them is never saturated
+      if (name != null && server.getThreadPool() instanceof QueuedThreadPool pool && saturated(pool)) {
+        saturated.add(name);
+      }
+    }
+    return saturated.isEmpty() ? Health.HEALTHY : new Health(false, Map.of("saturatedServers", List.copyOf(saturated)));
+  }
+
+  // requests are waiting for a thread, and none will come: a pool that can still grow starts one, and an idle one is about to take a request; the threads
+  // running requests are not compared to those the pool can have, as Jetty may keep one in reserve rather than run a request with it
+  private static boolean saturated(QueuedThreadPool pool) {
+    return pool.getQueueSize() > 0 && pool.getIdleThreads() == 0 && pool.getThreads() >= pool.getMaxThreads();
   }
 }

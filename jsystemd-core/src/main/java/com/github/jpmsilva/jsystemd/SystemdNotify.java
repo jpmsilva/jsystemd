@@ -119,6 +119,19 @@ public final class SystemdNotify {
   }
 
   /**
+   * Notifies systemd that the program detected an error it cannot recover from, which systemd handles as it does a watchdog timeout, right away. Available
+   * in systemd versions 243 and above, and ignored by the older ones.
+   *
+   * @see <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html#WATCHDOG=trigger">watchdog trigger</a>
+   */
+  static void watchdogTrigger() {
+    if (usable()) {
+      logger.warn("Notifying systemd to trigger the watchdog");
+      invoke("WATCHDOG=trigger");
+    }
+  }
+
+  /**
    * Notifies systemd that the program is stopping.
    *
    * @see <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html#STOPPING=1">stopping</a>

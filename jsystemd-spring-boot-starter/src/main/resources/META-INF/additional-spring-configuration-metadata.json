@@ -13,6 +13,100 @@
       "defaultValue": false
     },
     {
+      "name": "systemd.status-providers.cgroup-pressure.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable the status provider.",
+      "defaultValue": false
+    },
+    {
+      "name": "systemd.status-providers.virtual-threads.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable the status provider.",
+      "defaultValue": false
+    },
+    {
+      "name": "systemd.status-providers.cgroup-tasks.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable the status provider.",
+      "defaultValue": false
+    },
+    {
+      "name": "systemd.status-providers.r2dbc.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable the status provider.",
+      "defaultValue": false
+    },
+    {
+      "name": "systemd.status-providers.scheduled-tasks.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable the status provider.",
+      "defaultValue": false
+    },
+    {
+      "name": "systemd.status-providers.micrometer.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable the status provider.",
+      "defaultValue": false
+    },
+    {
+      "name": "systemd.status-providers.version.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable the status provider.",
+      "defaultValue": false
+    },
+    {
+      "name": "systemd.status-providers.file-descriptors.health",
+      "type": "java.lang.Boolean",
+      "description": "Suppress the watchdog heartbeat while the open file descriptors are at or above the threshold, so that systemd restarts the application.",
+      "defaultValue": false
+    },
+    {
+      "name": "systemd.status-providers.file-descriptors.threshold",
+      "type": "java.lang.Double",
+      "description": "Share of the limit of file descriptors from which the application is unhealthy, greater than 0 and at most 1, such as 0.9 for 90%. Only applies with health enabled.",
+      "defaultValue": 0.9
+    },
+    {
+      "name": "systemd.status-providers.file-descriptors.unhealthy-delay",
+      "type": "java.time.Duration",
+      "description": "Delay suppressing the watchdog heartbeat until the open file descriptors have been at or above the threshold for this long, such as 30s, so that a short burst of connections does not restart the application. Values without a unit are in milliseconds. Not set by default, which disables the delay. Only applies with health enabled."
+    },
+    {
+      "name": "systemd.status-providers.cgroup-tasks.health",
+      "type": "java.lang.Boolean",
+      "description": "Suppress the watchdog heartbeat while the tasks of the control group are at or above the threshold, so that systemd restarts the application.",
+      "defaultValue": false
+    },
+    {
+      "name": "systemd.status-providers.cgroup-tasks.threshold",
+      "type": "java.lang.Double",
+      "description": "Share of the limit of tasks from which the application is unhealthy, greater than 0 and at most 1, such as 0.9 for 90%. Only applies with health enabled.",
+      "defaultValue": 0.9
+    },
+    {
+      "name": "systemd.status-providers.cgroup-tasks.unhealthy-delay",
+      "type": "java.time.Duration",
+      "description": "Delay suppressing the watchdog heartbeat until the tasks have been at or above the threshold for this long, such as 30s, so that a short burst of work does not restart the application. Values without a unit are in milliseconds. Not set by default, which disables the delay. Only applies with health enabled."
+    },
+    {
+      "name": "systemd.status-providers.garbage-collection.health",
+      "type": "java.lang.Boolean",
+      "description": "Suppress the watchdog heartbeat while the garbage collection pauses take the threshold of the time or more, so that systemd restarts the application.",
+      "defaultValue": false
+    },
+    {
+      "name": "systemd.status-providers.garbage-collection.threshold",
+      "type": "java.lang.Double",
+      "description": "Share of the time taken by the garbage collection pauses from which the application is unhealthy, greater than 0 and at most 1, such as 0.5 for 50%. Only applies with health enabled.",
+      "defaultValue": 0.5
+    },
+    {
+      "name": "systemd.status-providers.garbage-collection.unhealthy-delay",
+      "type": "java.time.Duration",
+      "description": "Delay suppressing the watchdog heartbeat until the garbage collection pauses have taken the threshold of the time or more for this long, such as 60s or 5m, so that a burst of allocations does not restart the application. Values without a unit are in milliseconds. Only applies with health enabled. With a delay of 0, the application is restarted as soon as the pauses take that share of the time.",
+      "defaultValue": "1m"
+    },
+    {
       "name": "systemd.health-provider.enabled",
       "type": "java.lang.Boolean",
       "description": "Enable the health provider based on Spring Boot Actuator.",

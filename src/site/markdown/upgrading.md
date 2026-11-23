@@ -1,5 +1,46 @@
 # Upgrading
 
+## From 5.0 to 5.1
+
+### Changes in behaviour
+
+* A deadlock, with deadlock health opted into, and a broken liveness state under Spring Boot, with `systemd.status-providers.availability.health=true`,
+  now trigger the watchdog right away, instead of only suppressing the heartbeat until `WatchdogSec` elapses, as the application cannot recover from
+  either (see [Unrecoverable states](health-providers.html#Unrecoverable_states)). An application that reports a broken liveness state and then recovers
+  from it must set `systemd.status-providers.availability.unhealthy-delay`. Triggering the watchdog requires systemd 243 or later: older versions
+  restart the application once `WatchdogSec` elapses, as before.
+* [HealthProvider.Health](apidocs/com/github/jpmsilva/jsystemd/HealthProvider.Health.html) has a third component, `unrecoverable`. Creating it with
+  `new Health(healthy, details)` still works; code that takes it apart with a record pattern must add the component.
+* Under Spring Boot, the status has new parts by default when their libraries are used: the progress of the Flyway migrations, which also extend the
+  startup timeout, and the Kafka, RabbitMQ and JMS listener containers. Disable them with `systemd.status-providers.<key>.enabled=false` (see
+  [Status providers](status-providers.html)).
+* Under Spring Boot, the `tomcat`, `jetty` and `garbage-collection` status providers are now also health providers, registered with the watchdog while
+  enabled, and always healthy unless opted into. In
+  [SystemdProperties](apidocs/com/github/jpmsilva/jsystemd/spring/autoconfigure/SystemdProperties.html), their settings are no longer a plain `Toggle`,
+  but subclasses of it.
+* Under Keycloak, the status also shows the cluster of Keycloak, first, such as `Cluster: 3 nodes`, and the connection pool of its datasource when
+  Keycloak is built with `metrics-enabled`: set `--spi-systemd--default--status-providers` to leave them out.
+* Under Keycloak, the startup timeout is now extended while the bootstrap makes progress, such as on each changeset of a database migration. For that,
+  the provider adds a Liquibase connection provider, which makes `kc.sh build` log the warning `KC-SERVICES0047` about the internal SPI
+  `connectionsLiquibase`: disable it with `--spi-connections-liquibase--jsystemd--enabled=false` (see [Keycloak](keycloak.html#Startup_progress)).
+* The built-in status provider beans of the starter are no longer all 1000 apart, as the new ones were placed between them (see
+  [Status providers](status-providers.html#Custom_status_providers_under_Spring_Boot)).
+
+### Other changes
+
+* The watchdog can be triggered, with [Health.unrecoverable(...)](apidocs/com/github/jpmsilva/jsystemd/HealthProvider.Health.html) from a health
+  provider, or with [Systemd.triggerWatchdog()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html).
+* New status providers in the core library, for the virtual threads, and for the pressure and the tasks of the control group of the service, the latter
+  with a health condition; the garbage collection one has a health condition as well (see [Status providers](status-providers.html) and
+  [Health providers](health-providers.html)). Under Spring Boot, they are `virtual-threads`, `cgroup-pressure` and `cgroup-tasks`, all opted into.
+* New status providers under Spring Boot: `flyway`, `kafka-listeners`, `rabbit-listeners` and `jms-listeners`, enabled by default when their libraries
+  are used, and `r2dbc`, `scheduled-tasks`, `micrometer` and `version`, which are opted into.
+* New health conditions under Spring Boot, all opted into: a saturated Tomcat or Jetty, a starved R2DBC connection pool, and a message listener
+  container that stopped by itself.
+* Under Keycloak: the progress of the bootstrap in the status, new `cluster`, `datasource`, `version`, `virtual-threads`, `cgroup-pressure` and
+  `cgroup-tasks` status providers, and health conditions that are opted into, for deadlocks, file descriptors, tasks, garbage collection, a starved
+  datasource and the readiness health checks (see [Keycloak](keycloak.html)). Options that cannot be read are ignored, with a warning.
+
 ## From 4.x to 5.0
 
 ### Breaking changes
