@@ -1,0 +1,4 @@
+/*
+ * The style sheet of the API documentation imports this one, for the DejaVu web fonts, which the javadoc tool only bundles from Java 23 on. It is
+ * empty, so that the import finds it: the pages use the DejaVu fonts when they are installed, and the fonts they fall back to otherwise.
+ */

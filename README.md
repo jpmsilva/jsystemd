@@ -164,6 +164,12 @@ API, and tested by `jsystemd-core-java22-tests` on the multi-release jar, as the
 Then build with `./mvnw verify`. `./do-full-build` checks first that the toolchains are available, and also runs the integration tests, which run the
 library under a real systemd in containers, and need Docker or the Podman API socket.
 
+The documentation site is built with `./do-site-build`, as a whole, with the sites of the modules under the one of the root project, into
+`target/staging`. `./do-run-site` then serves it locally, as GitHub Pages serves it once published, next to the versions published so far, which needs
+Ruby and Bundler, with the development headers of Ruby and a C and C++ compiler, as some of the gems of Jekyll build native extensions. Publishing it
+is a separate step: `./do-site-release` builds it, and pushes it with git to the repository that GitHub Pages serves it from, or, with `--dry-run`,
+only lists what it would change there.
+
 ## License
 
 jsystemd is licensed under the [Apache License, Version 2.0](LICENSE).

@@ -94,7 +94,7 @@ limitations under the License.
     <plugin.jar.version>3.5.1</plugin.jar.version>
     <plugin.shade.version>3.6.2</plugin.shade.version>
     <plugin.site.version>3.22.0</plugin.site.version>
-    <plugin.github-site.version>0.12</plugin.github-site.version>
+    <plugin.scm-publish.version>3.3.0</plugin.scm-publish.version>
     <plugin.central-publishing.version>0.12.0</plugin.central-publishing.version>
     <plugin.deploy.version>3.2.0</plugin.deploy.version>
     <plugin.project-info-reports.version>3.9.0</plugin.project-info-reports.version>
@@ -144,10 +144,11 @@ limitations under the License.
       <id>central</id>
       <url>https://central.sonatype.com/repository/maven-snapshots/</url>
     </snapshotRepository>
+    <!-- where GitHub Pages serves the site of each version from: it is published there by the site-deploy profile -->
     <site>
       <id>github-pages-sites</id>
-      <name>Deployment through GitHub's site deployment plugin</name>
-      <url>_versions/${project.version}</url>
+      <name>GitHub Pages</name>
+      <url>https://jpmsilva.github.io/jsystemd-site/versions/${project.version}</url>
     </site>
   </distributionManagement>
 
@@ -385,26 +386,15 @@ limitations under the License.
           <artifactId>maven-site-plugin</artifactId>
           <version>${plugin.site.version}</version>
           <configuration>
+            <!-- the site is published with the SCM publish plugin, by the site-deploy profile, rather than deployed by the site plugin -->
             <skipDeploy>true</skipDeploy>
           </configuration>
         </plugin>
 
         <plugin>
-          <groupId>com.github.github</groupId>
-          <artifactId>site-maven-plugin</artifactId>
-          <version>${plugin.github-site.version}</version>
-          <configuration>
-            <server>github.com</server>
-            <message>New site version: ${project.version}</message>
-            <merge>true</merge>
-            <repositoryOwner>jpmsilva</repositoryOwner>
-            <repositoryName>jsystemd-site</repositoryName>
-            <branch>refs/heads/master</branch>
-            <includes>
-              <include>**/*</include>
-            </includes>
-            <path>${project.distributionManagement.site.url}</path>
-          </configuration>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-scm-publish-plugin</artifactId>
+          <version>${plugin.scm-publish.version}</version>
         </plugin>
 
         <plugin>
@@ -537,18 +527,6 @@ limitations under the License.
     </pluginManagement>
     <plugins>
       <plugin>
-        <groupId>com.github.github</groupId>
-        <artifactId>site-maven-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>site</goal>
-            </goals>
-            <phase>site-deploy</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-checkstyle-plugin</artifactId>
         <executions>
@@ -631,6 +609,26 @@ limitations under the License.
       <modules>
         <module>jsystemd-integration-tests</module>
       </modules>
+    </profile>
+    <profile>
+      <!-- publishes the site, once built and staged, to the repository that GitHub Pages serves it from, with scm-publish:publish-scm: the plugin
+      commits it there with git, so it needs no credentials other than those git already pushes with (see do-site-release) -->
+      <id>site-deploy</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-scm-publish-plugin</artifactId>
+            <configuration>
+              <pubScmUrl>scm:git:ssh://git@github.com/jpmsilva/jsystemd-site.git</pubScmUrl>
+              <scmBranch>master</scmBranch>
+              <!-- the repository keeps the site of each version, in a directory of its own, which is all that publishing a version changes -->
+              <subDirectory>_versions/${project.version}</subDirectory>
+              <checkinComment>New site version: ${project.version}</checkinComment>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
     <profile>
       <id>release-profile</id>

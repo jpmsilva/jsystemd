@@ -1,11 +1,25 @@
 #!/bin/bash
 
+# Publishes the site of the version of the project: builds it with do-site-build, and has the site-deploy profile commit it to the repository that
+# GitHub Pages serves it from, in the directory of the version, and push it, with git.
+#
+# Usage: do-site-release [--dry-run]
+#
+# With --dry-run, builds the site the same, but only lists the files that publishing it would add, update and delete in that repository, without
+# committing or pushing anything.
+
 SCRIPT=$(readlink -f "$0")
 SCRIPTPATH=$(dirname "$SCRIPT")
 
 set -e
 
-# the published modules, without the samples and the tests, which are not published; their dependencies, such as the parent, are added by -am
-MODULES=:jsystemd-core,:jsystemd-spring-boot,:jsystemd-spring-boot-starter,:jsystemd-keycloak
+DRY_RUN=false
+if [ "$1" = "--dry-run" ]; then
+  DRY_RUN=true
+fi
 
-"${SCRIPTPATH}"/mvnw clean package site site:site -P !sample -am -pl "${MODULES}"
+cd "${SCRIPTPATH}"
+./do-site-build
+
+# published once, as a whole, from the root project
+./mvnw -N scm-publish:publish-scm -Dscmpublish.dryRun=${DRY_RUN} -P site-deploy

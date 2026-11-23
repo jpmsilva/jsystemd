@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# Builds the site of the project, without publishing it: the site of the root project and of each published module, in their target/site, and the
+# site as a whole, as it gets published, with the sites of the modules under the one of the root project, in target/staging.
+#
+# Usage: do-site-build [arguments for Maven, such as -o]
+#
+# do-run-site then serves it locally, and do-site-release publishes it.
+
+SCRIPT=$(readlink -f "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
+
+set -e
+
+# the published modules, without the samples and the tests, which are not published; their dependencies, such as the parent, are added by -am
+MODULES=:jsystemd-core,:jsystemd-spring-boot,:jsystemd-spring-boot-starter,:jsystemd-keycloak
+
+cd "${SCRIPTPATH}"
+./mvnw clean package site site:stage -P !sample -am -pl "${MODULES}" "$@"
+
+echo
+echo "The site is in ${SCRIPTPATH}/target/staging: serve it with ./do-run-site, or publish it with ./do-site-release."

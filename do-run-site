@@ -1,0 +1,63 @@
+#!/bin/bash
+
+# Serves the site built by do-site-build locally, as GitHub Pages serves it once published: from a copy of the repository of the site, which is a
+# Jekyll site, with the site of the version of the project next to those of the versions published so far, in a directory of its own.
+#
+# Usage: do-run-site [arguments for jekyll serve, such as --port 4001]
+#
+# Needs Ruby and Bundler, to run Jekyll with, as run-local-site does in that repository. Nothing is published: the copy of the repository is a clone
+# over HTTPS, in target/site-run, that nothing is committed to.
+
+SCRIPT=$(readlink -f "$0")
+SCRIPTPATH=$(dirname "$SCRIPT")
+
+set -e
+
+SITE_REPOSITORY=https://github.com/jpmsilva/jsystemd-site.git
+SITE_BRANCH=master
+STAGING=target/staging
+RUN=target/site-run
+SITE=${RUN}/jsystemd-site
+
+fail() {
+  echo "error: $*" >&2
+  exit 1
+}
+
+cd "${SCRIPTPATH}"
+[ -f "${STAGING}/index.html" ] || fail "no site in ${STAGING}: build it with ./do-site-build first"
+command -v bundle > /dev/null || fail "Bundler is not installed: it is needed to run Jekyll with"
+
+VERSION=$(./mvnw -q -N help:evaluate -Dexpression=project.version -DforceStdout)
+
+# the repository of the site, as published, or as last fetched when it cannot be fetched again
+if [ -d "${SITE}/.git" ]; then
+  if git -C "${SITE}" fetch -q --depth 1 origin "${SITE_BRANCH}"; then
+    git -C "${SITE}" reset -q --hard FETCH_HEAD
+  else
+    echo "warning: could not fetch ${SITE_REPOSITORY}: serving the site as it was last fetched" >&2
+    git -C "${SITE}" reset -q --hard
+  fi
+  # the sites of the versions served before, which are not in the repository
+  git -C "${SITE}" clean -q -f -d _versions
+else
+  mkdir -p "${RUN}"
+  git clone -q --depth 1 --branch "${SITE_BRANCH}" "${SITE_REPOSITORY}" "${SITE}"
+fi
+
+# the site of this version, in place of the published one, if it is published already
+rm -rf "${SITE}/_versions/${VERSION}"
+cp -r "${STAGING}" "${SITE}/_versions/${VERSION}"
+
+# the configuration of the site keeps the documentation of SNAPSHOT versions from being served, which is what is wanted here
+sed '/-SNAPSHOT/d' "${SITE}/_config.yml" > "${RUN}/_config.yml"
+
+cd "${SITE}"
+bundle check > /dev/null 2>&1 || bundle install
+
+echo
+echo "Serving the site of ${VERSION} in /jsystemd-site/versions/${VERSION}/ of the server address below, and in /jsystemd-site/versions/latest/"
+echo "when it is the newest version."
+echo
+# the site does not change while it is served, so it is not watched for changes
+exec bundle exec jekyll serve --config ../_config.yml --no-watch "$@"
