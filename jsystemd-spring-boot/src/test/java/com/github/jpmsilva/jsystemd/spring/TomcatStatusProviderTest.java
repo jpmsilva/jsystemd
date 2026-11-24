@@ -142,6 +142,14 @@ class TomcatStatusProviderTest {
   }
 
   /**
+   * Waits for the status of a server that handles no request, as a thread of its pool can be briefly busy right after it starts, though no request was
+   * sent to it.
+   */
+  private void awaitStatus(String status) {
+    await().untilAsserted(() -> assertThat(provider.status()).isEqualTo(status));
+  }
+
+  /**
    * Sends more requests than the pool of a small server has threads for, so that one of them waits for a thread.
    */
   private void saturate(Tomcat server) throws IOException {
@@ -189,7 +197,7 @@ class TomcatStatusProviderTest {
     started(server);
 
     // a fresh server has no connections, and the pool starts with 10 threads, the default minimum of spare threads
-    assertThat(provider.status()).isEqualTo("http-nio-" + port(server) + ": 0/8192 connections, 0/10 threads");
+    awaitStatus("http-nio-" + port(server) + ": 0/8192 connections, 0/10 threads");
 
     connect(server);
     connect(server);
@@ -217,7 +225,7 @@ class TomcatStatusProviderTest {
     Tomcat server = server(protocol -> protocol.setMaxConnections(-1));
     started(server);
 
-    assertThat(provider.status()).isEqualTo("http-nio-" + port(server) + ": 0/10 threads");
+    awaitStatus("http-nio-" + port(server) + ": 0/10 threads");
   }
 
   @Test
@@ -232,8 +240,7 @@ class TomcatStatusProviderTest {
     started(applicationFirst ? management : application);
     started(applicationFirst ? application : management);
 
-    assertThat(provider.status())
-        .isEqualTo(applicationFirst ? applicationStatus + ", " + managementStatus : managementStatus + ", " + applicationStatus);
+    awaitStatus(applicationFirst ? applicationStatus + ", " + managementStatus : managementStatus + ", " + applicationStatus);
   }
 
   @Test
@@ -242,7 +249,7 @@ class TomcatStatusProviderTest {
     started(server);
     started(server);
 
-    assertThat(provider.status()).isEqualTo("http-nio-" + port(server) + ": 0/8192 connections, 0/10 threads");
+    awaitStatus("http-nio-" + port(server) + ": 0/8192 connections, 0/10 threads");
   }
 
   @Test
@@ -270,7 +277,7 @@ class TomcatStatusProviderTest {
     // under an Arabic (Egypt) locale, numbers are formatted with Arabic-Indic digits, such as "١٠" for 10
     Locale.setDefault(Locale.forLanguageTag("ar-EG"));
     try {
-      assertThat(provider.status()).isEqualTo("http-nio-" + port(server) + ": 0/8192 connections, 0/10 threads");
+      awaitStatus("http-nio-" + port(server) + ": 0/8192 connections, 0/10 threads");
     } finally {
       Locale.setDefault(defaultLocale);
     }
