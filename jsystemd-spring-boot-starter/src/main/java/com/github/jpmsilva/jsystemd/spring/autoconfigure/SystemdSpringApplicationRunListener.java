@@ -34,6 +34,7 @@ import org.springframework.boot.SpringApplicationRunListener;
 import org.springframework.boot.bootstrap.ConfigurableBootstrapContext;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.core.NestedExceptionUtils;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 
@@ -44,7 +45,8 @@ import org.springframework.core.env.ConfigurableEnvironment;
  * {@link ApplicationRunStatusProvider} to provide status updates of the current phase of the application life cycle. Once the application context is
  * prepared, it registers a bean that closes the instance when the context is closed, and sets up an {@link ApplicationContextStatusProvider} to report the
  * bean creation progress. Once the application has started, it tells systemd that the application is ready, if so configured with
- * {@code systemd.ready-event=application-started}, rather than once it accepts traffic. The instance is closed if the application fails to start.
+ * {@code systemd.ready-event=application-started}, rather than once it accepts traffic. If the application fails, systemd is told why, and the instance is
+ * closed.
  *
  * <p>Applications that configure the instance themselves depend on {@code jsystemd-spring-boot} rather than the starter.
  *
@@ -168,13 +170,25 @@ public class SystemdSpringApplicationRunListener implements SpringApplicationRun
   }
 
   /**
-   * Closes the instance if the application fails to start, as the context may not have created the bean yet, in which case it would not close it.
+   * Tells systemd why the application failed, with the most specific cause of the failure, as the status the service unit is left with, and closes the
+   * instance, as the context may not have created the bean yet, in which case it would not close it. The reason is the last status sent, so that the
+   * status providers that report the shutdown do not replace it while Spring Boot closes the context, which it does after calling this. When the refresh of
+   * the context fails, the context destroys its beans before, closing the instance, which can still send the reason, as it is sent directly.
    */
   @Override
   public void failed(@Nullable ConfigurableApplicationContext context, Throwable exception) {
     if (enabled) {
+      Systemd.instance().failed(reason(exception));
       close();
     }
+  }
+
+  // the most specific cause is usually the most telling one, such as the connection refused by a database, while the outer ones only say what failed
+  // because of it, such as the creation of a bean; its class stands in for a message it does not have
+  static String reason(Throwable exception) {
+    Throwable cause = NestedExceptionUtils.getMostSpecificCause(exception);
+    String message = cause.getMessage();
+    return "Failed: " + (message == null || message.isBlank() ? cause.getClass().getName() : message);
   }
 
   private static void close() {

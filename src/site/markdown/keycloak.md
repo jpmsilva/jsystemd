@@ -12,13 +12,14 @@ The provider then:
 
 * tells systemd that Keycloak is ready once it can serve requests, that is, once it has completed its bootstrap (migrating the database, importing
   realms, creating the initial admin user) and its HTTP server listens;
-* extends the startup timeout while the bootstrap makes progress, such as on each changeset of the database migration, so that a startup that takes
-  long, as after an upgrade, is not timed out, while one that hangs still is (see [Startup progress](#Startup_progress));
+* extends the startup timeout while the bootstrap makes progress, such as on each realm it imports, or, once opted into, on each changeset of the
+  database migration, so that a startup that takes long, as after an upgrade, is not timed out, while one that hangs still is (see
+  [Startup progress](#Startup_progress));
 * tells systemd that Keycloak is stopping as soon as it is told to stop;
 * sends the watchdog heartbeats when the service unit sets `WatchdogSec`, which can take the health of Keycloak into account, once opted into (see
   [Health](#Health));
 * sends the status shown by `systemctl status`: `Startup: bootstrapping` while Keycloak bootstraps, or the step of the bootstrap it is at, such as
-  `Startup: migrating the database (changeset 26.2.0-36750, 117 applied)`, then what it waits for to be ready, such as
+  `Startup: importing realm acme`, then what it waits for to be ready, such as
   `Startup: waiting for the readiness health checks (down: …)`, with the names of the checks that are down, and `Shutdown: stopping` while it stops,
   followed by the status of Keycloak and of the JVM (see [Status providers](#Status_providers)). A startup that does not complete, which systemd times
   out, shows what Keycloak was doing, or still waiting for.
@@ -41,12 +42,24 @@ providers, right before it considers its bootstrap completed. Then:
 The startup log tells which one the provider does, with `Telling systemd that Keycloak is ready once its readiness health checks are all up`, or
 `once it has completed its bootstrap and its HTTP server listens`.
 
+### When the bootstrap fails
+
+When the bootstrap fails, as when the database cannot be reached, Keycloak logs why, and exits with status 1. The failure shows in the journal of the
+service unit, which has Keycloak's error message, and in its result, which `systemctl status` shows, such as
+`Main process exited, code=exited, status=1/FAILURE`. Unlike under Spring Boot (see [Startup and shutdown timeouts](timeouts.html)), the status is not
+replaced by the reason of the failure, and keeps the last one sent, such as `Shutdown: stopping`.
+
+Keycloak does not tell its providers that its bootstrap failed, nor why: it passes the exception to an error handler of its own, and exits. The reason
+could only be had from parts of Keycloak that are not meant for providers, which the provider does not rely on by default (see
+[Following the database migration](#Following_the_database_migration)), for a reason that the journal already has.
+
 ## Startup progress
 
 While Keycloak bootstraps, the provider follows the steps of the bootstrap that Keycloak lets a provider observe:
 
-* the database migration, which Keycloak runs with Liquibase the first time it starts, and after an upgrade: each changeset is shown as it is applied,
-  along with the changesets applied so far, such as `Startup: migrating the database (changeset 26.2.0-36750, 117 applied)`;
+* the database migration, which Keycloak runs with Liquibase the first time it starts, and after an upgrade, once opted into (see
+  [Following the database migration](#Following_the_database_migration)): each changeset is shown as it is applied, along with the changesets applied
+  so far, such as `Startup: migrating the database (changeset 26.2.0-36750, 117 applied)`;
 * the realms that Keycloak imports as it starts (`--import-realm`), such as `Startup: importing realm acme`;
 * anything else that Keycloak publishes an event for to its providers, such as each realm and each client it creates, as when it creates the master
   realm, or imports one, which is not shown, but tells that the bootstrap makes progress.
@@ -60,6 +73,7 @@ The rest of the startup does not extend the timeout, as the provider cannot tell
 for it:
 
 * the startup of Keycloak before it initializes its providers;
+* the database migration, unless opted into following it;
 * the wait for the lock of the database, while another node of the cluster migrates it;
 * the steps of the bootstrap that publish no event, such as the migration of the realms to a new version of Keycloak, which follows the one of the
   database, and the startup of the caches, in which the node joins its cluster;
@@ -69,25 +83,33 @@ To stop extending the startup timeout, while still showing the steps of the boot
 
 ### Following the database migration
 
-Keycloak only lets its Liquibase connection provider see the Liquibase instances it migrates the database with, so the provider adds one of its
-own, `jsystemd`, which takes the place of the one of Keycloak, without any option to set, and delegates everything to it, only adding a listener to the
-Liquibase instances it creates. When Keycloak does not run under systemd, the provider of Keycloak is used as is.
+The database migration is not followed by default. Keycloak publishes no event while it migrates its database, and only lets its Liquibase connection
+provider see the Liquibase instances it migrates it with. Following it means taking the place of that provider, whose SPI (`connectionsLiquibase`) is
+internal to Keycloak: it is not meant for providers, and may change in any release of Keycloak, without notice. As the provider of jsystemd uses no
+extension point of Keycloak that is not supported unless opted into, the database migration is then neither shown nor extends the startup timeout, so
+set `TimeoutStartSec=` long enough for the longest migration expected, such as the one of an upgrade of Keycloak.
 
-The SPI of that provider (`connectionsLiquibase`) is internal to Keycloak, which says so every time it is built with the provider:
+To follow it, opt into the Liquibase connection provider of jsystemd, which is a build option, so build Keycloak again:
+
+```
+/opt/keycloak/bin/kc.sh build --spi-connections-liquibase--jsystemd--enabled=true
+```
+
+The provider, `jsystemd`, then takes the place of the one of Keycloak, and delegates everything to it, only adding a listener to the Liquibase instances
+it creates. When Keycloak does not run under systemd, the provider of Keycloak is used as is. Keycloak warns about the internal SPI every time it is
+built with it:
 
 ```
 WARN  [org.keycloak.services] (build-…) KC-SERVICES0047: jsystemd (com.github.jpmsilva.jsystemd.keycloak.LiquibaseProgressProviderFactory) is implementing the internal SPI connectionsLiquibase. This SPI is internal and may change without notice
 ```
 
-The warning is expected. Should a later release of Keycloak change that SPI, the migration is no longer followed, but still runs: the provider does
-not depend on what the Liquibase connection provider of Keycloak does. To leave the Liquibase connection provider of Keycloak alone, disable the one
-added by the provider, which is a build option, so build Keycloak again:
-
-```
-/opt/keycloak/bin/kc.sh build --spi-connections-liquibase--jsystemd--enabled=false
-```
-
-The database migration is then neither shown nor extends the startup timeout, unlike the other steps of the bootstrap.
+It works on a best effort basis, and is only tested with the release of Keycloak this version of jsystemd is built against (see
+[Supported versions](#Supported_versions)). It is written to stay out of the way of the migration should a later release of Keycloak change the SPI:
+it delegates to the provider of Keycloak whichever methods it has, through a dynamic proxy, and when it cannot listen to a Liquibase instance, it logs a
+warning, and the migration still runs, without being followed. What it cannot guard against is a release of Keycloak that changes the SPI so that the
+provider can no longer be loaded, or no longer finds the provider of Keycloak to delegate to: Keycloak would then fail to build, or to migrate its
+database, and so to start. Before upgrading Keycloak with the provider opted into, try the upgrade outside of production first, and, should it fail,
+build Keycloak again without the option.
 
 ## Options
 
@@ -271,8 +293,9 @@ TimeoutStartSec=300
 WatchdogSec=30
 ```
 
-Set `TimeoutStartSec=` long enough for the parts of the startup that do not extend it (see [Startup progress](#Startup_progress)), and for the slowest
-single step expected of the others, such as the longest changeset of a database migration.
+Set `TimeoutStartSec=` long enough for the parts of the startup that do not extend it (see [Startup progress](#Startup_progress)), such as the whole
+database migration, unless following it is opted into, and for the slowest single step expected of the others, such as the longest changeset of a
+database migration, once it is.
 
 The provider does not include the JNA library that `jsystemd-core` needs on Java 17 to 21, as Keycloak already provides it: a second copy would conflict
 with it. When Keycloak runs on Java 22 or later, such as Java 25, jsystemd notifies systemd without JNA (see [Native library](native-library.html)).
@@ -286,5 +309,5 @@ along with its default `JAVA_ADD_OPENS`, so the JVM does not warn about it. If y
 The provider is built and tested against Keycloak 26.8.2, the latest release when this version of jsystemd was released: the integration tests run
 it under systemd, with the health endpoints and the metrics enabled and disabled. Other releases of Keycloak 26 are likely to work, but they are not
 tested: besides the provider API of Keycloak, the provider relies on SmallRye Health and ArC, which Keycloak is built on, and on parts of Keycloak that
-are not meant for providers, each of which it does without when it is not as expected: its Liquibase connection provider, for the progress of the
-database migration, its Agroal datasource, for the connection pool, and its Infinispan cache manager, for the cluster.
+are not meant for providers, each of which it does without when it is not as expected: its Agroal datasource, for the connection pool, its
+Infinispan cache manager, for the cluster, and, once opted into, its Liquibase connection provider, for the progress of the database migration.

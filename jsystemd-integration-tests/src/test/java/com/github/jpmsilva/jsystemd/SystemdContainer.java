@@ -87,12 +87,14 @@ class SystemdContainer extends GenericContainer<SystemdContainer> {
    * Builds Keycloak, with its provider for systemd, and waits for the build to complete.
    *
    * @param options the build options of Keycloak, such as {@code --health-enabled=true}
+   * @return the output of the build
    */
-  void buildKeycloak(String... options) {
+  String buildKeycloak(String... options) {
     List<String> command = new ArrayList<>(List.of("/opt/keycloak/bin/kc.sh", "build"));
     command.addAll(List.of(options));
     ExecResult result = exec(command.toArray(String[]::new));
     assertThat(result.getExitCode()).as("kc.sh build failed: %s%s", result.getStdout(), result.getStderr()).isZero();
+    return result.getStdout() + result.getStderr();
   }
 
   /**

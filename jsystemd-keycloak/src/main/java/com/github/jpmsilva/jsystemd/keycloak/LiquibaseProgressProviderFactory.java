@@ -37,6 +37,7 @@ import org.keycloak.connections.jpa.updater.liquibase.conn.LiquibaseConnectionPr
 import org.keycloak.connections.jpa.updater.liquibase.conn.LiquibaseConnectionProviderFactory;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.KeycloakSessionFactory;
+import org.keycloak.provider.EnvironmentDependentProviderFactory;
 import org.keycloak.provider.ProviderFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,14 +51,15 @@ import org.slf4j.LoggerFactory;
  * provider Keycloak would otherwise use, only adding a listener to the Liquibase instances that provider returns. Nothing else is changed, and the
  * provider of Keycloak is returned as is when not running under systemd.
  *
- * <p>That SPI is internal to Keycloak, which says so with a warning when it is built with this provider. To stay out of the way of the migration should
- * the SPI change, the provider of Keycloak is wrapped in a dynamic proxy, rather than implemented method by method, and a Liquibase instance that
- * cannot be listened to is returned as is: the migration is then no longer followed, but still runs. This factory can also be disabled, as any other, with
- * the build option {@code --spi-connections-liquibase--jsystemd--enabled=false}.
+ * <p>That SPI is internal to Keycloak, which says so with a warning when it is built with this provider, and may change without notice, so this factory
+ * is disabled unless opted into, with the build option {@code --spi-connections-liquibase--jsystemd--enabled=true}: Keycloak enables every factory unless
+ * told otherwise, so this one tells it otherwise by default (see {@link #isSupported(Config.Scope)}). Once opted into, it works on a best effort basis: to
+ * stay out of the way of the migration should the SPI change, the provider of Keycloak is wrapped in a dynamic proxy, rather than implemented method by
+ * method, and a Liquibase instance that cannot be listened to is returned as is: the migration is then no longer followed, but still runs.
  *
  * @author Joao Silva
  */
-public class LiquibaseProgressProviderFactory implements LiquibaseConnectionProviderFactory {
+public class LiquibaseProgressProviderFactory implements LiquibaseConnectionProviderFactory, EnvironmentDependentProviderFactory {
 
   /**
    * The id of the factory, which is part of its options.
@@ -105,6 +107,19 @@ public class LiquibaseProgressProviderFactory implements LiquibaseConnectionProv
   @Override
   public int order() {
     return ORDER;
+  }
+
+  /**
+   * Tells Keycloak whether to use this factory, when it is built: only when opted into, as it implements an SPI internal to Keycloak. Keycloak only asks
+   * once the {@code enabled} option, which it reads with a default of {@code true}, is not {@code false}; it is read here again with a default of
+   * {@code false}, so that the factory is only used when set to {@code true}.
+   *
+   * @param config the options of this factory
+   * @return {@code true} if opted into with {@code --spi-connections-liquibase--jsystemd--enabled=true}
+   */
+  @Override
+  public boolean isSupported(Config.Scope config) {
+    return Boolean.TRUE.equals(config.getBoolean("enabled", false));
   }
 
   @Override

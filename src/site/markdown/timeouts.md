@@ -42,10 +42,10 @@ no longer extended and it is up to you to ensure the startup completes in time. 
 Anything that runs before the starter sets up the integration with systemd, such as a Spring Cloud bootstrap application, does not extend it either (see
 [Application hierarchies](application-hierarchies.html)).
 
-The [Keycloak provider](keycloak.html) extends the startup timeout on the steps of the bootstrap of Keycloak that it can follow: each changeset of the
-database migration, each realm that is imported, and at most once a second on the smaller steps. The rest of the startup does not extend it, so set
-`TimeoutStartSec=` long enough for it, and for the slowest single step expected, such as the longest changeset of a migration (see
-[Startup progress](keycloak.html#Startup_progress)).
+The [Keycloak provider](keycloak.html) extends the startup timeout on the steps of the bootstrap of Keycloak that it can follow: each realm that is
+imported, each changeset of the database migration, once opted into, and at most once a second on the smaller steps. The rest of the startup does not
+extend it, such as the whole database migration unless opted into, so set `TimeoutStartSec=` long enough for it, and for the slowest single step
+expected (see [Startup progress](keycloak.html#Startup_progress)).
 
 Under Spring Boot, the startup also includes the `ApplicationRunner` and `CommandLineRunner` beans, as the application is only ready once they have
 run, and the timeout is not extended while they run. For runners that run for long, or never end, notify systemd before they run, with
@@ -80,3 +80,8 @@ can be told apart from a hung one (see [Status providers](status-providers.html)
 
 An application that stops on its own before it is ready, for instance because its startup failed, is still considered starting by systemd until it exits:
 `TimeoutStartSec=` keeps applying to its shutdown, not `TimeoutStopSec=`.
+
+When the application fails, [failed(reason)](apidocs/com/github/jpmsilva/jsystemd/Systemd.html) tells systemd that it is stopping, and why, as the status
+of the service unit, which `systemctl status` keeps showing once the application has exited, such as `Failed: Connection refused`. It is the last status
+sent: the status providers that report the shutdown no longer update it. Under Spring Boot, it is called when the application fails to start, with the
+message of the most specific cause of the failure.

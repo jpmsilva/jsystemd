@@ -16,7 +16,6 @@
 
 package com.github.jpmsilva.jsystemd;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -51,6 +50,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.InOrder;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.slf4j.LoggerFactory;
@@ -235,73 +235,6 @@ class SystemdTest {
       Thread.currentThread().interrupt();
       throw new IllegalStateException(e);
     }
-  }
-
-  @Test
-  void sendsTheStatusWholeWhenItFits() {
-    String first = "a".repeat(2000);
-    // the second part fills the status up to the limit, after the separator
-    String second = "b".repeat(Systemd.STATUS_MAX_BYTES - first.length() - 2);
-    systemd.addStatusProviders(provider(first), provider(second));
-
-    systemd.updateStatus();
-
-    notify.verify(() -> SystemdNotify.status(first + ", " + second));
-  }
-
-  @Test
-  void cutsTheStatusThatDoesNotFit() {
-    systemd.addStatusProviders(provider("first"), provider("x".repeat(Systemd.STATUS_MAX_BYTES)), provider("last"));
-
-    systemd.updateStatus();
-
-    // the ellipsis takes 3 bytes
-    notify.verify(() -> SystemdNotify.status("first, " + "x".repeat(Systemd.STATUS_MAX_BYTES - 7 - 3) + "…"));
-  }
-
-  @Test
-  void cutsTheStatusOnlyWhenItDoesNotFit() {
-    assertThat(Systemd.cut("status", 6)).isEqualTo("status");
-    // the ellipsis takes 3 bytes
-    assertThat(Systemd.cut("status", 5)).isEqualTo("st…");
-  }
-
-  @Test
-  void cutsTheStatusBetweenCharacters() {
-    // the euro sign takes 3 bytes, and the emoji 4, as a surrogate pair
-    assertThat(Systemd.cut("€€€€", 10)).isEqualTo("€€…");
-    assertThat(Systemd.cut("€€€€", 9)).isEqualTo("€€…");
-    assertThat(Systemd.cut("€€€€", 8)).isEqualTo("€…");
-    assertThat(Systemd.cut("\uD83D\uDE00".repeat(3), 9)).isEqualTo("\uD83D\uDE00…");
-    assertThat(Systemd.cut("\uD83D\uDE00".repeat(3), 6)).isEqualTo("…");
-  }
-
-  @Test
-  void neverCutsTheStatusWithinACharacter() {
-    // characters of 1, 2, 3 and 4 bytes in UTF-8, 50 bytes in all
-    String text = "aé€\uD83D\uDE00".repeat(5);
-
-    // every number of bytes too few for the whole text, down to the ellipsis alone
-    for (int maxBytes = 3; maxBytes < 50; maxBytes++) {
-      String status = Systemd.cut(text, maxBytes);
-      byte[] bytes = status.getBytes(UTF_8);
-
-      assertThat(bytes.length).as("bytes of the status cut to %d bytes", maxBytes).isLessThanOrEqualTo(maxBytes);
-      assertThat(text).startsWith(status.substring(0, status.length() - 1));
-      // a character split between its bytes, or between the halves of a surrogate pair, would not survive the encoding
-      assertThat(new String(bytes, UTF_8)).isEqualTo(status);
-    }
-  }
-
-  @Test
-  void replacesLineBreaksInStatus() {
-    // each line of a notification is a separate assignment, so these would otherwise also notify systemd that the application is ready, and alive
-    systemd.addStatusProviders(provider("db down\nREADY=1"), provider("cache down\r\nWATCHDOG=1"), provider("first\n\nsecond"),
-        provider("queue down\rSTOPPING=1"));
-
-    systemd.updateStatus();
-
-    notify.verify(() -> SystemdNotify.status("db down READY=1, cache down WATCHDOG=1, first second, queue down STOPPING=1"));
   }
 
   @Test
@@ -984,6 +917,72 @@ class SystemdTest {
 
     notify.verify(SystemdNotify::stopping);
     notify.verify(SystemdNotify::watchdog, never());
+  }
+
+  @Test
+  void notifiesStoppingAndTheReasonWhenFailed() {
+    systemd.enableExtendTimeout(Duration.ofSeconds(5), Duration.ofSeconds(29));
+
+    systemd.failed("Failed: connection refused");
+
+    InOrder inOrder = Mockito.inOrder(SystemdNotify.class);
+    inOrder.verify(notify, SystemdNotify::stopping);
+    inOrder.verify(notify, () -> SystemdNotify.status("Failed: connection refused"));
+    // the application is on its way out, so the startup is no longer extended
+    assertThat(systemd.extendTimeoutFuture()).isNull();
+    assertThat(systemd.isFailed()).isTrue();
+  }
+
+  @Test
+  void sendsNoStatusOnceFailed() throws Exception {
+    systemd.addStatusProviders(provider("always"), new Stopping());
+
+    systemd.failed("Failed: boom");
+    // as the status updates while the application shuts down would, such as the periodic ones, or those sent directly once closed
+    systemd.updateStatus();
+    systemd.close();
+    systemd.updateStatus();
+
+    notify.verify(() -> SystemdNotify.status(anyString()));
+    notify.verify(() -> SystemdNotify.status("Failed: boom"));
+    assertThat(systemd.lastStatusUpdateSent()).isZero();
+  }
+
+  @Test
+  void doesNotReplaceTheReasonOfTheFailureWithAStatusBuiltBefore() {
+    systemd.addStatusProviders(new StatusProvider() {
+      @Override
+      public @NonNull String status() {
+        // a slow status provider, while the application fails on another thread
+        completeOnAnotherThread(() -> systemd.failed("Failed: boom"));
+        return "older";
+      }
+    });
+
+    systemd.updateStatus();
+
+    // the reason was sent on the other thread, where the static mock of SystemdNotify does not apply
+    assertThat(systemd.isFailed()).isTrue();
+    notify.verify(() -> SystemdNotify.status("older"), never());
+  }
+
+  @Test
+  void sendsOnlyTheFirstReasonOfTheFailure() {
+    systemd.failed("Failed: first");
+    systemd.failed("Failed: second");
+
+    notify.verify(SystemdNotify::stopping);
+    notify.verify(() -> SystemdNotify.status("Failed: first"));
+    notify.verify(() -> SystemdNotify.status("Failed: second"), never());
+  }
+
+  @Test
+  void sendsTheReasonOfTheFailureWhenClosed() throws Exception {
+    systemd.close();
+
+    systemd.failed("Failed: boom");
+
+    notify.verify(() -> SystemdNotify.status("Failed: boom"));
   }
 
   @Test

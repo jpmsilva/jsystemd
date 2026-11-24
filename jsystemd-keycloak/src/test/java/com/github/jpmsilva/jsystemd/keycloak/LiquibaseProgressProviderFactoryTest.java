@@ -39,6 +39,7 @@ import liquibase.exception.LiquibaseException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.keycloak.Config;
 import org.keycloak.connections.jpa.updater.liquibase.conn.KeycloakLiquibase;
 import org.keycloak.connections.jpa.updater.liquibase.conn.LiquibaseConnectionProvider;
 import org.keycloak.connections.jpa.updater.liquibase.conn.LiquibaseConnectionProviderFactory;
@@ -110,6 +111,17 @@ class LiquibaseProgressProviderFactoryTest {
     // Keycloak picks the factory with the highest order as the default one of its SPI, and its own has an order of 100
     assertThat(factory.order()).isGreaterThan(100);
     assertThat(factory.getId()).isEqualTo("jsystemd");
+  }
+
+  @Test
+  void isOnlyUsedWhenOptedInto() {
+    // Keycloak reads the option with a default of true, and only asks the factory when it is not false
+    Config.Scope config = mock(Config.Scope.class);
+    when(config.getBoolean("enabled", false)).thenReturn(false);
+    assertThat(factory.isSupported(config)).isFalse();
+
+    when(config.getBoolean("enabled", false)).thenReturn(true);
+    assertThat(factory.isSupported(config)).isTrue();
   }
 
   @Test

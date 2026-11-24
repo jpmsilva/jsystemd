@@ -108,10 +108,28 @@ class KeycloakIT {
   }
 
   @Test
-  void followsTheDatabaseMigration() {
+  void doesNotFollowTheDatabaseMigrationByDefault() {
     // Keycloak only migrates its database when it has changesets to apply, as the first time it starts, which creates it
     container.removeKeycloakDatabase();
-    container.buildKeycloak();
+    // the Liquibase connection provider of jsystemd implements an SPI internal to Keycloak, which Keycloak would warn about if it used it
+    assertThat(container.buildKeycloak()).doesNotContain("KC-SERVICES0047");
+    container.runKeycloak(unit, PROPERTIES);
+    List<String> statuses = new ArrayList<>();
+    await().untilAsserted(() -> {
+      Map<String, String> properties = container.show(unit);
+      statuses.add(properties.get("StatusText"));
+      assertThat(properties).containsEntry("ActiveState", "active");
+    });
+
+    assertThat(container.journal(unit)).doesNotContain("Following the database migration of Keycloak");
+    assertThat(statuses).noneMatch(status -> status != null && status.startsWith("Startup: migrating the database"));
+  }
+
+  @Test
+  void followsTheDatabaseMigrationOnceOptedInto() {
+    // Keycloak only migrates its database when it has changesets to apply, as the first time it starts, which creates it
+    container.removeKeycloakDatabase();
+    assertThat(container.buildKeycloak("--spi-connections-liquibase--jsystemd--enabled=true")).contains("KC-SERVICES0047");
     // systemd then logs the notifications it receives
     container.logLevel("debug");
     try {
@@ -123,7 +141,7 @@ class KeycloakIT {
         assertThat(properties).containsEntry("ActiveState", "active");
       });
 
-      // the provider is the Liquibase connection provider of Keycloak, without any option, and each changeset extends the startup timeout
+      // the provider is the Liquibase connection provider of Keycloak, and each changeset extends the startup timeout
       String journal = container.journal(unit);
       assertThat(journal).contains("Following the database migration of Keycloak");
       assertThat(journal).contains("EXTEND_TIMEOUT_USEC=");

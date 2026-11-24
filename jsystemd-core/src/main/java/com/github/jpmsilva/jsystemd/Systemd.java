@@ -24,15 +24,11 @@ import static com.github.jpmsilva.jsystemd.SystemdUtilities.requireAtLeastOneMic
 import static com.github.jpmsilva.jsystemd.SystemdUtilities.requireHealthProviders;
 import static com.github.jpmsilva.jsystemd.SystemdUtilities.requireProviders;
 import static java.lang.invoke.MethodHandles.lookup;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.MICROSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.slf4j.LoggerFactory.getLogger;
 
-import java.nio.ByteBuffer;
-import java.nio.CharBuffer;
-import java.nio.charset.CodingErrorAction;
 import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -50,7 +46,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.jspecify.annotations.Nullable;
 import org.slf4j.Logger;
@@ -68,7 +63,8 @@ import org.slf4j.Logger;
  *   <li>optionally, register status providers with {@link #addStatusProviders(StatusProvider...)}, and health providers with
  *   {@link #addHealthProviders(HealthProvider...)};</li>
  *   <li>call {@link #ready()} once the application has started;</li>
- *   <li>on shutdown, call {@link #stopping()} before stopping the application, which also stops the watchdog heartbeats;</li>
+ *   <li>on shutdown, call {@link #stopping()} before stopping the application, which also stops the watchdog heartbeats, or, if the application fails,
+ *   such as when its startup fails, call {@link #failed(String)} instead, which also tells systemd why;</li>
  *   <li>call {@link #close()} last, once the application has stopped, to stop the periodic tasks; it also calls {@link #stopping()}, if not called
  *   before.</li>
  * </ol>
@@ -88,14 +84,6 @@ import org.slf4j.Logger;
 public class Systemd {
 
   private static final Logger logger = getLogger(lookup().lookupClass());
-
-  private static final Pattern LINE_BREAKS = Pattern.compile("[\\r\\n]+");
-
-  // systemd drops a notification longer than its buffer, of PIPE_BUF (4096) bytes, as a whole, so that it would keep showing the previous status: the
-  // status, which follows STATUS= in its notification, is cut to fit in UTF-8, which the notifications are sent in
-  static final int STATUS_MAX_BYTES = 4096 - "STATUS=".length();
-
-  private static final String STATUS_CUT = "…";
 
   private static final Object instanceLock = new Object();
 
@@ -146,6 +134,9 @@ public class Systemd {
   private final AtomicLong statusUpdatesStarted = new AtomicLong();
   private final Lock statusLock = new ReentrantLock();
   private long lastStatusUpdateSent;
+
+  // whether systemd was sent the reason of the failure of the application, which is the last status it is sent; guarded by the status lock
+  private boolean failureSent;
 
   // guards the periodic tasks and whether this instance is closed, so that each task runs at the period it reports, and that nothing is scheduled once the
   // executors are shut down; when held together with the state lock, as by stopping(), it is taken first, and nothing that holds the state lock takes it
@@ -575,6 +566,8 @@ public class Systemd {
    *
    * <p>Concurrent updates do not wait for each other. The status is not sent if an update that started later was sent first, so that systemd is never left
    * with an older status than the latest one sent.
+   *
+   * <p>Once {@link #failed(String)} is called, nothing is sent, so that systemd keeps showing the reason of the failure.
    */
   public void updateStatus() {
     // iterating a copy-on-write list works on a snapshot, so providers can be added while they are called, which may take long
@@ -584,52 +577,23 @@ public class Systemd {
     long update = statusUpdatesStarted.incrementAndGet();
     // read once, so that the whole status is built for the same state, even if it changes meanwhile
     State state = this.state;
-    // systemd reads each line of a notification as a separate assignment, so a line break in the status would let it send other notifications, such as
-    // READY=1 or WATCHDOG=1: line breaks are replaced, so that the status is always sent as a single STATUS= assignment
     String status = statusProviders.stream().filter(provider -> reportsIn(provider, state)).map(this::status).filter(t -> !t.isEmpty())
         .collect(Collectors.joining(", "));
-    String sent = cut(LINE_BREAKS.matcher(status).replaceAll(" "), STATUS_MAX_BYTES);
     statusLock.lock();
     try {
+      if (failureSent) {
+        logger.debug("Status not sent, as the reason of the failure of the application was sent: {}", status);
+        return;
+      }
       if (update < lastStatusUpdateSent) {
-        logger.debug("Status not sent, as a newer one was sent meanwhile: {}", sent);
+        logger.debug("Status not sent, as a newer one was sent meanwhile: {}", status);
         return;
       }
       lastStatusUpdateSent = update;
-      SystemdNotify.status(sent);
+      SystemdNotify.status(status);
     } finally {
       statusLock.unlock();
     }
-  }
-
-  /**
-   * Cuts a status, so that it fits in the given number of bytes in UTF-8: a status that does not fit is replaced by the beginning of it that fits, followed
-   * by an ellipsis. It is only ever cut between two characters, as splitting one, between the bytes of its UTF-8 encoding, would make it invalid UTF-8,
-   * which systemd ignores, clearing the status.
-   *
-   * @param status the status
-   * @param maxBytes the number of bytes the status must fit in, enough for at least the ellipsis
-   * @return the status, if it fits, or the beginning of it that fits, followed by an ellipsis
-   */
-  static String cut(String status, int maxBytes) {
-    if (utf8Length(status) <= maxBytes) {
-      return status;
-    }
-    return beginning(status, maxBytes - utf8Length(STATUS_CUT)) + STATUS_CUT;
-  }
-
-  // the longest beginning of the text whose UTF-8 encoding fits in the given number of bytes: an encoder that runs out of room stops before the character
-  // that does not fit, never between the bytes of a character, nor between the two halves of a surrogate pair; an invalid character is encoded as a
-  // question mark, as when the status is sent
-  private static String beginning(String text, int maxBytes) {
-    CharBuffer in = CharBuffer.wrap(text);
-    UTF_8.newEncoder().onMalformedInput(CodingErrorAction.REPLACE).onUnmappableCharacter(CodingErrorAction.REPLACE)
-        .encode(in, ByteBuffer.allocate(Math.max(maxBytes, 0)), true);
-    return text.substring(0, in.position());
-  }
-
-  private static int utf8Length(String text) {
-    return text.getBytes(UTF_8).length;
   }
 
   // for tests: the number of the last status update sent, counting from 1 for the first one started
@@ -663,12 +627,12 @@ public class Systemd {
       recovered(provider);
       return status;
     } catch (Exception e) {
-      failed(provider, "Status provider {} failed, leaving it out of the status", e);
+      providerFailed(provider, "Status provider {} failed, leaving it out of the status", e);
       return "";
     }
   }
 
-  private void failed(Object provider, String message, Exception e) {
+  private void providerFailed(Object provider, String message, Exception e) {
     if (failingProviders.add(provider)) {
       logger.warn(message, provider, e);
     } else {
@@ -799,7 +763,7 @@ public class Systemd {
       recovered(provider);
       return health;
     } catch (Exception e) {
-      failed(provider, "Health provider {} failed, considering the application unhealthy", e);
+      providerFailed(provider, "Health provider {} failed, considering the application unhealthy", e);
       return new HealthProvider.Health(false, Map.of(provider.getClass().getName(), "failed: " + e));
     }
   }
@@ -885,6 +849,46 @@ public class Systemd {
     // the periodic heartbeats are stopped only once systemd is told, as it keeps enforcing the watchdog until then; a heartbeat that runs meanwhile sends
     // nothing, as the state is checked when sending
     disableWatchdog();
+  }
+
+  /**
+   * Signals that the application failed, such as when its startup fails, and why: systemd is told that the application is stopping, with
+   * {@link #stopping()}, and is then sent the reason as the status of the service unit, which <code>systemctl status</code> shows once the application has
+   * exited. It is the last status sent: from then on, {@link #updateStatus()} sends nothing, so that no status provider, such as one that reports the
+   * shutdown, replaces it.
+   *
+   * <p>The reason is sent as {@link #updateStatus()} sends a status: its line breaks are replaced by spaces, and it is cut to fit in the status systemd
+   * accepts.
+   *
+   * <p>Only the first call sends the reason, later calls only call {@link #stopping()}, which has no effect either.
+   *
+   * @param reason why the application failed, such as the message of the exception that failed it
+   */
+  public void failed(String reason) {
+    requireNonNull(reason, "Reason must not be null");
+    // told it is stopping first, which stops the periodic extension of the startup timeout and the watchdog heartbeats, as the application is on its way out
+    stopping();
+    statusLock.lock();
+    try {
+      // sent while holding the status lock, as status updates are, so that none that was building the status meanwhile can be sent after it
+      if (!failureSent) {
+        failureSent = true;
+        logger.info("Notifying systemd that service failed: {}", reason);
+        SystemdNotify.status(reason);
+      }
+    } finally {
+      statusLock.unlock();
+    }
+  }
+
+  // for tests: whether the reason of the failure of the application was sent
+  boolean isFailed() {
+    statusLock.lock();
+    try {
+      return failureSent;
+    } finally {
+      statusLock.unlock();
+    }
   }
 
   /**

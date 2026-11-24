@@ -21,14 +21,19 @@
   but subclasses of it.
 * Under Keycloak, the status also shows the cluster of Keycloak, first, such as `Cluster: 3 nodes`, and the connection pool of its datasource when
   Keycloak is built with `metrics-enabled`: set `--spi-systemd--default--status-providers` to leave them out.
-* Under Keycloak, the startup timeout is now extended while the bootstrap makes progress, such as on each changeset of a database migration. For that,
-  the provider adds a Liquibase connection provider, which makes `kc.sh build` log the warning `KC-SERVICES0047` about the internal SPI
-  `connectionsLiquibase`: disable it with `--spi-connections-liquibase--jsystemd--enabled=false` (see [Keycloak](keycloak.html#Startup_progress)).
+* Under Keycloak, the startup timeout is now extended while the bootstrap makes progress, such as on each realm that is imported. Each changeset of
+  a database migration can extend it as well, and be shown in the status, once opted into with the build option
+  `--spi-connections-liquibase--jsystemd--enabled=true`, as it relies on an SPI internal to Keycloak (see
+  [Keycloak](keycloak.html#Following_the_database_migration)).
+* Under Spring Boot, when the application fails to start, the status of the service unit is left with the reason of the failure, such as
+  `Failed: Connection refused`, instead of the last status sent while it started up or shut down (see [Timeouts](timeouts.html)).
 * The built-in status provider beans of the starter are no longer all 1000 apart, as the new ones were placed between them (see
   [Status providers](status-providers.html#Custom_status_providers_under_Spring_Boot)).
 
 ### Other changes
 
+* An application that fails can tell systemd why with [Systemd.failed(reason)](apidocs/com/github/jpmsilva/jsystemd/Systemd.html), which is the last
+  status sent.
 * The watchdog can be [triggered](https://www.freedesktop.org/software/systemd/man/sd_notify.html#WATCHDOG=trigger), with
   [Health.unrecoverable(...)](apidocs/com/github/jpmsilva/jsystemd/HealthProvider.Health.html) from a health provider, or with
   [Systemd.triggerWatchdog()](apidocs/com/github/jpmsilva/jsystemd/Systemd.html).

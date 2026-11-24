@@ -365,6 +365,29 @@ class SystemdSpringApplicationRunListenerTest {
   }
 
   @Test
+  void tellsSystemdWhyTheApplicationFailed() {
+    GenericApplicationContext context = run();
+    // the statuses sent while starting up
+    notify.clearInvocations();
+
+    listener.failed(context, new IllegalStateException("Failed to create bean", new IllegalArgumentException("Connection refused")));
+    // as the context is then closed by Spring Boot, while the status providers that report the shutdown would replace the reason
+    systemd.updateStatus();
+
+    notify.verify(SystemdProcess.stopping());
+    notify.verify(SystemdProcess.status(() -> "Failed: Connection refused"));
+    notify.verify(SystemdProcess.status(Mockito::anyString));
+  }
+
+  @Test
+  void namesTheCauseOfTheFailureWithoutAMessage() {
+    assertThat(SystemdSpringApplicationRunListener.reason(new IllegalStateException("outer", new NullPointerException())))
+        .isEqualTo("Failed: java.lang.NullPointerException");
+    assertThat(SystemdSpringApplicationRunListener.reason(new IllegalStateException(" "))).isEqualTo("Failed: java.lang.IllegalStateException");
+    assertThat(SystemdSpringApplicationRunListener.reason(new IllegalStateException("outer"))).isEqualTo("Failed: outer");
+  }
+
+  @Test
   void buildsSystemdWithWatchdogWhenEnabledBySystemd() {
     utilities.when(SystemdProcess.watchdogUsec()).thenReturn(WATCHDOG_USEC);
 

@@ -17,10 +17,15 @@
 package com.github.jpmsilva.jsystemd;
 
 import static java.lang.invoke.MethodHandles.lookup;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.slf4j.LoggerFactory.getLogger;
 
+import java.nio.ByteBuffer;
+import java.nio.CharBuffer;
+import java.nio.charset.CodingErrorAction;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 
 /**
@@ -37,6 +42,14 @@ import org.slf4j.Logger;
 public final class SystemdNotify {
 
   private static final Logger logger = getLogger(lookup().lookupClass());
+
+  private static final Pattern LINE_BREAKS = Pattern.compile("[\\r\\n]+");
+
+  // systemd drops a notification longer than its buffer, of PIPE_BUF (4096) bytes, as a whole, so that it would keep showing the previous status: the
+  // status, which follows STATUS= in its notification, is cut to fit in UTF-8, which the notifications are sent in
+  static final int STATUS_MAX_BYTES = 4096 - "STATUS=".length();
+
+  private static final String STATUS_CUT = "…";
 
   private SystemdNotify() {
   }
@@ -84,13 +97,49 @@ public final class SystemdNotify {
   /**
    * Notifies systemd about the current status of the program.
    *
+   * <p>systemd reads each line of a notification as a separate assignment, so a line break in the status would let it send other notifications, such as
+   * {@code READY=1} or {@code WATCHDOG=1}: line breaks are replaced by spaces, so that the status is always sent as a single {@code STATUS=} assignment. A
+   * status longer than systemd accepts, of 4089 bytes in UTF-8, is cut to fit (see {@link #cut(String, int)}).
+   *
    * @see <a href="https://www.freedesktop.org/software/systemd/man/sd_notify.html#STATUS=%E2%80%A6">status</a>
    */
   static void status(String message) {
+    requireNonNull(message, "Message must not be null");
     if (usable()) {
-      logger.debug("Notifying systemd that service status is {}", requireNonNull(message, "Message must not be null"));
-      invoke("STATUS=" + message);
+      String status = cut(LINE_BREAKS.matcher(message).replaceAll(" "), STATUS_MAX_BYTES);
+      logger.debug("Notifying systemd that service status is {}", status);
+      invoke("STATUS=" + status);
     }
+  }
+
+  /**
+   * Cuts a status, so that it fits in the given number of bytes in UTF-8: a status that does not fit is replaced by the beginning of it that fits, followed
+   * by an ellipsis. It is only ever cut between two characters, as splitting one, between the bytes of its UTF-8 encoding, would make it invalid UTF-8,
+   * which systemd ignores, clearing the status.
+   *
+   * @param status the status
+   * @param maxBytes the number of bytes the status must fit in, enough for at least the ellipsis
+   * @return the status, if it fits, or the beginning of it that fits, followed by an ellipsis
+   */
+  static String cut(String status, int maxBytes) {
+    if (utf8Length(status) <= maxBytes) {
+      return status;
+    }
+    return beginning(status, maxBytes - utf8Length(STATUS_CUT)) + STATUS_CUT;
+  }
+
+  // the longest beginning of the text whose UTF-8 encoding fits in the given number of bytes: an encoder that runs out of room stops before the character
+  // that does not fit, never between the bytes of a character, nor between the two halves of a surrogate pair; an invalid character is encoded as a
+  // question mark, as when the status is sent
+  private static String beginning(String text, int maxBytes) {
+    CharBuffer in = CharBuffer.wrap(text);
+    UTF_8.newEncoder().onMalformedInput(CodingErrorAction.REPLACE).onUnmappableCharacter(CodingErrorAction.REPLACE)
+        .encode(in, ByteBuffer.allocate(Math.max(maxBytes, 0)), true);
+    return text.substring(0, in.position());
+  }
+
+  private static int utf8Length(String text) {
+    return text.getBytes(UTF_8).length;
   }
 
   /**
