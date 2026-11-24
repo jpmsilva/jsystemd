@@ -271,7 +271,13 @@ if ! ${PUBLISH}; then
   mvnw clean verify -DperformRelease=true -am -pl "${MODULES}"
   echo
   echo "Signed artifacts of ${RELEASE}:"
-  find . -path '*/target/*' -name "*-${RELEASE}*.asc" -printf '  %P\n' | sort
+  # every signature in the target directory of the root pom and of each published module, whatever the name of the file it signs, as the jar of a module
+  # may have no version in its name, such as the one of the Keycloak provider
+  TARGETS=target
+  for MODULE in ${MODULES//[:,]/ }; do
+    TARGETS="${TARGETS} ${MODULE}/target"
+  done
+  find ${TARGETS} -maxdepth 1 -name '*.asc' -printf '  %p\n' | sort
   stage_github_release_files
   set_version "${NEXT}" "Prepare ${NEXT}"
   echo
