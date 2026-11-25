@@ -21,7 +21,7 @@ limitations under the License.
 
   <groupId>com.github.jpmsilva.jsystemd</groupId>
   <artifactId>jsystemd</artifactId>
-  <version>5.0.1-SNAPSHOT</version>
+  <version>5.1.0</version>
   <packaging>pom</packaging>
 
   <name>jsystemd</name>
@@ -64,7 +64,7 @@ limitations under the License.
   <properties>
     <!-- the time of the entries of the jars, rather than that of the build, so that builds of the same commit give the same bytes; versions:set, in
     do-release, updates it along with the version -->
-    <project.build.outputTimestamp>2026-11-17T16:38:05Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2026-11-25T10:36:25Z</project.build.outputTimestamp>
     <!-- the minimum supported JDK: the sources are compiled and documented with its toolchain, so that the build does not depend on the JDK Maven runs on,
     except for those for Java 22 and later below -->
     <maven.compiler.release>17</maven.compiler.release>
