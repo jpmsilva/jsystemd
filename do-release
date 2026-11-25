@@ -148,6 +148,60 @@ for SERVER in ${SERVERS}; do
 done
 rm -f "${SETTINGS}"
 
+# a property of the build, as the Maven settings may set it, or nothing when it is not set
+property() {
+  local value
+  value=$(mvnw -q -N help:evaluate -Dexpression="$1" -DforceStdout 2> /dev/null) || value=
+  [ "${value}" = "null object or invalid expression" ] && value=
+  echo "${value}"
+}
+
+# the release signs its artifacts with gpg, which the build runs as gpg.executable, with the key gpg.keyname, or the default key of gpg; the build does
+# not ask for the passphrase of the key, so gpg-agent must have it cached, unless it is in MAVEN_GPG_PASSPHRASE; checked by signing a test message as the
+# build would, so that the release does not fail on a signature once it has started, with a less telling error
+check_gpg() {
+  local gpg key output hint
+  gpg=$(property gpg.executable)
+  gpg=${gpg:-gpg}
+  key=$(property gpg.keyname)
+  if ! command -v "${gpg}" > /dev/null; then
+    problem "${gpg}, which signs the release, is not installed: install GnuPG, or set gpg.executable in the Maven settings"
+    return 1
+  fi
+  if ! output=$(gpg-connect-agent /bye 2>&1); then
+    problem "gpg-agent, which signs the release with the passphrase it caches, is not running, and could not be started:"$'\n'"${output}"
+    return 1
+  fi
+  # listing the secret keys succeeds with no key at all, so the listing must have one
+  if ! "${gpg}" --batch --with-colons --list-secret-keys ${key:+"${key}"} 2> /dev/null | grep -q '^sec:'; then
+    if [ -n "${key}" ]; then
+      problem "no secret key ${key}, set as gpg.keyname in the Maven settings, to sign the release with: import it with gpg --import"
+    else
+      problem "no secret key to sign the release with: import one with gpg --import, and set it as gpg.keyname in the Maven settings"
+    fi
+    return 1
+  fi
+  if [ -n "${MAVEN_GPG_PASSPHRASE:-}" ]; then
+    output=$(echo test | "${gpg}" --batch --pinentry-mode loopback --passphrase-fd 3 ${key:+--local-user "${key}"} --armor --detach-sign \
+      3<<< "${MAVEN_GPG_PASSPHRASE}" 2>&1 > /dev/null) && return 0
+    hint="check the passphrase in MAVEN_GPG_PASSPHRASE"
+  else
+    output=$(echo test | "${gpg}" --batch --pinentry-mode loopback ${key:+--local-user "${key}"} --armor --detach-sign 2>&1 > /dev/null) && return 0
+    hint="gpg-agent may not have the passphrase of the key cached: cache it with"$'\n'
+    hint+="  echo test | ${gpg}${key:+ --local-user ${key}} --clearsign > /dev/null"$'\n'
+    hint+="which asks for it, or set it in MAVEN_GPG_PASSPHRASE"
+  fi
+  problem "signing a test message${key:+ with the key ${key}} failed, as signing the release would: ${hint}"$'\n'"gpg said:"$'\n'"${output}"
+  return 1
+}
+
+echo "Checking that the release can be signed..."
+GPG_SKIP=
+if ! check_gpg; then
+  # only in a dry run, which carries on to find the other problems, without signing
+  GPG_SKIP=-Dgpg.skip=true
+fi
+
 echo "Updating master and development from origin..."
 # the branches only: fetching all the tags would fail on any local tag that differs from the one of origin, which does not matter to the release
 git fetch origin master development
@@ -268,16 +322,20 @@ stage_github_release_files() {
 if ! ${PUBLISH}; then
   set_version "${RELEASE}" "Release ${RELEASE}"
   # the same build as the release, up to the signatures, short of publishing
-  mvnw clean verify -DperformRelease=true -am -pl "${MODULES}"
+  mvnw clean verify -DperformRelease=true ${GPG_SKIP} -am -pl "${MODULES}"
   echo
-  echo "Signed artifacts of ${RELEASE}:"
-  # every signature in the target directory of the root pom and of each published module, whatever the name of the file it signs, as the jar of a module
-  # may have no version in its name, such as the one of the Keycloak provider
-  TARGETS=target
-  for MODULE in ${MODULES//[:,]/ }; do
-    TARGETS="${TARGETS} ${MODULE}/target"
-  done
-  find ${TARGETS} -maxdepth 1 -name '*.asc' -printf '  %p\n' | sort
+  if [ -n "${GPG_SKIP}" ]; then
+    echo "Not signed, as signing failed the checks above."
+  else
+    echo "Signed artifacts of ${RELEASE}:"
+    # every signature in the target directory of the root pom and of each published module, whatever the name of the file it signs, as the jar of a
+    # module may have no version in its name, such as the one of the Keycloak provider
+    TARGETS=target
+    for MODULE in ${MODULES//[:,]/ }; do
+      TARGETS="${TARGETS} ${MODULE}/target"
+    done
+    find ${TARGETS} -maxdepth 1 -name '*.asc' -printf '  %p\n' | sort
+  fi
   stage_github_release_files
   set_version "${NEXT}" "Prepare ${NEXT}"
   echo
