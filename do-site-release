@@ -19,6 +19,17 @@ if [ "$1" = "--dry-run" ]; then
 fi
 
 cd "${SCRIPTPATH}"
+
+# the site is committed in a fresh clone of that repository, which does not see the identity set in this one's config, so it is passed to git
+# through the environment
+GIT_NAME=$(git config user.name || true)
+GIT_EMAIL=$(git config user.email || true)
+if [ -z "${GIT_NAME}" ] || [ -z "${GIT_EMAIL}" ]; then
+  echo "No git identity to commit the site with: set user.name and user.email, in this repository or globally." >&2
+  exit 1
+fi
+export GIT_AUTHOR_NAME="${GIT_NAME}" GIT_AUTHOR_EMAIL="${GIT_EMAIL}" GIT_COMMITTER_NAME="${GIT_NAME}" GIT_COMMITTER_EMAIL="${GIT_EMAIL}"
+
 ./do-site-build
 
 # published once, as a whole, from the root project
